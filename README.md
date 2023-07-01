@@ -26,7 +26,7 @@ cd py2d && pip install -e ./
 
 ## Requirements
 
-- python 3.10
+- python 3.9
   - [jax](https://pypi.org/project/jax/)
   - [scipy](https://pypi.org/project/scipy/)
   - [numpy](https://pypi.org/project/numpy/)
@@ -43,7 +43,7 @@ cd py2d && pip install -e ./
 
 **Set up a new python environment and install the required libraries**
 ```
-conda create -n jax python=3.10
+conda create -n jax python=3.9
 conda activate jax
 conda install numpy scipy scikit-learn prettytable 
 conda install -c conda-forge cudnn=8.8.0.121
