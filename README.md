@@ -41,7 +41,7 @@ cd py2d && pip install -e ./
 
 > If you encounter version mismatch issues while using both Torch and JAX, consider installing the appropriate versions of the required libraries or seeking further guidance from the relevant documentation.
 
-** Set up a new python environment and install the required libraries **
+**Set up a new python environment and install the required libraries**
 ```
 conda create -n jax python=3.10
 conda activate jax
@@ -51,7 +51,7 @@ conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvi
 pip install --upgrade "jax[cuda11_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 module load cuda
 ```
-Add following lines in your SLURM file before running the script. This activates the environment with the required libraries and loads the cuda module 
+Add the following lines in your SLURM file before running the script. This activates the environment with the required libraries and loads the cuda module 
 ```
 conda activate jax
 module load cuda
