@@ -40,6 +40,7 @@ cd py2d && pip install -e ./
 > Currently, for Cuda11, JAX requires CuDNN version 8.6 or above. However, Torch with CUDA 11.8 only supports this specific version of CuDNN. Therefore, it is important to install the appropriate version of PyTorch that matches the required version of CuDNN for JAX.
 
 > If you encounter version mismatch issues while using both Torch and JAX, consider installing the appropriate versions of the required libraries or seeking further guidance from the relevant documentation.
+
 ** Set up a new python environment and install the required libraries **
 ```
 conda create -n jax python=3.10
