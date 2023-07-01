@@ -12,6 +12,12 @@ Py2D is a Python solver for incompressible 2-dimensional (2D) Navier-stokes equa
 
 Py2D leverages JAX, a high-performance numerical computing library, allowing for rapid execution on GPUs while also seamlessly supporting CPUs for users who do not have access to GPUs.
 
+**Py2D features the following capabilities:**
+
+- Direct numerical simulations (DNS) for 2-dimensional (2D) turbulence, catering to a variety of systems including decaying, forced homogeneous, and beta-plane turbulence.
+- Large Eddy Simulations (LES) with Sub-Grid Scale (SGS) models. The compatible models include Smagorinsky (SMAG), Leith (LEITH), Dynamic Smagorinsky (DSMAG), Dynamic Leith (DLEITH), as well as gradient models - GM2, GM4, and GM6.
+- Coupling Neural Networks-based eddy viscosity or Sub-Grid Scale (SGS) terms with the LES solver. 
+
 ## Installation
 
 Clone the [py2d git repository](https://github.com/envfluids/py2d.git) to use the latest development version.
