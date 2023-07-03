@@ -28,6 +28,7 @@ from py2d.convert import *
 from py2d.aposteriori_analysis import eddyTurnoverTime_2DFHIT
 from py2d.SGSModel import *
 # from py2d.uv2tau_CNN import *
+from py2d.initialize import *
 
 # Enable x64 Precision for Jax
 jax.config.update('jax_enable_x64', True)
@@ -220,7 +221,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     if readTrue:
 
         # -------------- Initialization using pertubration --------------
-        w1_hat, psi_hat, psiPrevious_hat, psiCurrent_hat = initialize_random(NX, Kx, Ky):
+        w1_hat, psi_hat, psiPrevious_hat, psiCurrent_hat = initialize_perturbation(NX, Kx, Ky):
         time = 0.0
 
     else:

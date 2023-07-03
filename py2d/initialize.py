@@ -2,7 +2,7 @@ import numpy as np
 import numpy as nnp
 import jax.numpy as np
       
-def initialize_random(NX, Kx, Ky):
+def initialize_perturbation(NX, Kx, Ky):
     # -------------- Initialization using pertubration --------------
     kp = 10.0
     A  = 4*np.power(kp,(-5))/(3*np.pi)
@@ -28,3 +28,4 @@ def initialize_random(NX, Kx, Ky):
     
     
 #def initialize_resume(NX, Kx, Ky):
+
