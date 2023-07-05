@@ -221,7 +221,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     if readTrue:
 
         # -------------- Initialization using pertubration --------------
-        w1_hat, psi_hat, psiPrevious_hat, psiCurrent_hat = initialize_perturbation(NX, Kx, Ky):
+        w1_hat, psi_hat, psiPrevious_hat, psiCurrent_hat = initialize_perturbation(NX, Kx, Ky)
         time = 0.0
 
     else:
