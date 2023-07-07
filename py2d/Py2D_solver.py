@@ -116,25 +116,17 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # Filter Width
     Delta = 2 * Lx / NX
     
-    # Mesh size
-    dx = Lx / NX
-    
-    # Mesh points in x direction
-    x = np.linspace(0, Lx - dx, num=NX)
-    
+    Lx, _, X, Y = gridgen(Lx, NX)
     # -------------- Create the meshgrid both in physical and spectral space --------------
     Kx, Ky, Ksq = initialize_wavenumbers_2DFHIT(NX, NX, Lx, Lx)
 
+    # Numpy to jax
+    X = np.array(X)
+    Y = np.array(Y)    
     Kx = np.array(Kx)
     Ky = np.array(Ky)
     Ksq = np.array(Ksq)
-    
-    # Mesh points in x and y direction
-    X, Y = nnp.meshgrid(x, x, indexing ='ij')
-    
-    X = np.array(X)
-    Y = np.array(Y)
-    
+
     # -------------- Deterministic forcing Calculation --------------
 
     # Deterministic forcing in Physical space
@@ -473,8 +465,9 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # Print elapsed time
     print('Total Iteration: ', it+1)
     endTime = timer()
-    print('Total Time Taken: ', endTime-startTime)
 
+    print('Total Time Taken: ', endTime-startTime)
+# --------------------------------------------------------------------------
 if __name__ == '__main__':
     import sys
     sys.path.append('examples')
