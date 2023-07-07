@@ -70,6 +70,20 @@ def initialize_wavenumbers_2DFHIT(nx, ny, Lx, Ly):
     Ksq = Kx ** 2 + Ky ** 2
     return Kx, Ky, Ksq
 
+def gridgen(Lx, Nx, INDEXING='ij'):
+    # Mesh points in x and y direction
+    # To Do: should work for x!=y
+    
+    # Mesh size
+    dx = Lx / NX
+    
+    # Mesh points in x direction
+    x = np.linspace(0, Lx - dx, num=NX)
+    
+    X, Y = nnp.meshgrid(x, x, indexing ='ij')
+    
+    return Lx, _, X, Y
+
 def Omega2Psi_2DFHIT(Omega, Kx, Ky, Ksq):
     """
     Calculate the stream function from vorticity.
