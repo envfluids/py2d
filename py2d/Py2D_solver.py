@@ -5,17 +5,10 @@
 
 # 2D Turbulence Solver using Fourier-Fourier Pseudo-spectral Method
 # Navier-Stokes equation is in vorticity-stream function form
-import sys
-sys.path.append('examples')
-sys.path.append('py2d')
-sys.path.append('.')
-sys.path.append('py2d/py2d')
-sys.path.append('//')
 
 # Import os module
 import os
-os.chdir('/home/rm99/Mount/py2d/')
-
+os.chdir('../../py2d/')
 from pathlib import Path
 
 # Import Python Libraries
@@ -487,7 +480,6 @@ if __name__ == '__main__':
     sys.path.append('examples')
     sys.path.append('py2d')
     sys.path.append('.')
-    from examples.run_solver import Py2D_solver
 
     Py2D_solver(Re=20e3, # Reynolds number
                    fkx=4, # Forcing wavenumber in x
