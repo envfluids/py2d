@@ -8,6 +8,7 @@
 
 # Import os module
 import os
+os.chdir('../../py2d/')
 from pathlib import Path
 
 # Import Python Libraries
@@ -203,8 +204,9 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     # -------------- Initialize PiOmega Model --------------
 
-    PiOmega_eddyViscosity_model = SGSModel()  # Initialize SGS Model
-    PiOmega_eddyViscosity_model.set_method(SGSModel_string) # Set SGS model to calculate PiOmega and Eddy Viscosity
+    # PiOmega_eddyViscosity_model = SGSModel()  # Initialize SGS Model
+    PiOmega_eddyViscosity_model=SGSModel(Kx,Ky,Ksq,Delta,SGSModel_string)
+    # PiOmega_eddyViscosity_model.set_method(SGSModel_string) # Set SGS model to calculate PiOmega and Eddy Viscosity
     
     if SGSModel_string == 'CNN':
         model_path = "best_model_mcwiliams_exact.pt"
@@ -334,7 +336,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     start_time = runtime.time()
     
     for it in range(maxit):
-
+    
         if it == 0:
             U0_hat, V0_hat = Psi2UV_2DFHIT_jit(Psi0_hat, Kx, Ky, Ksq)
             U1_hat, V1_hat = U0_hat, V0_hat
@@ -347,42 +349,49 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
         diffu_hat = -Ksq*Omega1_hat
         
-        if SGSModel_string == 'NoSGS':
-            PiOmega1_hat, eddyViscosity = PiOmega_eddyViscosity_model.calculate()
-        elif SGSModel_string == 'SMAG':
-            PiOmega1_hat, eddyViscosity, eddyViscosityCoeff = PiOmega_eddyViscosity_model.calculate(
-                Psi_hat=Psi1_hat, Kx=Kx, Ky=Ky, Ksq=Ksq, Cs=eddyViscosityCoeff, Delta=Delta)
-        elif SGSModel_string == 'LEITH':
-            PiOmega1_hat, eddyViscosity, eddyViscosityCoeff = PiOmega_eddyViscosity_model.calculate(
-                Omega_hat=Omega1_hat, Kx=Kx, Ky=Ky, Cl=eddyViscosityCoeff, Delta=Delta)
-        elif SGSModel_string == 'DSMAG' or SGSModel_string == 'DLEITH':
-            PiOmega1_hat, eddyViscosity, eddyViscosityCoeff = PiOmega_eddyViscosity_model.calculate(
-                Psi_hat=Psi1_hat, Omega_hat=Omega1_hat, Kx=Kx, Ky=Ky, Ksq=Ksq, Delta=Delta)
-        elif SGSModel_string == 'PiOmegaGM2' or SGSModel_string == 'PiOmegaGM4' or SGSModel_string == 'PiOmegaGM6':
-            PiOmega1_hat, eddyViscosity = PiOmega_eddyViscosity_model.calculate(
-                Omega_hat=Omega1_hat, U_hat=U1_hat, V_hat=V1_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-        elif SGSModel_string == 'CNN':
-            eddyViscosity = 0.0
-            input_data = prepare_data_cnn_jit(Psi1_hat, Kx, Ky, Ksq)    
-            # input_data_normalized = normalize_data(input_data) 
-            output_normalized = PiOmega_eddyViscosity_model.calculate(cnn_model, input_data=input_data, Kx=Kx, Ky=Ky, Ksq=Ksq)
-            # # Diagnosis 
-            # print("The stats of the output are: ")
-            # print("Mean: " + str(output_normalized.mean(axis=(1,2))))
-            # print("Std: " + str(output_normalized.std(axis=(1,2))))
+        PiOmega_eddyViscosity_model.update_state(Psi1_hat,Omega1_hat,U1_hat,V1_hat)
+        PiOmega_eddyViscosity_model.calculate()
+        
+
+        PiOmega1_hat = PiOmega_eddyViscosity_model.PiOmega_hat
+        eddyViscosity = PiOmega_eddyViscosity_model.eddy_viscosity
+
+        # if SGSModel_string == 'NoSGS':
+        #     PiOmega1_hat, eddyViscosity = PiOmega_eddyViscosity_model.calculate()
+        # elif SGSModel_string == 'SMAG':
+        #     PiOmega1_hat, eddyViscosity, eddyViscosityCoeff = PiOmega_eddyViscosity_model.calculate(
+        #         Psi_hat=Psi1_hat, Kx=Kx, Ky=Ky, Ksq=Ksq, Cs=eddyViscosityCoeff, Delta=Delta)
+        # elif SGSModel_string == 'LEITH':
+        #     PiOmega1_hat, eddyViscosity, eddyViscosityCoeff = PiOmega_eddyViscosity_model.calculate(
+        #         Omega_hat=Omega1_hat, Kx=Kx, Ky=Ky, Cl=eddyViscosityCoeff, Delta=Delta)
+        # elif SGSModel_string == 'DSMAG' or SGSModel_string == 'DLEITH':
+        #     PiOmega1_hat, eddyViscosity, eddyViscosityCoeff = PiOmega_eddyViscosity_model.calculate(
+        #         Psi_hat=Psi1_hat, Omega_hat=Omega1_hat, Kx=Kx, Ky=Ky, Ksq=Ksq, Delta=Delta)
+        # elif SGSModel_string == 'PiOmegaGM2' or SGSModel_string == 'PiOmegaGM4' or SGSModel_string == 'PiOmegaGM6':
+        #     PiOmega1_hat, eddyViscosity = PiOmega_eddyViscosity_model.calculate(
+        #         Omega_hat=Omega1_hat, U_hat=U1_hat, V_hat=V1_hat, Kx=Kx, Ky=Ky, Delta=Delta)
+        # elif SGSModel_string == 'CNN':
+        #     eddyViscosity = 0.0
+        #     input_data = prepare_data_cnn_jit(Psi1_hat, Kx, Ky, Ksq)    
+        #     # input_data_normalized = normalize_data(input_data) 
+        #     output_normalized = PiOmega_eddyViscosity_model.calculate(cnn_model, input_data=input_data, Kx=Kx, Ky=Ky, Ksq=Ksq)
+        #     # # Diagnosis 
+        #     # print("The stats of the output are: ")
+        #     # print("Mean: " + str(output_normalized.mean(axis=(1,2))))
+        #     # print("Std: " + str(output_normalized.std(axis=(1,2))))
 
 
-            # output_mean = np.array([0.0088, 5.1263e-05, 0.0108]).reshape((3,1,1))
-            # output_std = np.array([0.0130, 0.0080, 0.0145]).reshape((3,1,1))
+        #     # output_mean = np.array([0.0088, 5.1263e-05, 0.0108]).reshape((3,1,1))
+        #     # output_std = np.array([0.0130, 0.0080, 0.0145]).reshape((3,1,1))
             
-            # output_denomralized = denormalize_data(output_normalized, mean= output_mean, std= output_std) 
-            # output_denomralized = np.zeros((3, output_normalized.shape[1], output_normalized.shape[2]))
-            # for i in range(3):
-            #     updated_values = denormalize_data(output_normalized[i], mean= output_mean[i], std= output_std[i])
-            #     output_denomralized = output_denomralized.at[i, :, :].set(updated_values)
-            PiOmega1_hat = postproccess_data_cnn_jit(output_normalized[0], output_normalized[1], output_normalized[2], Kx, Ky, Ksq)
-            # print(np.abs(PiOmega_hat[0]).mean())
-            # PiOmega_hat = PiOmegaModel.calculate()
+        #     # output_denomralized = denormalize_data(output_normalized, mean= output_mean, std= output_std) 
+        #     # output_denomralized = np.zeros((3, output_normalized.shape[1], output_normalized.shape[2]))
+        #     # for i in range(3):
+        #     #     updated_values = denormalize_data(output_normalized[i], mean= output_mean[i], std= output_std[i])
+        #     #     output_denomralized = output_denomralized.at[i, :, :].set(updated_values)
+        #     PiOmega1_hat = postproccess_data_cnn_jit(output_normalized[0], output_normalized[1], output_normalized[2], Kx, Ky, Ksq)
+        #     # print(np.abs(PiOmega_hat[0]).mean())
+        #     # PiOmega_hat = PiOmegaModel.calculate()
 
 
         # Numerical scheme for PiOmega_hat
@@ -456,4 +465,31 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # Print elapsed time
     print('Total Iteration: ', it+1)
     endTime = timer()
+<<<<<<< HEAD
     print('Total Time Taken: ', endTime-startTime)
+=======
+    print('Total Time Taken: ', endTime-startTime)
+
+if __name__ == '__main__':
+    import sys
+    sys.path.append('examples')
+    sys.path.append('py2d')
+    sys.path.append('.')
+
+    Py2D_solver(Re=20e3, # Reynolds number
+                   fkx=4, # Forcing wavenumber in x
+                   fky=0, # Forcing wavenumber in y
+                   alpha=0.1, # Rayleigh drag coefficient
+                   beta=0, # Coriolis parameter
+                   NX=128, # Number of grid points in x and y '32', '64', '128', '256', '512'
+                   SGSModel_string='DLEITH', # SGS model to use 'NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6'
+                   eddyViscosityCoeff=0.17, # Coefficient for eddy viscosity models: SMAG and LEITH
+                   dt=5e-4, # Time step
+                   saveData=True, # Save data
+                   tSAVE=1, # Time interval to save data
+                   tTotal=10, # Total time of simulation
+                   readTrue=False, 
+                   ICnum=1, # Initial condition number: Choose between 1 to 20
+                   resumeSim=False, # tart new simulation (False) or resume simulation (True) 
+                   jobName='')
+>>>>>>> SGSModelinit

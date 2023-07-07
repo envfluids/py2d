@@ -6,7 +6,6 @@ import numpy as nnp
 import jax.numpy as np
 from jax import jit
 from functools import partial
-import glob
 import os
 
 def eddyTurnoverTime_2DFHIT(Omega, definition='Enstrophy'):
@@ -26,19 +25,7 @@ def eddyTurnoverTime_2DFHIT(Omega, definition='Enstrophy'):
     
     return eddyTurnoverTime
 
-def get_last_file(file_path):
-    # Get all .mat files in the specified directory
-    mat_files = glob.glob(os.path.join(file_path, '*.mat'))
-    
-    # Extract the integer values from the filenames
-    file_numbers = [int(os.path.splitext(os.path.basename(file))[0]) for file in mat_files]
-    
-    # Find the highest integer value
-    if file_numbers:
-        last_file_number = max(file_numbers)
-        return last_file_number
-    else:
-        return None
+
 
 def initialize_wavenumbers_2DFHIT(nx, ny, Lx, Ly, INDEXING='ij'):
     '''
@@ -70,7 +57,7 @@ def initialize_wavenumbers_2DFHIT(nx, ny, Lx, Ly, INDEXING='ij'):
     Ksq = Kx ** 2 + Ky ** 2
     return Kx, Ky, Ksq
 
-def gridgen(Lx, Nx, INDEXING='ij'):
+def gridgen(Lx, NX, INDEXING='ij'):
     # Mesh points in x and y direction
     # To Do: should work for x!=y
     
@@ -82,7 +69,7 @@ def gridgen(Lx, Nx, INDEXING='ij'):
     
     X, Y = nnp.meshgrid(x, x, indexing=INDEXING)
     
-    return Lx, _, X, Y
+    return Lx, Lx, X, Y, dx, dx
 
 def Omega2Psi_2DFHIT(Omega, Kx, Ky, Ksq):
     """
