@@ -17,21 +17,3 @@ Py2D_solver(Re=20e3, # Reynolds number
                ICnum=1, # Initial condition number: Choose between 1 to 20
                resumeSim=False, # tart new simulation (False) or resume simulation (True) 
                jobName='')
-#%%
-import scipy.io as sio
-# directory = '/home/rm99/Mount/py2d/examples/results/Re20k_fkx4fky0_r0.1/DLEITH_/NX128/dt0.0005_IC1/data/'
-directory = '/home/rm99/Mount/py2d/examples/results/Re20k_fkx4fky4_r0.1/DLEITH_/NX128/dt0.0005_IC1/data/'
-
-filename = '5.mat'
-mat_contents = sio.loadmat(directory+filename)
-#%%
-mat_contents.keys()
-Omega = mat_contents['Omega']
-#%%
-plt.contourf(Omega,cmap='bwr',levels=110)
-#%%
-plt.pcolor(Omega)
-
-#%%
-plt.contourf(X,Y,Omega,cmap='bwr',levels=110)
-

@@ -61,48 +61,55 @@ dx = Lx / NX
 # Mesh points in x direction
 x = np.linspace(0, Lx - dx, num=NX)
 
-INDEXING = 'ij'
-# -------------- Create the meshgrid both in physical and spectral space --------------
-# Kx, Ky, Ksq = initialize_wavenumbers_2DFHIT(NX, NX, Lx, Lx)
-nx = NX
-ny = NX
-Lx, Ly = 2 * np.pi, 2 * np.pi
-kx = 2 * np.pi * np.fft.fftfreq(nx, d=Lx/nx)
-ky = 2 * np.pi * np.fft.fftfreq(ny, d=Ly/ny)
-(Kx, Ky) = np.meshgrid(kx, ky, indexing=INDEXING)
-Ksq = Kx ** 2 + Ky ** 2
-    #$$
-Kx = np.array(Kx)
-Ky = np.array(Ky)
-Ksq = np.array(Ksq)
-
-# Mesh points in x and y direction
-X, Y = nnp.meshgrid(x, x, indexing =INDEXING)
-
-X = np.array(X)
-Y = np.array(Y)
-#%%
-W = np.sin(X)+np.cos(Y)
-W_hat = np.fft.fft2(W)
-DWDX_exact = np.cos(X)
-DWDY_exact = -np.sin(Y)
-#%%
-plt.contourf(X,Y,W,cmap='bwr');plt.colorbar()
-#%%
-DWDX = np.real(np.fft.ifft2(derivative_2DFHIT(W_hat, [1,0], Kx, Ky)))
-DWDY = np.real(np.fft.ifft2(derivative_2DFHIT(W_hat, [0,1], Kx, Ky)))
-
-#%%
-aa = DWDY# DWDX
-aa_exact = DWDY_exact# DWDX_exact
-plt.figure(figsize=(4,10))
-plt.subplot(4,1,1)
-plt.contourf(X,Y,W,cmap='bwr');plt.colorbar()
-plt.subplot(4,1,2)
-plt.contourf(X,Y,aa_exact,cmap='bwr');plt.colorbar()
-plt.subplot(4,1,3)
-plt.contourf(X,Y,aa,cmap='bwr');plt.colorbar()
-plt.subplot(4,1,4)
-plt.contourf(X,Y,aa-aa_exact,cmap='bwr');plt.colorbar()
-#%%
-# plt.contourf(X)
+for INDEXING in ['xy', 'ij']:
+    # -------------- Create the meshgrid both in physical and spectral space --------------
+    # Kx, Ky, Ksq = initialize_wavenumbers_2DFHIT(NX, NX, Lx, Lx)
+    nx = NX
+    ny = NX
+    Lx, Ly = 2 * np.pi, 2 * np.pi
+    kx = 2 * np.pi * np.fft.fftfreq(nx, d=Lx/nx)
+    ky = 2 * np.pi * np.fft.fftfreq(ny, d=Ly/ny)
+    (Kx, Ky) = np.meshgrid(kx, ky, indexing=INDEXING)
+    Ksq = Kx ** 2 + Ky ** 2
+        #$$
+    Kx = np.array(Kx)
+    Ky = np.array(Ky)
+    Ksq = np.array(Ksq)
+    
+    # Mesh points in x and y direction
+    X, Y = nnp.meshgrid(x, x, indexing =INDEXING)
+    
+    X = np.array(X)
+    Y = np.array(Y)
+    #%%
+    W = np.sin(X)+np.cos(Y)
+    W_hat = np.fft.fft2(W)
+    DWDX_exact = np.cos(X)
+    DWDY_exact = -np.sin(Y)
+    #%%
+    #%%
+    DWDX = np.real(np.fft.ifft2(derivative_2DFHIT(W_hat, [1,0], Kx, Ky)))
+    DWDY = np.real(np.fft.ifft2(derivative_2DFHIT(W_hat, [0,1], Kx, Ky)))
+    
+    #%%
+    aa = DWDY# DWDX
+    aa_exact = DWDY_exact# DWDX_exact
+    # #%%
+    # plt.figure(figsize=(4,10))
+    # plt.subplot(4,1,1)
+    # plt.contourf(X,Y,W,cmap='bwr');plt.colorbar()
+    # plt.subplot(4,1,2)
+    # plt.contourf(X,Y,aa_exact,cmap='bwr');plt.colorbar()
+    # plt.subplot(4,1,3)
+    # plt.contourf(X,Y,aa,cmap='bwr');plt.colorbar()
+    # plt.subplot(4,1,4)
+    # plt.contourf(X,Y,aa-aa_exact,cmap='bwr');plt.colorbar()
+    #%% Not having X, Y in contour plots
+    plt.figure(figsize=(4,10))
+    plt.subplot(4,1,1)
+    plt.contourf(X,Y,W,cmap='bwr');plt.colorbar()
+    plt.title('INDEXING='+INDEXING)
+    
+    plt.subplot(4,1,2)
+    plt.contourf(W,cmap='bwr');plt.colorbar()
+    plt.title('INDEXING='+INDEXING)
