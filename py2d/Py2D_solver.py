@@ -351,16 +351,11 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     start_time = runtime.time()
     
     for it in range(maxit):
-        print(it)
     
         if it == 0:
             U0_hat, V0_hat = Psi2UV_2DFHIT_jit(Psi0_hat, Kx, Ky, Ksq)
             U1_hat, V1_hat = U0_hat, V0_hat
             convec0_hat = convection_conserved(Omega0_hat, U0_hat, V0_hat, Kx, Ky)
-            Psi_hat = Psi0_hat
-            Omega_hat = Omega0_hat
-            U_hat, V_hat = U0_hat, V0_hat
-
 
         convec1_hat = convection_conserved(Omega1_hat, U1_hat, V1_hat, Kx, Ky)
 
@@ -369,7 +364,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
         diffu_hat = -Ksq*Omega1_hat
         
-        PiOmega_eddyViscosity_model.update_state(Psi_hat,Omega_hat,U_hat,V_hat)
+        PiOmega_eddyViscosity_model.update_state(Psi1_hat,Omega1_hat,U1_hat,V1_hat)
         PiOmega_eddyViscosity_model.calculate()
         
 
