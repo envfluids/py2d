@@ -8,6 +8,7 @@
 
 # Import os module
 import os
+os.chdir('../../py2d/')
 from pathlib import Path
 
 # Import Python Libraries
@@ -457,3 +458,27 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     print('Total Iteration: ', it+1)
     endTime = timer()
     print('Total Time Taken: ', endTime-startTime)
+
+if __name__ == '__main__':
+    import sys
+    sys.path.append('examples')
+    sys.path.append('py2d')
+    sys.path.append('.')
+
+    Py2D_solver(Re=20e3, # Reynolds number
+                   fkx=4, # Forcing wavenumber in x
+                   fky=0, # Forcing wavenumber in y
+                   alpha=0.1, # Rayleigh drag coefficient
+                   beta=0, # Coriolis parameter
+                   NX=128, # Number of grid points in x and y '32', '64', '128', '256', '512'
+                   SGSModel_string='DLEITH', # SGS model to use 'NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6'
+                   eddyViscosityCoeff=0.17, # Coefficient for eddy viscosity models: SMAG and LEITH
+                   dt=5e-4, # Time step
+                   saveData=True, # Save data
+                   tSAVE=1, # Time interval to save data
+                   tTotal=10, # Total time of simulation
+                   readTrue=False, 
+                   ICnum=1, # Initial condition number: Choose between 1 to 20
+                   resumeSim=False, # tart new simulation (False) or resume simulation (True) 
+                   jobName='')
+
