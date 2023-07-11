@@ -116,7 +116,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # Filter Width
     Delta = 2 * Lx / NX
     
-    Lx, _, X, Y = gridgen(Lx, NX)
+    Lx, _, X, Y, dx, dx = gridgen(Lx, NX)
     # -------------- Create the meshgrid both in physical and spectral space --------------
     Kx, Ky, Ksq = initialize_wavenumbers_2DFHIT(NX, NX, Lx, Lx)
 
@@ -465,9 +465,6 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # Print elapsed time
     print('Total Iteration: ', it+1)
     endTime = timer()
-<<<<<<< HEAD
-    print('Total Time Taken: ', endTime-startTime)
-=======
     print('Total Time Taken: ', endTime-startTime)
 
 if __name__ == '__main__':
@@ -492,4 +489,3 @@ if __name__ == '__main__':
                    ICnum=1, # Initial condition number: Choose between 1 to 20
                    resumeSim=False, # tart new simulation (False) or resume simulation (True) 
                    jobName='')
->>>>>>> SGSModelinit
