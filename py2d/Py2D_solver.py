@@ -48,7 +48,7 @@ eddyTurnoverTime_2DFHIT_jit = jit(eddyTurnoverTime_2DFHIT)
 startTime = timer()
 
 def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoeff, dt, saveData, tSAVE, tTotal, readTrue, ICnum, resumeSim, jobName=''):
-    
+
     # -------------- RUN Configuration --------------
     # Use random initial condition or read initialization from a file or use
     #     readTrue = False
@@ -66,7 +66,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # Save data at the end of the simulation
     #     saveData = True
 
-    # Save snapshot at every time step 
+    # Save snapshot at every time step
     #     tSAVE = 0.1
 
     # Length of simulation (in time)
@@ -85,16 +85,16 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     # Density
     rho = 1
-    
+
     # Kinematic Viscosity
     nu = 1.0 / Re
-    
+
     # Linear drag coefficient
     #     alpha = 0.1
 
     # SGS Model
     #     SGSModel_string = 'NoSGS' # SMAG DSMAG LEITH DLEITH CNN GAN
-    
+
     # Eddy Viscosity Coefficient
     # eddyViscosityCoeff = 0.1 needed for SMAG and LEITH
 
@@ -112,17 +112,17 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     # Domain length
     Lx = 2 * np.pi
-    
+
     # Filter Width
     Delta = 2 * Lx / NX
-    
+
     Lx, _, X, Y, dx, dx = gridgen(Lx, NX)
     # -------------- Create the meshgrid both in physical and spectral space --------------
     Kx, Ky, Ksq = initialize_wavenumbers_2DFHIT(NX, NX, Lx, Lx)
 
     # Numpy to jax
     X = np.array(X)
-    Y = np.array(Y)    
+    Y = np.array(Y)
     Kx = np.array(Kx)
     Ky = np.array(Ky)
     Ksq = np.array(Ksq)
@@ -131,18 +131,18 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     # Deterministic forcing in Physical space
     Fk = fky * np.cos(fky * Y) + fkx * np.cos(fkx * X)
-    
+
     # Deterministic forcing in Fourier space
     Fk_hat = np.fft.fft2(Fk)
-    
+
     # -------------- RUN Configuration --------------
 
     # Save data at every Nth iteration
     NSAVE = int(tSAVE / dt)
-    
+
     # Total number of iterations
     maxit = int(tTotal / dt)
-    
+
     # -------------- Directory to store data ------------------
     # Snapshots of data save at the following directory
     dataType_DIR = 'Re' + str(int(Re / 1000)) + 'k_fkx' + str(fkx) + 'fky' + str(fky) + '_r' + str(alpha) + '/'
@@ -171,7 +171,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     # Add variables and their values to the Run Configuration table
     table_run_config.add_row(["Time Step (dt)", dt])
-    table_run_config.add_row(["Resume Simulation", resumeSim])    
+    table_run_config.add_row(["Resume Simulation", resumeSim])
     table_run_config.add_row(["Read Initialization (readTrue), If False: Will read IC from a file", readTrue])
     table_run_config.add_row(["Saving Data  (saveData)", saveData])
     table_run_config.add_row(["Save data every t th timestep (tSAVE)", tSAVE])
@@ -207,10 +207,10 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # PiOmega_eddyViscosity_model = SGSModel()  # Initialize SGS Model
     PiOmega_eddyViscosity_model=SGSModel(Kx,Ky,Ksq,Delta,SGSModel_string)
     # PiOmega_eddyViscosity_model.set_method(SGSModel_string) # Set SGS model to calculate PiOmega and Eddy Viscosity
-    
+
     if SGSModel_string == 'CNN':
         model_path = "best_model_mcwiliams_exact.pt"
-        cnn_model = init_model(model_type='mcwiliams', model_path=model_path) 
+        cnn_model = init_model(model_type='mcwiliams', model_path=model_path)
 
     if readTrue:
 
@@ -219,7 +219,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
         time = 0.0
 
     else:
-        
+
         if resumeSim:
             # Get the last file name (filenames are integers)
             last_file_number_data = get_last_file(SAVE_DIR_DATA)
@@ -237,7 +237,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
                 raise ValueError("No .mat initialization files found to resume the simulation")
 
             # Load initial condition to resume simulation
-            # Resume from the second last saved file - 
+            # Resume from the second last saved file -
             # the last saved file is often corrupted since the jobs stop (reach wall clocktime limit) while the file is being saved.
             last_file_number_data = last_file_number_data - 1
             last_file_number_IC = last_file_number_IC - 1
@@ -254,7 +254,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
             Psi0_hat = Omega2Psi_2DFHIT_jit(Omega0_hat, Kx, Ky, Ksq)
             Psi1_hat = Omega2Psi_2DFHIT_jit(Omega1_hat, Kx, Ky, Ksq)
-            
+
         else:
             # Path of Initial Conditions
 
@@ -263,7 +263,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
             # Construct the full path to the .mat file
             # Go up one directory before going into ICs
-            IC_DIR = 'data/ICs/NX' + str(NX) + '/' 
+            IC_DIR = 'data/ICs/NX' + str(NX) + '/'
             IC_filename = str(ICnum) + '.mat'
             file_path = os.path.join(base_path, "..", IC_DIR, IC_filename)
 
@@ -284,7 +284,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
             last_file_number_data = get_last_file(SAVE_DIR_DATA)
             last_file_number_IC = get_last_file(SAVE_DIR_IC)
 
-            # Set last File numbers 
+            # Set last File numbers
             if last_file_number_data is None:
                 print(f"Last data file number: {last_file_number_data}")
                 last_file_number_data = 0
@@ -299,7 +299,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
             else:
                 raise ValueError("Data already exists in the results folder for this case, either resume the simulation (resumeSim = True) or delete data to start a new simulation")
 
-            # Save variables of the solver 
+            # Save variables of the solver
             variables = {
                 'readTrue': readTrue,
                 'ICnum': ICnum,
@@ -334,9 +334,9 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     print("-------------- Main iteration loop --------------")
     ## 0 meanns previous time step, 1 means current time step
     start_time = runtime.time()
-    
+
     for it in range(maxit):
-    
+
         if it == 0:
             U0_hat, V0_hat = Psi2UV_2DFHIT_jit(Psi0_hat, Kx, Ky, Ksq)
             U1_hat, V1_hat = U0_hat, V0_hat
@@ -344,14 +344,14 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
         convec1_hat = convection_conserved(Omega1_hat, U1_hat, V1_hat, Kx, Ky)
 
-        # 2 Adam bash forth 
+        # 2 Adam bash forth
         convec_hat = 1.5*convec1_hat - 0.5*convec0_hat
 
         diffu_hat = -Ksq*Omega1_hat
-        
+
         PiOmega_eddyViscosity_model.update_state(Psi1_hat,Omega1_hat,U1_hat,V1_hat)
         PiOmega_eddyViscosity_model.calculate()
-        
+
 
         PiOmega1_hat = PiOmega_eddyViscosity_model.PiOmega_hat
         eddyViscosity = PiOmega_eddyViscosity_model.eddy_viscosity
@@ -359,18 +359,18 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
         # elif SGSModel_string == 'CNN':
         #     eddyViscosity = 0.0
-        #     input_data = prepare_data_cnn_jit(Psi1_hat, Kx, Ky, Ksq)    
-        #     # input_data_normalized = normalize_data(input_data) 
+        #     input_data = prepare_data_cnn_jit(Psi1_hat, Kx, Ky, Ksq)
+        #     # input_data_normalized = normalize_data(input_data)
         #     output_normalized = PiOmega_eddyViscosity_model.calculate(cnn_model, input_data=input_data, Kx=Kx, Ky=Ky, Ksq=Ksq)
-        #     # # Diagnosis 
+        #     # # Diagnosis
         #     # print("The stats of the output are: ")
         #     # print("Mean: " + str(output_normalized.mean(axis=(1,2))))
         #     # print("Std: " + str(output_normalized.std(axis=(1,2))))
 
         #     # output_mean = np.array([0.0088, 5.1263e-05, 0.0108]).reshape((3,1,1))
         #     # output_std = np.array([0.0130, 0.0080, 0.0145]).reshape((3,1,1))
-            
-        #     # output_denomralized = denormalize_data(output_normalized, mean= output_mean, std= output_std) 
+
+        #     # output_denomralized = denormalize_data(output_normalized, mean= output_mean, std= output_std)
         #     # output_denomralized = np.zeros((3, output_normalized.shape[1], output_normalized.shape[2]))
         #     # for i in range(3):
         #     #     updated_values = denormalize_data(output_normalized[i], mean= output_mean[i], std= output_std[i])
@@ -390,7 +390,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
                 PiOmega0_hat = PiOmega1_hat
 
             PiOmega_hat = 1.5*PiOmega1_hat-0.5*PiOmega0_hat
-        
+
         # 2 Adam bash forth Crank Nicolson
         RHS = Omega1_hat - dt*(convec_hat) + dt*0.5*(nu+eddyViscosity)*diffu_hat - dt*(Fk_hat+PiOmega_hat) + dt*beta*V1_hat
 
@@ -433,7 +433,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
             try:
                 if np.isnan(eddyTurnoverTime).any():
                     filename = SAVE_DIR + 'unstable.txt'
-                    error_message = "eddyTurnoverTime is NaN. Stopping execution at time = " + str(time) 
+                    error_message = "eddyTurnoverTime is NaN. Stopping execution at time = " + str(time)
 
                     with open(filename, 'w') as f:
                         f.write(error_message)
@@ -447,7 +447,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
                 quit()
 
             print('Time = {:.6f} -- Eddy Turnover Time = {:.6f} -- C = {:.4f} -- Eddy viscosity = {:.6f} ** Saved {}'.format(time, eddyTurnoverTime, eddyViscosityCoeff, eddyViscosity, filename_data))
-            
+
     # Print elapsed time
     print('Total Iteration: ', it+1)
     endTime = timer()
@@ -458,8 +458,8 @@ if __name__ == '__main__':
     sys.path.append('examples')
     sys.path.append('py2d')
     sys.path.append('.')
-
-    for SGSModel_string in ['NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6']:
+    SGSModel_list = ['DLEITH_Local']#, 'NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6']:
+    for SGSModel_string in SGSModel_list:
         # Script to call the function with the given parameters
         Py2D_solver(Re=20e3, # Reynolds number
                        fkx=4, # Forcing wavenumber in x
@@ -473,8 +473,8 @@ if __name__ == '__main__':
                        saveData=True, # Save data
                        tSAVE=0.1, # Time interval to save data
                        tTotal=1.0, # Total time of simulation
-                       readTrue=False, 
+                       readTrue=False,
                        ICnum=1, # Initial condition number: Choose between 1 to 20
-                       resumeSim=False, # tart new simulation (False) or resume simulation (True) 
+                       resumeSim=False, # tart new simulation (False) or resume simulation (True)
                        jobName='')
 
