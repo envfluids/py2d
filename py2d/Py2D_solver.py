@@ -355,21 +355,8 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
         PiOmega1_hat = PiOmega_eddyViscosity_model.PiOmega_hat
         eddyViscosity = PiOmega_eddyViscosity_model.eddy_viscosity
+        eddyViscosityCoeff = PiOmega_eddyViscosity_model.C_MODEL
 
-        # if SGSModel_string == 'NoSGS':
-        #     PiOmega1_hat, eddyViscosity = PiOmega_eddyViscosity_model.calculate()
-        # elif SGSModel_string == 'SMAG':
-        #     PiOmega1_hat, eddyViscosity, eddyViscosityCoeff = PiOmega_eddyViscosity_model.calculate(
-        #         Psi_hat=Psi1_hat, Kx=Kx, Ky=Ky, Ksq=Ksq, Cs=eddyViscosityCoeff, Delta=Delta)
-        # elif SGSModel_string == 'LEITH':
-        #     PiOmega1_hat, eddyViscosity, eddyViscosityCoeff = PiOmega_eddyViscosity_model.calculate(
-        #         Omega_hat=Omega1_hat, Kx=Kx, Ky=Ky, Cl=eddyViscosityCoeff, Delta=Delta)
-        # elif SGSModel_string == 'DSMAG' or SGSModel_string == 'DLEITH':
-        #     PiOmega1_hat, eddyViscosity, eddyViscosityCoeff = PiOmega_eddyViscosity_model.calculate(
-        #         Psi_hat=Psi1_hat, Omega_hat=Omega1_hat, Kx=Kx, Ky=Ky, Ksq=Ksq, Delta=Delta)
-        # elif SGSModel_string == 'PiOmegaGM2' or SGSModel_string == 'PiOmegaGM4' or SGSModel_string == 'PiOmegaGM6':
-        #     PiOmega1_hat, eddyViscosity = PiOmega_eddyViscosity_model.calculate(
-        #         Omega_hat=Omega1_hat, U_hat=U1_hat, V_hat=V1_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         # elif SGSModel_string == 'CNN':
         #     eddyViscosity = 0.0
         #     input_data = prepare_data_cnn_jit(Psi1_hat, Kx, Ky, Ksq)    
@@ -379,7 +366,6 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
         #     # print("The stats of the output are: ")
         #     # print("Mean: " + str(output_normalized.mean(axis=(1,2))))
         #     # print("Std: " + str(output_normalized.std(axis=(1,2))))
-
 
         #     # output_mean = np.array([0.0088, 5.1263e-05, 0.0108]).reshape((3,1,1))
         #     # output_std = np.array([0.0130, 0.0080, 0.0145]).reshape((3,1,1))
@@ -473,19 +459,22 @@ if __name__ == '__main__':
     sys.path.append('py2d')
     sys.path.append('.')
 
-    Py2D_solver(Re=20e3, # Reynolds number
-                   fkx=4, # Forcing wavenumber in x
-                   fky=0, # Forcing wavenumber in y
-                   alpha=0.1, # Rayleigh drag coefficient
-                   beta=0, # Coriolis parameter
-                   NX=128, # Number of grid points in x and y '32', '64', '128', '256', '512'
-                   SGSModel_string='DLEITH', # SGS model to use 'NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6'
-                   eddyViscosityCoeff=0.17, # Coefficient for eddy viscosity models: SMAG and LEITH
-                   dt=5e-4, # Time step
-                   saveData=True, # Save data
-                   tSAVE=1, # Time interval to save data
-                   tTotal=10, # Total time of simulation
-                   readTrue=False, 
-                   ICnum=1, # Initial condition number: Choose between 1 to 20
-                   resumeSim=False, # tart new simulation (False) or resume simulation (True) 
-                   jobName='')
+    for SGSModel_string in ['NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6']:
+        # Script to call the function with the given parameters
+        Py2D_solver(Re=20e3, # Reynolds number
+                       fkx=4, # Forcing wavenumber in x
+                       fky=0, # Forcing wavenumber in y
+                       alpha=0.1, # Rayleigh drag coefficient
+                       beta=0, # Coriolis parameter
+                       NX=128, # Number of grid points in x and y '32', '64', '128', '256', '512'
+                       SGSModel_string=SGSModel_string, # SGS model to use 'NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6'
+                       eddyViscosityCoeff=0.17, # Coefficient for eddy viscosity models: SMAG and LEITH
+                       dt=5e-4, # Time step
+                       saveData=True, # Save data
+                       tSAVE=0.1, # Time interval to save data
+                       tTotal=1.0, # Total time of simulation
+                       readTrue=False, 
+                       ICnum=1, # Initial condition number: Choose between 1 to 20
+                       resumeSim=False, # tart new simulation (False) or resume simulation (True) 
+                       jobName='')
+

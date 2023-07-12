@@ -63,30 +63,33 @@ class SGSModel:
         return PiOmega_hat, eddy_viscosity
 
     
-    def smag_method(self, Psi_hat, Cs, Delta):
+    def smag_method(self):#, Psi_hat, Cs, Delta):
         Kx, Ky, Ksq, Delta, Cs = self.__expand_self__()
-        
+        Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat 
+
         PiOmega_hat = 0.0
         characteristic_S = characteristic_strain_rate_smag(Psi_hat, Kx, Ky, Ksq)
         eddy_viscosity = eddy_viscosity_smag(Cs, Delta, characteristic_S)
         
-        self.PiOmega_hat, self.eddy_viscosity, self.Cs = PiOmega_hat, eddy_viscosity, Cs
+        self.PiOmega_hat, self.eddy_viscosity, self.C_MODEL = PiOmega_hat, eddy_viscosity, Cs
         return PiOmega_hat, eddy_viscosity, Cs
 
     
-    def leith_method(self, Omega_hat, Kx, Ky, Cl, Delta):
+    def leith_method(self):#, Omega_hat, Kx, Ky, Cl, Delta):
         Kx, Ky, Ksq, Delta, Cl = self.__expand_self__()
+        Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat 
 
         PiOmega_hat = 0.0
         characteristic_Omega = characteristic_omega_leith(Omega_hat, Kx, Ky)
         eddy_viscosity = eddy_viscosity_leith(Cl, Delta, characteristic_Omega)
         
-        self.PiOmega_hat, self.eddy_viscosity, self.Cl = PiOmega_hat, eddy_viscosity, Cl
+        self.PiOmega_hat, self.eddy_viscosity, self.C_MODEL = PiOmega_hat, eddy_viscosity, Cl
         return PiOmega_hat, eddy_viscosity, Cl
 
     
-    def dsmag_method(self, Psi_hat, Omega_hat, Kx, Ky, Ksq, Delta):
+    def dsmag_method(self):#, Psi_hat, Omega_hat, Kx, Ky, Ksq, Delta):
         Kx, Ky, Ksq, Delta, _ = self.__expand_self__()
+        Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat 
 
         PiOmega_hat = 0.0
         characteristic_S = characteristic_strain_rate_smag(Psi_hat, Kx, Ky, Ksq)
@@ -94,7 +97,7 @@ class SGSModel:
         Cs = np.sqrt(c_dynamic)
         eddy_viscosity = eddy_viscosity_smag(Cs, Delta, characteristic_S)
         
-        self.PiOmega_hat, self.eddy_viscosity, self.Cs = PiOmega_hat, eddy_viscosity, Cs
+        self.PiOmega_hat, self.eddy_viscosity, self.C_MODEL = PiOmega_hat, eddy_viscosity, Cs
         return PiOmega_hat, eddy_viscosity, Cs
 
     def dleith_method(self):#, Psi_hat, Omega_hat, Kx, Ky, Ksq, Delta):
@@ -107,12 +110,14 @@ class SGSModel:
         Cl = c_dynamic ** (1/3)
         eddy_viscosity = eddy_viscosity_leith(Cl, Delta, characteristic_Omega)
         
-        self.PiOmega_hat, self.eddy_viscosity, self.Cl = PiOmega_hat, eddy_viscosity, Cl
+        self.PiOmega_hat, self.eddy_viscosity, self.C_MODEL = PiOmega_hat, eddy_viscosity, Cl
         
         return PiOmega_hat, eddy_viscosity, Cl
 
-    def PiOmegaGM2_method(self, Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+    def PiOmegaGM2_method(self):#, Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
         Kx, Ky, Ksq, Delta, _ = self.__expand_self__()
+        Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat 
+        U_hat, V_hat = self.U_hat, self.V_hat
 
         eddy_viscosity = 0
         PiOmega = GM2(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
@@ -122,8 +127,10 @@ class SGSModel:
         
         return PiOmega_hat, eddy_viscosity
 
-    def PiOmegaGM4_method(self, Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+    def PiOmegaGM4_method(self):#, Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
         Kx, Ky, Ksq, Delta, _ = self.__expand_self__()
+        Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat 
+        U_hat, V_hat = self.U_hat, self.V_hat
 
         eddy_viscosity = 0
         PiOmega = GM4(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
@@ -133,8 +140,10 @@ class SGSModel:
         
         return PiOmega_hat, eddy_viscosity
     
-    def PiOmegaGM6_method(self, Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
-        Kx, Ky, Ksq, Delta, _ = self.__expand_self__(self)
+    def PiOmegaGM6_method(self):#, Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+        Kx, Ky, Ksq, Delta, _ = self.__expand_self__()
+        Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat 
+        U_hat, V_hat = self.U_hat, self.V_hat
 
         eddy_viscosity = 0
         PiOmega = GM6(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
