@@ -145,20 +145,25 @@ class SGSModel:
         VMIN, VMAX = -2, 2
         plt.figure(figsize=(10,3))
         plt.subplot(1,3,1)
+        plt.title(r'$\Pi=\nu_e \nabla.(\nabla \omega)$, Leith (domain average)')
         plt.pcolor(np.fft.ifft2(Grad_Omega_hat_old).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
         plt.subplot(1,3,2)
+        plt.title(r'$\Pi=\nabla.(\nu_e \nabla \omega)$, Leith (local)')
         plt.pcolor(np.fft.ifft2(Grad_Omega_hat).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
         plt.subplot(1,3,3)
         plt.pcolor(np.fft.ifft2(Grad_Omega_hat_old-Grad_Omega_hat).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
         plt.show()
 
-        plt.figure(figsize=(7,3))
-        plt.subplot(1,2,1)
+        plt.figure(figsize=(7,7))
+        plt.subplot(2,2,1)
         plt.title(r'$C_L$')
         plt.pcolor(Cl,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-        plt.subplot(1,2,2)
+        plt.subplot(2,2,2)
         plt.title(r'$\nu_e$')
         plt.pcolor(eddy_viscosity,cmap='gray_r');plt.colorbar()
+        plt.subplot(2,2,4)
+        plt.title(r'$\nu_e$')
+        plt.pcolor(eddy_viscosity,vmin=eddy_viscosity_old, cmap='gray_r');plt.colorbar()
         plt.show()
         stop_test
         #'''
