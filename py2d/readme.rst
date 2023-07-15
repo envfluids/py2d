@@ -21,7 +21,7 @@ versus
 $$\Pi= ν_e ∇.( ∇ω ) == ν_e (∇^2ω )$$
 
 
-![pi](https://github.com/envfluids/py2d/assets/7940296/bd635cb3-ca3e-497c-9eb8-d032079cdb37)
+![pi](../assets/7940296/bd635cb3-ca3e-497c-9eb8-d032079cdb37)
 
 Options 
 
@@ -42,7 +42,7 @@ $$
 From Pierre Sagaut [1]
 <img src="Assets/icon.png" width="50">
 
-![sagaut](https://github.com/envfluids/py2d/assets/7940296/a488d7ed-c320-46b7-a2c5-c78bd37bcdde)
+![sagaut](../assets/7940296/a488d7ed-c320-46b7-a2c5-c78bd37bcdde)
 
 
 [1]
