@@ -126,6 +126,7 @@ class SGSModel:
 
         PiOmega_hat = 0.0
         characteristic_Omega = characteristic_omega_leith(Omega_hat, Kx, Ky)
+        #
         c_dynamic = coefficient_dleithlocal_PsiOmega(Psi_hat, Omega_hat, characteristic_Omega, Kx, Ky, Ksq, Delta)
         Cl = c_dynamic ** (1/3)
         eddy_viscosity = eddy_viscosity_leith(Cl, Delta, characteristic_Omega)
@@ -133,7 +134,7 @@ class SGSModel:
         # Calculate the PI term for local PI = ∇.(ν_e ∇ω )
         Grad_Omega_hat_dirx = Kx*np.fft.fft2( eddy_viscosity * np.fft.ifft2(Kx*Omega_hat) )
         Grad_Omega_hat_diry = Ky*np.fft.fft2( eddy_viscosity * np.fft.ifft2(Ky*Omega_hat) )
-        Grad_Omega_hat = Grad_Omega_hat_dirx + Grad_Omega_hat_diry
+        PiOmega_hat = Grad_Omega_hat_dirx + Grad_Omega_hat_diry
 
         #''' test: difference between local and not
         c_dynamic_old = coefficient_dleith_PsiOmega(Psi_hat, Omega_hat, characteristic_Omega, Kx, Ky, Ksq, Delta)
@@ -141,7 +142,7 @@ class SGSModel:
         eddy_viscosity_old = eddy_viscosity_leith(Cl_old, Delta, characteristic_Omega)
         Grad_Omega_hat_old = eddy_viscosity_old *(Ksq*Omega_hat)
 
-        # import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt
         # VMIN, VMAX = -2, 2
         # plt.figure(figsize=(10,3))
         # plt.subplot(1,3,1)
