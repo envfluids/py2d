@@ -1,6 +1,6 @@
-# SGS models 
+# SGS models
 
-## Eddy viscosity models 
+## Eddy viscosity models
 
 $$ \nabla . \tau = \nabla.(\nu_e \nabla \omega )$$
 
@@ -11,21 +11,22 @@ $$ \nabla . \tau = \nabla.(\nu_e \nabla \omega )$$
 ### Eddy viscosity, Dnamic Smagorinsky
 ### Eddy viscosity, Dynamic Leith
 
-## Local models 
+## Local models
 
 
 $$\Pi = ∇.(ν_e ∇ω )$$
 
-versus 
+versus
 
 $$\Pi= ν_e ∇.( ∇ω ) == ν_e (∇^2ω )$$
 
 
 ![pi](../assets/7940296/bd635cb3-ca3e-497c-9eb8-d032079cdb37)
 
-Options 
+Options
 
 1. Domain Averaged $C_s$
+
 $$
 \nu_e(x,t) = ( C_s(x,t) \Delta )^2 [ 2 |\bar{S}(x,t) |^2  ]^{(1/2)}
 $$
@@ -36,7 +37,7 @@ $$
 \nu_e(x,t) = ( C_s(x,t) \Delta )^2 [ 2 |\bar{S}(x,t) |^2  ]^{(1/2)}
 $$
 
-3. Domain average 
+3. Domain average
 
 
 From Pierre Sagaut [1]
