@@ -465,7 +465,7 @@ if __name__ == '__main__':
                        fkx=4, # Forcing wavenumber in x
                        fky=0, # Forcing wavenumber in y
                        alpha=0.1, # Rayleigh drag coefficient
-                       beta=0, # Coriolis parameter
+                       beta=20, # Coriolis parameter
                        NX=128, # Number of grid points in x and y '32', '64', '128', '256', '512'
                        SGSModel_string=SGSModel_string, # SGS model to use 'NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6'
                        eddyViscosityCoeff=0.17, # Coefficient for eddy viscosity models: SMAG and LEITH
