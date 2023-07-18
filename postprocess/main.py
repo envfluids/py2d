@@ -83,7 +83,8 @@ plt.figure(figsize=(12,14))
 SGSModel_list = ['DLEITH_Local','DLeith']#, 'NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6']:
 for (SGSModel_string, icount) in zip(SGSModel_list,range(1,3,1)):
 
-    Omega = loadmat('../results/Re20k_fkx4fky0_r0.1/'+SGSModel_string+'_/NX128/dt0.0005_IC1/data/10.mat')['Omega']
+    # Omega = loadmat('../results/Re20k_fkx4fky0_r0.1/'+SGSModel_string+'_/NX128/dt0.0005_IC1/data/10.mat')['Omega']
+    Omega = loadmat('../data/ICs/NX'+str(NX)+'/1.mat')['Omega']
 
     w1_hat = np.fft.ifft2(Omega)
     # signal_hat = energy_es(w1_hat, invKsq, NX, Kabs)#, invKsq, NX )
@@ -109,59 +110,73 @@ for (SGSModel_string, icount) in zip(SGSModel_list,range(1,3,1)):
 
 plt.show()
 #%%
-plt.figure(figsize=(12,14))
+for spec_type in ['tke','enstrophy']:
+    plt.figure(figsize=(12,14))
 
-for (NX, icount, linewidth) in zip([128,512],range(1,3),[1,2]):
+    for (NX, icount, linewidth) in zip([128,512],range(1,3),[1,2]):
 
-    print(NX)
+        print(NX)
 
-    Omega = loadmat('../data/ICs/NX'+str(NX)+'/1.mat')['Omega']
+        Omega = loadmat('../data/ICs/NX'+str(NX)+'/1.mat')['Omega']
 
-    Lx = 2*np.pi
-    dx = Lx/NX
-    #-----------------
-    x        = np.linspace(0, Lx-dx, num=NX)
-    kx       = (2*np.pi/Lx)*np.concatenate((
-                                np.arange(0,NX/2+1,dtype=np.float64),
-                                np.arange((-NX/2+1),0,dtype=np.float64)
-                                ))
-    # [Y,X]    = np.meshgrid(x,x)
-    # [Ky,Kx]  = np.meshgrid(kx,kx)
-    # Ksq      = onp.array((Kx**2 + Ky**2))
-    # Ksq[0,0] = 1e16
-    # Kabs     = np.sqrt(Ksq)
-    # invKsq   = 1/Ksq
+        Lx = 2*np.pi
+        dx = Lx/NX
+        #-----------------
+        x        = np.linspace(0, Lx-dx, num=NX)
+        kx       = (2*np.pi/Lx)*np.concatenate((
+                                    np.arange(0,NX/2+1,dtype=np.float64),
+                                    np.arange((-NX/2+1),0,dtype=np.float64)
+                                    ))
+        # [Y,X]    = np.meshgrid(x,x)
+        # [Ky,Kx]  = np.meshgrid(kx,kx)
+        # Ksq      = onp.array((Kx**2 + Ky**2))
+        # Ksq[0,0] = 1e16
+        # Kabs     = np.sqrt(Ksq)
+        # invKsq   = 1/Ksq
 
-    Kx, Ky, Ksq = initialize_wavenumbers_2DFHIT(NX, NX, Lx, Lx)
-    Kabs     = np.sqrt(Ksq)
-    invKsq   = 1/Ksq
+        Kx, Ky, Ksq = initialize_wavenumbers_2DFHIT(NX, NX, Lx, Lx)
+        Kabs     = np.sqrt(Ksq)
+        invKsq   = 1/Ksq
 
-    w1_hat = np.fft.ifft2(Omega)
-    signal_hat = energy_es(w1_hat, invKsq, NX, Kabs)#, invKsq, NX )
-    # signal_hat = enstrophy_es(w1_hat, Kabs, NX )
-    Kplot, energy, kplot_str =  spectrum_angle_average_vec(signal_hat, Kabs, NX)#, kx, , invKsq)
+        w1_hat = np.fft.ifft2(Omega)
+        signal_hat = energy_es(w1_hat, invKsq, NX, Kabs)#, invKsq, NX )
+        Kplot, energy, kplot_str =  spectrum_angle_average_vec(signal_hat, Kabs, NX)#, kx, , invKsq)
 
-    Omega_hat = w1_hat
-    Omega = np.fft.ifft2(Omega_hat)
-    Psi_hat = Omega2Psi_2DFHIT(Omega, Kx, Ky, Ksq)
-    TKE_angled_average, kkx = TKE_angled_average_2DFHIT(Psi_hat, Omega_hat, spectral = True)
-    Z_angled_average_spectra, kkx = enstrophy_angled_average_2DFHIT(Omega, spectral = False)
+        signal_hat = enstrophy_es(w1_hat, Kabs, NX )
+        Kplot, enstrophy, kplot_str =  spectrum_angle_average_vec(signal_hat, Kabs, NX)#, kx, , invKsq)
 
-    plt.subplot(2,2,icount)
-    plt.title('')
-    plt.contourf(Omega, cmap='bwr_r',levels=99)
+        Omega_hat = w1_hat
+        Omega = np.fft.ifft2(Omega_hat)
+        Psi_hat = Omega2Psi_2DFHIT(Omega, Kx, Ky, Ksq)
+        TKE_angled_average, kkx = TKE_angled_average_2DFHIT(Psi_hat, Omega_hat, spectral = True)
+        Z_angled_average_spectra, kkx = enstrophy_angled_average_2DFHIT(Omega_hat, spectral = True)
 
-    plt.subplot(2,2,3)
-    plt.loglog(Kplot,energy,label='envfluids/spectra',linewidth=linewidth)
-    plt.legend()
+        plt.subplot(2,2,icount)
+        plt.title('')
+        plt.contourf(Omega, cmap='bwr_r',levels=99)
 
-    plt.subplot(2,2,4)
-    # plt.loglog(kkx,Z_angled_average_spectra,label='py2d')
-    plt.loglog(kkx,TKE_angled_average,label='py2d',linewidth=linewidth)
+        plt.subplot(2,2,3)
 
-    plt.xlim([0,256])
-    # plt.ylim([1e-9,1e1])
-    plt.legend()
+        if spec_type=='tke':
+            plt.loglog(Kplot,energy,label='envfluids/spectra',linewidth=linewidth)
+        elif spec_type=='enstrophy':
+            plt.loglog(Kplot,enstrophy,label='envfluids/spectra',linewidth=linewidth)
+
+        plt.legend()
+
+        plt.subplot(2,2,4)
+        if spec_type=='tke':
+            plt.loglog(kkx,TKE_angled_average,label='py2d',linewidth=linewidth)
+        elif spec_type=='enstrophy':
+            plt.loglog(kkx,Z_angled_average_spectra,label='py2d')
+        plt.xlim([0,256])
+        # plt.ylim([1e-9,1e1])
+
+        for pcount in [3,4]:
+            plt.subplot(2,2,pcount)
+            plt.ylabel(spec_type,fontsize=16)
+
+        plt.legend()
 
 
-plt.show()
+    plt.show()
