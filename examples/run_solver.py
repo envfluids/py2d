@@ -16,4 +16,4 @@ Py2D_solver(Re=20e3, # Reynolds number
                readTrue=False, 
                ICnum=1, # Initial condition number: Choose between 1 to 20
                resumeSim=False, # tart new simulation (False) or resume simulation (True) 
-               jobName='')
+               )
