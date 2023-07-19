@@ -1,6 +1,4 @@
 import numpy as np
-import numpy as nnp
-import jax.numpy as np
       
 def initialize_perturbation(NX, Kx, Ky):
     # -------------- Initialization using pertubration --------------

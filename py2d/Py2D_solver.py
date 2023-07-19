@@ -8,11 +8,10 @@
 
 # Import os module
 import os
-os.chdir('../../py2d/')
+# os.chdir('../../py2d/')
 from pathlib import Path
 
 # Import Python Libraries
-from prettytable import PrettyTable
 import jax
 from jax import jit
 import numpy as nnp
@@ -24,13 +23,13 @@ print(jax.default_backend())
 print(jax.devices())
 
 # Import Custom Module
-from py2d.convection_conserved import *
-from py2d.convert import *
+from py2d.convection_conserved import convection_conserved
+from py2d.convert import Omega2Psi_2DFHIT, Psi2Omega_2DFHIT, Psi2UV_2DFHIT, Tau2PiOmega_2DFHIT
 from py2d.aposteriori_analysis import eddyTurnoverTime_2DFHIT
 from py2d.SGSModel import *
 # from py2d.uv2tau_CNN import *
-from py2d.initialize import *
-from py2d.datamanager import *
+from py2d.initialize import gridgen, initialize_wavenumbers_2DFHIT, initialize_perturbation
+from py2d.datamanager import gen_path, get_last_file, set_last_file, save_settings, pretty_print_table
 # Enable x64 Precision for Jax
 jax.config.update('jax_enable_x64', True)
 
@@ -40,8 +39,8 @@ Psi2Omega_2DFHIT_jit = jit(Psi2Omega_2DFHIT)
 Psi2UV_2DFHIT_jit = jit(Psi2UV_2DFHIT)
 Tau2PiOmega_2DFHIT_jit = jit(Tau2PiOmega_2DFHIT)
 initialize_wavenumbers_2DFHIT_jit = jit(initialize_wavenumbers_2DFHIT)
-prepare_data_cnn_jit = jit(prepare_data_cnn)
-postproccess_data_cnn_jit = jit(postproccess_data_cnn)
+# prepare_data_cnn_jit = jit(prepare_data_cnn)
+# postproccess_data_cnn_jit = jit(postproccess_data_cnn)
 eddyTurnoverTime_2DFHIT_jit = jit(eddyTurnoverTime_2DFHIT)
 
 # Start timer
@@ -116,7 +115,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # Filter Width
     Delta = 2 * Lx / NX
     
-    Lx, _, X, Y, dx, dx = gridgen(Lx, NX)
+    Lx, _, X, Y, dx, dx = gridgen(Lx, Lx, NX, NX)
     # -------------- Create the meshgrid both in physical and spectral space --------------
     Kx, Ky, Ksq = initialize_wavenumbers_2DFHIT(NX, NX, Lx, Lx)
 
@@ -156,45 +155,31 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     # -------------- Print the run configuration --------------
 
-    # Create pretty table instances for each category
-    table_run_config = PrettyTable()
-    table_geometry_mesh = PrettyTable()
-    table_flow_spec = PrettyTable()
+    run_config2 = [["Time Step (dt)", dt], ["Resume Simulation", resumeSim], 
+                  ["Read Initialization (readTrue), If False: Will read IC from a file", readTrue], 
+                  ["Saving Data  (saveData)", saveData], 
+                  ["Save data every t th timestep (tSAVE)", tSAVE], 
+                  ["Save data every Nth iteration (NSAVE)", NSAVE], 
+                  ["Length of simulation (tTotal)", tTotal], 
+                  ["Maximum Number of Iterations (maxit)", maxit]]
+    
+    geometry_mesh2 = [["Number of Grid Points (NX)", NX], 
+                     ["Domain Length (L)", Lx], 
+                     ["Mesh size (dx)", dx]]
+    
+    table_flow_spec2 = [["Reynolds Number (Re)", Re],
+                       ["Deterministic Forcing Wavenumber (fkx)", fkx],
+                       ["Deterministic Forcing Wavenumber (fky)", fky],
+                       ["Linear Drag Coefficient (alpha)", alpha],
+                       ["Beta plan coefficient (beta)", beta],
+                       ["Eddy Viscosity Coefficient (eddyViscosityCoeff)", eddyViscosityCoeff],
+                       ["SGS Model ", SGSModel_string],
+                       ["Eddy Viscosity Coefficient (eddyViscosityCoeff)", eddyViscosityCoeff],
+                       ["Saving Directory", SAVE_DIR_DATA]]
 
-    # Add the columns and their corresponding values for each table
-    table_run_config.field_names = ["Run Configuration", "Value"]
-    table_geometry_mesh.field_names = ["Geometry and Mesh", "Value"]
-    table_flow_spec.field_names = ["Flow Specification", "Value"]
-
-    # Add variables and their values to the Run Configuration table
-    table_run_config.add_row(["Time Step (dt)", dt])
-    table_run_config.add_row(["Resume Simulation", resumeSim])    
-    table_run_config.add_row(["Read Initialization (readTrue), If False: Will read IC from a file", readTrue])
-    table_run_config.add_row(["Saving Data  (saveData)", saveData])
-    table_run_config.add_row(["Save data every t th timestep (tSAVE)", tSAVE])
-    table_run_config.add_row(["Save data every Nth iteration (NSAVE)", NSAVE])
-    table_run_config.add_row(["Length of simulation (tTotal)", tTotal])
-    table_run_config.add_row(["Maximum Number of Iterations (maxit)", maxit])
-
-    # Add variables and their values to the Geometry and Mesh table
-    table_geometry_mesh.add_row(["Number of Grid Points (NX)", NX])
-    table_geometry_mesh.add_row(["Domain Length (L)", Lx])
-    table_geometry_mesh.add_row(["Mesh size (dx)", dx])
-
-    # Add variables and their values to the Flow Specification table
-    table_flow_spec.add_row(["Reynolds Number (Re)", Re])
-    table_flow_spec.add_row(["Linear Drag Coefficient (alpha)", alpha])
-    table_flow_spec.add_row(["Deterministic forcing (f_kx, f_ky)", [fkx,fky]])
-    table_flow_spec.add_row(["SGS Model", SGSModel_string])
-    table_flow_spec.add_row(["Eddy Viscosity (Only for SMAG and LEITH", SGSModel_string])
-
-    # directory to save data
-    table_flow_spec.add_row(["Saving Directory (SAVE_DIR)", SAVE_DIR])
-
-    # Print the tables
-    print(table_run_config)
-    print(table_geometry_mesh)
-    print(table_flow_spec)
+    pretty_print_table("Run Configuration", run_config2)
+    pretty_print_table("Geometry and Mesh", geometry_mesh2)
+    pretty_print_table("Geometry and Mesh", table_flow_spec2)
 
     # -------------- Initialization Section--------------
     print("-------------- Initialization Section--------------")

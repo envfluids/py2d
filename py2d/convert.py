@@ -26,51 +26,6 @@ def eddyTurnoverTime_2DFHIT(Omega, definition='Enstrophy'):
     return eddyTurnoverTime
 
 
-
-def initialize_wavenumbers_2DFHIT(nx, ny, Lx, Ly, INDEXING='ij'):
-    '''
-    Initialize the wavenumbers for 2D Forced Homogeneous Isotropic Turbulence (2D-FHIT).
-    
-    Parameters:
-    -----------
-    nx : int
-        Number of grid points in the x-direction.
-    ny : int
-        Number of grid points in the y-direction.
-    Lx : float
-        Length of the domain in the x-direction.
-    Ly : float
-        Length of the domain in the y-direction.
-
-    Returns:
-    --------
-    Kx : numpy.ndarray
-        2D array of wavenumbers in the x-direction.
-    Ky : numpy.ndarray
-        2D array of wavenumbers in the y-direction.
-    Ksq : numpy.ndarray
-        2D array of the square of the wavenumber magnitudes.
-    '''
-    kx = 2 * np.pi * np.fft.fftfreq(nx, d=Lx/nx)
-    ky = 2 * np.pi * np.fft.fftfreq(ny, d=Ly/ny)
-    (Kx, Ky) = np.meshgrid(kx, ky, indexing=INDEXING)
-    Ksq = Kx ** 2 + Ky ** 2
-    return Kx, Ky, Ksq
-
-def gridgen(Lx, NX, INDEXING='ij'):
-    # Mesh points in x and y direction
-    # To Do: should work for x!=y
-    
-    # Mesh size
-    dx = Lx / NX
-    
-    # Mesh points in x direction
-    x = np.linspace(0, Lx - dx, num=NX)
-    
-    X, Y = nnp.meshgrid(x, x, indexing=INDEXING)
-    
-    return Lx, Lx, X, Y, dx, dx
-
 def Omega2Psi_2DFHIT(Omega, Kx, Ky, Ksq):
     """
     Calculate the stream function from vorticity.

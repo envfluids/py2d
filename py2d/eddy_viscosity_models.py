@@ -9,8 +9,7 @@ import numpy as nnp
 import jax.numpy as np
 from jax import jit
 
-from py2d.convert import strain_rate_2DFHIT, initialize_wavenumbers_2DFHIT
-
+from py2d.convert import strain_rate_2DFHIT
 
 @jit
 def eddy_viscosity_smag(Cs, Delta, characteristic_S):

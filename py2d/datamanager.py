@@ -14,7 +14,7 @@ import glob
 def gen_path(NX, dt, ICnum, Re, 
              fkx, fky, alpha, beta, SGSModel_string):
     # Snapshots of data save at the following directory
-    dataType_DIR = 'Re' + str(int(Re)) + 'k_fkx' + str(fkx) + 'fky' + str(fky) + '_r' + str(alpha) + '_b' + str(beta) + '/'
+    dataType_DIR = 'Re' + str(int(Re)) + '_fkx' + str(fkx) + 'fky' + str(fky) + '_r' + str(alpha) + '_b' + str(beta) + '/'
     SAVE_DIR = 'results/' + dataType_DIR + SGSModel_string + '/NX' + str(NX) + '/dt' + str(dt) + '_IC' + str(ICnum) + '/'
     SAVE_DIR_DATA = SAVE_DIR + 'data/'
     SAVE_DIR_IC = SAVE_DIR + 'IC/'
@@ -96,3 +96,18 @@ def save_settings(readTrue,ICnum,resumeSim,saveData,
             f.write(f'{key}: {value}\n')
 
     print("Parameters of the flow saved to saved to " + SAVE_DIR + 'parameter.txt')
+
+def pretty_print_table(title, table_content):
+    longest_key = max([len(str(row[0])) for row in table_content])
+    longest_value = max([len(str(row[1])) for row in table_content])
+    
+    # Title
+    print('+' + '-' * (longest_key+2) + '+' + '-' * (longest_value+2) + '+')
+    print('| ' + title.center(longest_key) + ' | ' + 'Value'.center(longest_value) + ' |')
+    print('+' + '-' * (longest_key+2) + '+' + '-' * (longest_value+2) + '+')
+    
+    # Content
+    for row in table_content:
+        print('| ' + str(row[0]).center(longest_key) + ' | ' + str(row[1]).center(longest_value) + ' |')
+    print('+' + '-' * (longest_key+2) + '+' + '-' * (longest_value+2) + '+')
+    print()
