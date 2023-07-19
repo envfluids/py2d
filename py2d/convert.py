@@ -16,12 +16,8 @@ def Omega2Psi_2DFHIT(Omega, invKsq, spectral=False):
     -----------
     Omega : numpy.ndarray
         Vorticity (2D array) in physical or spectral space, depending on the 'spectral' flag.
-    Kx : numpy.ndarray
-        2D array of wavenumbers in the x-direction.
-    Ky : numpy.ndarray
-        2D array of wavenumbers in the y-direction.
-    Ksq : numpy.ndarray
-        2D array of the square of the wavenumber magnitudes.
+    invKsq : numpy.ndarray
+        2D array of the inverse of square of the wavenumber magnitudes.
     spectral : bool, optional
         If True, assumes input vorticity is in spectral space and returns stream function in
         spectral space. If False (default), assumes input vorticity is in physical space and
@@ -40,21 +36,12 @@ def Omega2Psi_2DFHIT(Omega, invKsq, spectral=False):
     """
     # Check if the 'spectral' flag is set to False. If it is, transform the vorticity from physical space to spectral space using a 2D Fast Fourier Transform.
     if not spectral:
-        Omega_hat = np.fft.fft2(Omega)
+        Psi = Omega2Psi_2DFHIT_physical(Omega, invKsq)
+        return Psi
     # If the 'spectral' flag is set to True, assume that the input vorticity is already in spectral space.
     else:
         Omega_hat = Omega
-
-    # Compute the Laplacian of the stream function in spectral space by taking the negative of the vorticity in spectral space.
-    lap_Psi_hat = -Omega_hat
-    # Divide the Laplacian of the stream function by the negative of the square of the wavenumber magnitudes (1/Ksq = inKsq) to compute the stream function in spectral space.
-    Psi_hat = lap_Psi_hat * (-invKsq)
-
-    # Check if the 'spectral' flag is set to False. If it is, transform the stream function from spectral space back to physical space using an inverse 2D Fast Fourier Transform before returning it.
-    if not spectral:
-        return np.real(np.fft.ifft2(Psi_hat))
-    # If the 'spectral' flag is set to True, return the stream function in spectral space.
-    else:
+        Psi_hat = Omega2Psi_2DFHIT_spectral(Omega_hat, invKsq)
         return Psi_hat
 
 
@@ -89,23 +76,13 @@ def Psi2Omega_2DFHIT(Psi, Ksq, spectral=False):
     """
     # Check if the 'spectral' flag is set to False. If it is, transform the stream function from physical space to spectral space using a 2D Fast Fourier Transform.
     if not spectral:
-        Psi_hat = np.fft.fft2(Psi)
+        Omega = Psi2Omega_2DFHIT_physical(Psi, Ksq)
+        return Omega
     # If the 'spectral' flag is set to True, assume that the input stream function is already in spectral space.
     else:
         Psi_hat = Psi
-
-    # Compute the Laplacian of the stream function in spectral space by multiplying the stream function in spectral space by the negative of the square of the wavenumber magnitudes.
-    lap_Psi_hat = (-Ksq) * Psi_hat
-    # Compute the vorticity in spectral space by taking the negative of the Laplacian of the stream function in spectral space.
-    Omega_hat = -lap_Psi_hat
-
-    # Check if the 'spectral' flag is set to False. If it is, transform the vorticity from spectral space back to physical space using an inverse 2D Fast Fourier Transform, then take the real part (to remove any residual imaginary parts due to numerical error) before returning it.
-    if not spectral:
-        return np.real(np.fft.ifft2(Omega_hat))
-    # If the 'spectral' flag is set to True, return the vorticity in spectral space.
-    else:
+        Omega_hat = Psi2Omega_2DFHIT_spectral(Psi_hat, Ksq)
         return Omega_hat
-
 
 def Psi2UV_2DFHIT(Psi, Kx, Ky, spectral = False):
     """
@@ -140,25 +117,11 @@ def Psi2UV_2DFHIT(Psi, Kx, Ky, spectral = False):
     # If the 'spectral' flag is False, perform a 2D Fast Fourier Transform on the input stream function
     # to transform it into spectral space
     if not spectral:
-        Psi_hat = np.fft.fft2(Psi)
+        U, V = Psi2UV_2DFHIT_physical(Psi, Kx, Ky)
+        return U, V
     else:
         Psi_hat = Psi
-
-    # Calculate the Fourier coefficient of U (velocity in y-direction)
-    # using the relationship U = d(Psi)/dy
-    # In Fourier space, differentiation corresponds to multiplication by an imaginary unit and the wavenumber
-    U_hat = (1.j) * Ky * Psi_hat
-
-    # Calculate the Fourier coefficient of V (velocity in x-direction)
-    # using the relationship V = -d(Psi)/dx
-    # In Fourier space, differentiation corresponds to multiplication by an imaginary unit and the wavenumber
-    V_hat = -(1.j) * Kx * Psi_hat
-
-    # If the 'spectral' flag is False, perform an inverse 2D Fast Fourier Transform on the Fourier coefficients
-    # of the velocity components to transform them into physical space
-    if not spectral:
-        return np.real(np.fft.ifft2(U_hat)), np.real(np.fft.ifft2(V_hat))
-    else:
+        U_hat, V_hat = Psi2UV_2DFHIT_spectral(Psi_hat, Kx, Ky)
         return U_hat, V_hat
 
 
@@ -193,21 +156,14 @@ def Tau2PiOmega_2DFHIT(Tau11, Tau12, Tau22, Kx, Ky, spectral=False):
     """
     # Transform Tau elements to spectral space via 2D Fast Fourier Transform if 'spectral' flag is False
     if not spectral:
-        Tau11_hat = np.fft.fft2(Tau11)
-        Tau12_hat = np.fft.fft2(Tau12)
-        Tau22_hat = np.fft.fft2(Tau22)
+        PiOmega = Tau2PiOmega_2DFHIT_spectral(Tau11, Tau12, Tau22, Kx, Ky)
+        return PiOmega
+
     else:
         Tau11_hat = Tau11
         Tau12_hat = Tau12
         Tau22_hat = Tau22
-
-    # Calculate PiOmega in spectral space using the given mathematical relationships
-    PiOmega_hat = Kx * Ky * (Tau11_hat - Tau22_hat) - (Kx * Kx - Ky * Ky) * Tau12_hat
-    
-    # If 'spectral' flag is False, transform PiOmega back to physical space using inverse 2D Fast Fourier Transform
-    if not spectral:
-        return np.real(np.fft.ifft2(PiOmega_hat))
-    else:
+        PiOmega_hat = Tau2PiOmega_2DFHIT_spectral(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky)
         return PiOmega_hat
 
 
@@ -242,22 +198,11 @@ def strain_rate_2DFHIT(Psi, Kx, Ky, spectral=False):
 
     # Transform Psi to spectral space using 2D Fast Fourier Transform if 'spectral' flag is False
     if not spectral:
-        Psi_hat = np.fft.fft2(Psi)
+        S11, S12, S22 = strain_rate_2DFHIT_physical(Psi, Kx, Ky)
+        return S11, S12, S22
     else:
         Psi_hat = Psi
-
-    # Calculate the Fourier coefficients of the strain rate components using given mathematical relationships
-    Ux_hat = (1j*Kx) * (1j*Ky) * Psi_hat
-    Vx_hat = (1j*Kx) * (-1j*Kx) * Psi_hat
-    Uy_hat = (1j*Ky) * (1j*Ky) * Psi_hat
-    S11_hat = Ux_hat
-    S12_hat = 0.5 * (Uy_hat + Vx_hat)
-    S22_hat = -Ux_hat
-
-    # If 'spectral' flag is False, transform the strain rate components back to physical space using inverse 2D Fast Fourier Transform
-    if not spectral:
-        return np.real(np.fft.ifft2(S11_hat)), np.real(np.fft.ifft2(S12_hat)), np.real(np.fft.ifft2(S22_hat))
-    else:
+        S11_hat, S12_hat, S22_hat = strain_rate_2DFHIT_spectral(Psi_hat, Kx, Ky)
         return S11_hat, S12_hat, S22_hat
 
 #  CNN functions
@@ -328,3 +273,357 @@ def denormalize_data(data, mean, std):
     denormalized_data = data * std + mean
     
     return denormalized_data
+
+
+############################################################################################################
+############################################################################################################
+#  Rewriting the functions to be used JAX code
+
+def Omega2Psi_2DFHIT_spectral(Omega_hat, invKsq):
+    """
+    Calculate the stream function from vorticity in spectral space
+
+    This function calculates the stream function (Psi) from vorticity (Omega) using the relationship
+    that vorticity is the negative Laplacian of the stream function. The function can handle
+    spectral space calculations.
+
+    Parameters:
+    -----------
+    Omega_hat : numpy.ndarray
+        Vorticity spectral space.
+    invKsq : numpy.ndarray
+        2D array of the inverse of square of the wavenumber magnitudes.
+
+    Returns:
+    --------
+    Psi_hat : numpy.ndarray
+        spectral space
+
+    Notes:
+    ------
+    Ksq[0,0] is set to a large value to avoid division by zero.
+    Ksq[0,0] maybe me set to 0, causing division by zero.
+    Psi[0,0] can be set to 0, to avoid any nan values.
+    """
+
+    # Compute the Laplacian of the stream function in spectral space by taking the negative of the vorticity in spectral space.
+    lap_Psi_hat = -Omega_hat
+    # Divide the Laplacian of the stream function by the negative of the square of the wavenumber magnitudes (1/Ksq = inKsq) to compute the stream function in spectral space.
+    Psi_hat = lap_Psi_hat * (-invKsq)
+
+    # Return the stream function in spectral space.
+    return Psi_hat
+
+def Omega2Psi_2DFHIT_physical(Omega, invKsq):
+    """
+    Calculate the stream function from vorticity in physical space
+
+    This function calculates the stream function (Psi) from vorticity (Omega) using the relationship
+    that vorticity is the negative Laplacian of the stream function. The function can handle physical space calculations.
+
+    Parameters:
+    -----------
+    Omega : numpy.ndarray
+        Vorticity (2D array) in physical space
+    invKsq : numpy.ndarray
+        2D array of the inverse of square of the wavenumber magnitudes.
+
+    Returns:
+    --------
+    Psi : numpy.ndarray
+        Stream function (2D array) in physical space.
+
+    """
+    # Transform the vorticity from physical space to spectral space using a 2D Fast Fourier Transform.
+    Omega_hat = np.fft.fft2(Omega)
+
+    # Compute the stream function in spectral space using the Omega2Psi_2DFHIT_spectral function.
+    Psi_hat = Omega2Psi_2DFHIT_spectral(Omega_hat, invKsq)
+
+    # Transform the stream function from spectral space back to physical space using an inverse 2D Fast Fourier Transform before returning it.
+    return np.real(np.fft.ifft2(Psi_hat))
+
+############################################################################################################
+
+def Psi2Omega_2DFHIT_spectral(Psi_hat, Ksq):
+    """
+    Calculate the vorticity from the stream function in spectral space
+
+    This function calculates the vorticity (Omega) from the stream function (Psi) using the relationship
+    that vorticity is the negative Laplacian of the stream function. The function can handle
+    spectral space calculations.
+
+    Parameters:
+    -----------
+    Psi_hat : numpy.ndarray
+        Stream function (2D array) in  spectral space.
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+    Ksq : numpy.ndarray
+        2D array of the square of the wavenumber magnitudes.
+
+    Returns:
+    --------
+    Omega_hat : numpy.ndarray
+        Vorticity (2D array) in  spectral space.
+
+    """
+    # Compute the Laplacian of the stream function in spectral space by multiplying the stream function in spectral space by the negative of the square of the wavenumber magnitudes.
+    lap_Psi_hat = (-Ksq) * Psi_hat
+    # Compute the vorticity in spectral space by taking the negative of the Laplacian of the stream function in spectral space.
+    Omega_hat = -lap_Psi_hat
+
+    # Return the vorticity in spectral space.
+    return Omega_hat
+
+def Psi2Omega_2DFHIT_physical(Psi, Ksq):
+    """
+    Calculate the vorticity from the stream function in physical space.
+
+    This function calculates the vorticity (Omega) from the stream function (Psi) using the relationship
+    that vorticity is the negative Laplacian of the stream function. The function can handle
+    physical space calculations.
+
+    Parameters:
+    -----------
+    Psi : numpy.ndarray
+        Stream function (2D array) in physical space
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+    Ksq : numpy.ndarray
+        2D array of the square of the wavenumber magnitudes.
+
+    Returns:
+    --------
+    Omega : numpy.ndarray
+        Vorticity (2D array) in physical space.
+
+    """
+    # Transform the stream function from physical space to spectral space using a 2D Fast Fourier Transform.
+    Psi_hat = np.fft.fft2(Psi)
+
+    # Compute the vorticity in spectral space using the Psi2Omega_2DFHIT_spectral function.
+    Omega_hat = Psi2Omega_2DFHIT_spectral(Psi_hat, Ksq)
+
+    # Transform the vorticity from spectral space back to physical space using an inverse 2D Fast Fourier Transform, then take the real part (to remove any residual imaginary parts due to numerical error) before returning it.
+    return np.real(np.fft.ifft2(Omega_hat))
+
+############################################################################################################
+
+def Psi2UV_2DFHIT_spectral(Psi_hat, Kx, Ky):
+    """
+    Calculate the velocity components U and V from the stream function in spectral space
+
+    This function calculates the velocity components U and V from the stream function (Psi) 
+    using the relationships:
+        U = d(Psi)/dy
+        V = -d(Psi)/dx
+    The function can handle spectral space calculations.
+
+    Parameters:
+    -----------
+    Psi_hat : numpy.ndarray
+        Stream function (2D array) in spectral space
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+
+    Returns:
+    --------
+    U_hat, V_hat : tuple of numpy.ndarray
+        Velocity components U and V (2D arrays) in spectral space.
+
+    """
+
+    # Calculate the Fourier coefficient of U (velocity in y-direction)
+    # using the relationship U = d(Psi)/dy
+    # In Fourier space, differentiation corresponds to multiplication by an imaginary unit and the wavenumber
+    U_hat = (1.j) * Ky * Psi_hat
+
+    # Calculate the Fourier coefficient of V (velocity in x-direction)
+    # using the relationship V = -d(Psi)/dx
+    # In Fourier space, differentiation corresponds to multiplication by an imaginary unit and the wavenumber
+    V_hat = -(1.j) * Kx * Psi_hat
+
+    return U_hat, V_hat
+
+def Psi2UV_2DFHIT_physical(Psi, Kx, Ky):
+    """
+    Calculate the velocity components U and V from the stream function in physical space
+
+    This function calculates the velocity components U and V from the stream function (Psi) 
+    using the relationships:
+        U = d(Psi)/dy
+        V = -d(Psi)/dx
+    The function can handle both physical space calculations.
+
+    Parameters:
+    -----------
+    Psi : numpy.ndarray
+        Stream function (2D array) in physical space.
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+
+    Returns:
+    --------
+    U, V : tuple of numpy.ndarray
+        Velocity components U and V (2D arrays) in physical space.
+
+    """
+
+    # Perform a 2D Fast Fourier Transform on the input stream function to transform it into spectral space
+    Psi_hat = np.fft.fft2(Psi)
+
+    # Calculate the Fourier coefficients of the velocity components U and V in spectral space using the Psi2UV_2DFHIT_spectral function
+    U_hat, V_hat = Psi2UV_2DFHIT_spectral(Psi_hat, Kx, Ky)
+
+    # Perform an inverse 2D Fast Fourier Transform on the Fourier coefficients of the velocity components to transform them into physical space
+    return np.real(np.fft.ifft2(U_hat)), np.real(np.fft.ifft2(V_hat))
+
+############################################################################################################
+
+def Tau2PiOmega_2DFHIT_spectral(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky):
+    """
+    Calculate PiOmega, the curl of the divergence of Tau, where Tau is a 2D symmetric tensor in spectral space.
+
+    Parameters:
+    -----------
+    Tau11_hat : numpy.ndarray
+        Element (2D array) of the 2D symmetric tensor Tau in spectral space
+    Tau12_hat : numpy.ndarray
+        Element (2D array) of the 2D symmetric tensor Tau in spectral space
+    Tau22_hat : numpy.ndarray
+        Element (2D array) of the 2D symmetric tensor Tau in spectral space
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+
+    Returns:
+    --------
+    PiOmega_hat : numpy.ndarray
+        PiOmega (2D array) in spectral space.
+
+    """
+    # Calculate PiOmega in spectral space using the given mathematical relationships
+    PiOmega_hat = Kx * Ky * (Tau11_hat - Tau22_hat) - (Kx * Kx - Ky * Ky) * Tau12_hat
+
+    return PiOmega_hat
+
+def Tau2PiOmega_2DFHIT_physical(Tau11, Tau12, Tau22, Kx, Ky):
+    """
+    Calculate PiOmega, the curl of the divergence of Tau, where Tau is a 2D symmetric tensor in physical space
+
+    Parameters:
+    -----------
+    Tau11 : numpy.ndarray
+        Element (2D array) of the 2D symmetric tensor Tau in physical space.
+    Tau12 : numpy.ndarray
+        Element (2D array) of the 2D symmetric tensor Tau in physical space. 
+    Tau22 : numpy.ndarray
+        Element (2D array) of the 2D symmetric tensor Tau in physical space. 
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+
+    Returns:
+    --------
+    PiOmega : numpy.ndarray
+        PiOmega (2D array) in physical space.
+
+    """
+    # Transform Tau elements to spectral space via 2D Fast Fourier Transform 
+    Tau11_hat = np.fft.fft2(Tau11)
+    Tau12_hat = np.fft.fft2(Tau12)
+    Tau22_hat = np.fft.fft2(Tau22)
+
+    # Calculate PiOmega in spectral space using the given mathematical relationships
+    PiOmega_hat = Tau2PiOmega_2DFHIT_spectral(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky)
+    
+    # Transform PiOmega back to physical space using inverse 2D Fast Fourier Transform
+    return np.real(np.fft.ifft2(PiOmega_hat))
+
+############################################################################################################
+
+def strain_rate_2DFHIT_spectral(Psi_hat, Kx, Ky):
+    """
+    Calculate the Strain rate components S11_hat, S12_hat, and S22_hat from the stream function in spectral space
+
+    This function calculates the velocity components U and V from the stream function (Psi)
+    using the relationship between them. The function can handle  spectral space calculations.
+
+    Parameters:
+    -----------
+    Psi_hat : numpy.ndarray
+        Stream function (2D array) in physical or spectral space, depending on the 'spectral' flag.
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+
+    Returns:
+    --------
+    S11_hat, S12_hat, S22_hat : tuple of numpy.ndarray
+        Strain rate components S11_hat, S12_hat, and S22_hat spectral space.
+
+    Notes:
+    ------
+    This assumes that continuity equation is valid, i.e., the stream function is divergence-free.
+    Here, Ux = -Vy
+    """
+
+    # Calculate the Fourier coefficients of the strain rate components using given mathematical relationships
+    Ux_hat = (1j*Kx) * (1j*Ky) * Psi_hat
+    Vx_hat = (1j*Kx) * (-1j*Kx) * Psi_hat
+    Uy_hat = (1j*Ky) * (1j*Ky) * Psi_hat
+    S11_hat = Ux_hat
+    S12_hat = 0.5 * (Uy_hat + Vx_hat)
+    S22_hat = -Ux_hat
+
+    return S11_hat, S12_hat, S22_hat
+
+def strain_rate_2DFHIT_physical(Psi, Kx, Ky):
+    """
+    Calculate the Strain rate components S11, S12, and S22 from the stream function in physical space
+
+    This function calculates the velocity components U and V from the stream function (Psi)
+    using the relationship between them. The function can handle physical space calculations.
+
+    Parameters:
+    -----------
+    Psi : numpy.ndarray
+        Stream function (2D array) in physical or spectral space, depending on the 'spectral' flag.
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+
+    Returns:
+    --------
+    S11, S12, S22 : tuple of numpy.ndarray
+        Strain rate components S11, S12, and S22 (2D arrays) in physical space
+
+    Notes:
+    ------
+    This assumes that continuity equation is valid, i.e., the stream function is divergence-free.
+    Here, Ux = -Vy
+    """
+
+    # Transform Psi to spectral space using 2D Fast Fourier Transform
+    Psi_hat = np.fft.fft2(Psi)
+
+    # Calculate the Fourier coefficients of the strain rate components using given mathematical relationships
+    S11_hat, S12_hat, S22_hat = strain_rate_2DFHIT_spectral(Psi_hat, Kx, Ky)
+
+    # Transform the strain rate components back to physical space using inverse 2D Fast Fourier Transform
+    return np.real(np.fft.ifft2(S11_hat)), np.real(np.fft.ifft2(S12_hat)), np.real(np.fft.ifft2(S22_hat))
+
+############################################################################################################
