@@ -5,7 +5,6 @@ from py2d.eddy_viscosity_models import eddy_viscosity_smag, characteristic_strai
 from py2d.eddy_viscosity_models import eddy_viscosity_leith, characteristic_omega_leith, coefficient_dleith_PsiOmega
 from py2d.gradient_model import GM2, GM4, GM6
 # from py2d.uv2tau_CNN import evaluate_model, init_model
-from py2d.convert import *
 
 class SGSModel:
     
