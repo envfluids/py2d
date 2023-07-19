@@ -24,7 +24,7 @@ print(jax.devices())
 
 # Import Custom Module
 from py2d.convection_conserved import convection_conserved
-from py2d.convert import Omega2Psi_2DFHIT, Psi2Omega_2DFHIT, Psi2UV_2DFHIT, Tau2PiOmega_2DFHIT
+from py2d.convert import Omega2Psi_2DFHIT_spectral, Psi2UV_2DFHIT_spectral
 from py2d.aposteriori_analysis import eddyTurnoverTime_2DFHIT
 from py2d.SGSModel import *
 # from py2d.uv2tau_CNN import *
@@ -34,11 +34,8 @@ from py2d.datamanager import gen_path, get_last_file, set_last_file, save_settin
 jax.config.update('jax_enable_x64', True)
 
 ## -------------- Initialize the kernels in JIT --------------
-Omega2Psi_2DFHIT_jit = jit(Omega2Psi_2DFHIT)
-Psi2Omega_2DFHIT_jit = jit(Psi2Omega_2DFHIT)
-Psi2UV_2DFHIT_jit = jit(Psi2UV_2DFHIT)
-Tau2PiOmega_2DFHIT_jit = jit(Tau2PiOmega_2DFHIT)
-initialize_wavenumbers_2DFHIT_jit = jit(initialize_wavenumbers_2DFHIT)
+Omega2Psi_2DFHIT_spectral = jit(Omega2Psi_2DFHIT_spectral)
+Psi2UV_2DFHIT_spectral = jit(Psi2UV_2DFHIT_spectral)
 # prepare_data_cnn_jit = jit(prepare_data_cnn)
 # postproccess_data_cnn_jit = jit(postproccess_data_cnn)
 eddyTurnoverTime_2DFHIT_jit = jit(eddyTurnoverTime_2DFHIT)
@@ -117,7 +114,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     
     Lx, _, X, Y, dx, dx = gridgen(Lx, Lx, NX, NX)
     # -------------- Create the meshgrid both in physical and spectral space --------------
-    Kx, Ky, Ksq = initialize_wavenumbers_2DFHIT(NX, NX, Lx, Lx)
+    Kx, Ky, _, Ksq, invKsq = initialize_wavenumbers_2DFHIT(NX, NX, Lx, Lx)
 
     # Numpy to jax
     X = np.array(X)
@@ -125,6 +122,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     Kx = np.array(Kx)
     Ky = np.array(Ky)
     Ksq = np.array(Ksq)
+    invKsq = np.array(invKsq)
 
     # -------------- Deterministic forcing Calculation --------------
 
@@ -234,8 +232,8 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
             Omega1_hat = np.array(Omega1_hat_cpu)
             time = time[0][0]
 
-            Psi0_hat = Omega2Psi_2DFHIT_jit(Omega0_hat, Kx, Ky, Ksq)
-            Psi1_hat = Omega2Psi_2DFHIT_jit(Omega1_hat, Kx, Ky, Ksq)
+            Psi0_hat = Omega2Psi_2DFHIT_spectral(Omega0_hat, invKsq)
+            Psi1_hat = Omega2Psi_2DFHIT_spectral(Omega1_hat, invKsq)
             
         else:
             # Path of Initial Conditions
@@ -258,7 +256,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
             Omega1 = data_Poi["Omega"]
             Omega1_hat = np.fft.fft2(Omega1)
             Omega0_hat = Omega1_hat
-            Psi1_hat = Omega2Psi_2DFHIT_jit(Omega1_hat, Kx, Ky, Ksq)
+            Psi1_hat = Omega2Psi_2DFHIT_spectral(Omega1_hat, invKsq)
             Psi0_hat = Psi1_hat
             time = 0.0
 
@@ -320,7 +318,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     for it in range(maxit):
     
         if it == 0:
-            U0_hat, V0_hat = Psi2UV_2DFHIT_jit(Psi0_hat, Kx, Ky, Ksq)
+            U0_hat, V0_hat = Psi2UV_2DFHIT_spectral(Psi0_hat, Kx, Ky)
             U1_hat, V1_hat = U0_hat, V0_hat
             convec0_hat = convection_conserved(Omega0_hat, U0_hat, V0_hat, Kx, Ky)
 
@@ -389,8 +387,8 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
         # Poisson equation for Psi
         Psi0_hat = Psi1_hat
-        Psi1_hat = Omega2Psi_2DFHIT_jit(Omega1_hat, Kx, Ky, Ksq)
-        U1_hat, V1_hat = Psi2UV_2DFHIT_jit(Psi1_hat, Kx, Ky, Ksq)
+        Psi1_hat = Omega2Psi_2DFHIT_spectral(Omega1_hat, invKsq)
+        U1_hat, V1_hat = Psi2UV_2DFHIT_spectral(Psi1_hat, Kx, Ky)
 
         time = time + dt
 
