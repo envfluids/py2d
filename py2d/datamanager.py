@@ -12,9 +12,9 @@ import glob
 
 # --------------------------------------------------------------------------
 def gen_path(NX, dt, ICnum, Re, 
-             fkx, fky, alpha, SGSModel_string):
+             fkx, fky, alpha, beta, SGSModel_string):
     # Snapshots of data save at the following directory
-    dataType_DIR = 'Re' + str(int(Re / 1000)) + 'k_fkx' + str(fkx) + 'fky' + str(fky) + '_r' + str(alpha) + '/'
+    dataType_DIR = 'Re' + str(int(Re)) + 'k_fkx' + str(fkx) + 'fky' + str(fky) + '_r' + str(alpha) + '_b' + str(beta) + '/'
     SAVE_DIR = 'results/' + dataType_DIR + SGSModel_string + '/NX' + str(NX) + '/dt' + str(dt) + '_IC' + str(ICnum) + '/'
     SAVE_DIR_DATA = SAVE_DIR + 'data/'
     SAVE_DIR_IC = SAVE_DIR + 'IC/'

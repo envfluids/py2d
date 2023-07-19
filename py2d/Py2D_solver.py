@@ -145,10 +145,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     
     # -------------- Directory to store data ------------------
     # Snapshots of data save at the following directory
-    dataType_DIR = 'Re' + str(int(Re / 1000)) + 'k_fkx' + str(fkx) + 'fky' + str(fky) + '_r' + str(alpha) + '/'
-    SAVE_DIR = 'results/' + dataType_DIR + SGSModel_string  + '/NX' + str(NX) + '/dt' + str(dt) + '_IC' + str(ICnum) + '/'
-    SAVE_DIR_DATA = SAVE_DIR + 'data/'
-    SAVE_DIR_IC = SAVE_DIR + 'IC/'
+    SAVE_DIR, SAVE_DIR_DATA, SAVE_DIR_IC = gen_path(NX, dt, ICnum, Re, fkx, fky, alpha, beta, SGSModel_string)
 
     # Create directories if they aren't present
     try:
