@@ -49,9 +49,7 @@ def spectrum_angled_average_2DFHIT(A, spectral = False):
     # Set the size of the domain
     Lx, Ly = 2 * np.pi, 2 * np.pi
 
-    Kx, Ky, Ksq = initialize_wavenumbers_2DFHIT(nx, ny, Lx, Ly, INDEXING='ij')
-    # Calculate the absolute value of the wavenumbers
-    Kabs = np.sqrt(Kx ** 2 + Ky ** 2)
+    _, _, Kabs, _, _ = initialize_wavenumbers_2DFHIT(nx, ny, Lx, Ly, INDEXING='ij')
 
     # Compute the 2D FFT of 'A' if it is in the physical domain
     if not spectral:
@@ -158,50 +156,6 @@ def enstrophy_angled_average_2DFHIT(Omega, spectral=False):
 
     # Return the angle-averaged enstrophy spectrum and the corresponding wavenumbers.
     return Z_angled_average_spectra, kkx
-
-
-def Omega2Psi_2DFHIT(Omega, Kx, Ky, Ksq, spectral=False):
-    """
-    Calculate the stream function from vorticity.
-
-    This function calculates the stream function (Psi) from vorticity (Omega) using the relationship
-    that vorticity is the negative Laplacian of the stream function. The function can handle
-    both physical and spectral space calculations.
-
-    Parameters:
-    -----------
-    Omega : numpy.ndarray
-        Vorticity (2D array) in physical or spectral space, depending on the 'spectral' flag.
-    Kx : numpy.ndarray
-        2D array of wavenumbers in the x-direction.
-    Ky : numpy.ndarray
-        2D array of wavenumbers in the y-direction.
-    Ksq : numpy.ndarray
-        2D array of the square of the wavenumber magnitudes.
-    spectral : bool, optional
-        If True, assumes input vorticity is in spectral space and returns stream function in
-        spectral space. If False (default), assumes input vorticity is in physical space and
-        returns stream function in physical space.
-
-    Returns:
-    --------
-    Psi : numpy.ndarray
-        Stream function (2D array) in physical or spectral space, depending on the 'spectral' flag.
-
-    """
-    if not spectral:
-        Omega_hat = np.fft.fft2(Omega)
-    else:
-        Omega_hat = Omega
-
-    lap_Psi_hat = -Omega_hat
-    Psi_hat = lap_Psi_hat / -Ksq
-
-    if not spectral:
-        return np.fft.ifft2(Psi_hat)
-    else:
-        return Psi_hat
-    
 
 def energyTransfer_spectra_2DFHIT(Kx, Ky, U=None, V=None, Tau11=None, Tau12=None, Tau22=None, Psi=None, PiOmega=None, method='Tau', spectral=False):
     '''

@@ -50,25 +50,41 @@ def initialize_wavenumbers_2DFHIT(nx, ny, Lx, Ly, INDEXING='ij'):
         2D array of wavenumbers in the y-direction.
     Ksq : numpy.ndarray
         2D array of the square of the wavenumber magnitudes.
+
+    Notes:
+    ------
+    inKsq[0,0] = 0 to avoid numerical errors, since invKsq[0.0] = 1/0 = inf
     '''
 
-    # Compute the wavenumbers in the x-direction based on the FFT frequencies.
+    # Create an array of the discrete Fourier Transform sample frequencies in x-direction
     kx = 2 * np.pi * np.fft.fftfreq(nx, d=Lx/nx)
 
-    # Compute the wavenumbers in the y-direction based on the FFT frequencies.
+    # Create an array of the discrete Fourier Transform sample frequencies in y-direction
     ky = 2 * np.pi * np.fft.fftfreq(ny, d=Ly/ny)
 
-    # Create 2D arrays of the wavenumbers using a meshgrid. 
+    # Return coordinate grids (2D arrays) for the x and y wavenumbers
     (Kx, Ky) = np.meshgrid(kx, ky, indexing=INDEXING)
 
-    # Calculate the squared magnitudes of the wavenumbers. 
+    # Compute the squared magnitudes of the 2D wavenumbers (Kx and Ky)
     Ksq = Kx ** 2 + Ky ** 2
 
-    # Set the zero wavenumber to a large value to avoid division by zero.
+    # Compute the absolute value of the wavenumbers
+    Kabs = np.sqrt(Ksq)
+
+    # To avoid division by zero, set the zero wavenumber to a large value 
     Ksq[0,0] = 1e16
 
-    # Return the wavenumbers in the x and y direction and their squared magnitudes. 
-    return Kx, Ky, Ksq
+    # Compute the inverse of the squared wavenumbers
+    invKsq = 1.0 / Ksq
+    # Set the inverse of the zero wavenumber to zero
+    invKsq[0,0] = 0.0
+
+    # Set the zero wavenumber back to zero
+    Ksq[0,0] = 0.0
+
+    # Return the wavenumbers in the x and y directions, their absolute values, 
+    # their squared magnitudes and inverse of the squared magnitudes
+    return Kx, Ky, Kabs, Ksq, invKsq
 
 
 def gridgen(Lx, Ly, Nx, Ny, INDEXING='ij'):
