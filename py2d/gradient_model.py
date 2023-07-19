@@ -2,7 +2,7 @@ import numpy as nnp
 import jax.numpy as np
 from jax import jit
 
-from py2d.derivative_2DFHIT import derivative_2DFHIT
+from py2d.derivative import derivative_2DFHIT
 
 @jit
 def real_ifft2(val):
