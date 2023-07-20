@@ -156,7 +156,7 @@ def Tau2PiOmega_2DFHIT(Tau11, Tau12, Tau22, Kx, Ky, spectral=False):
     """
     # Transform Tau elements to spectral space via 2D Fast Fourier Transform if 'spectral' flag is False
     if not spectral:
-        PiOmega = Tau2PiOmega_2DFHIT_spectral(Tau11, Tau12, Tau22, Kx, Ky)
+        PiOmega = Tau2PiOmega_2DFHIT_physical(Tau11, Tau12, Tau22, Kx, Ky)
         return PiOmega
 
     else:
@@ -164,6 +164,89 @@ def Tau2PiOmega_2DFHIT(Tau11, Tau12, Tau22, Kx, Ky, spectral=False):
         Tau12_hat = Tau12
         Tau22_hat = Tau22
         PiOmega_hat = Tau2PiOmega_2DFHIT_spectral(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky)
+        return PiOmega_hat
+    
+
+def Tau2PiUV_2DFHIT(Tau11, Tau12, Tau22, Kx, Ky, spectral=False):
+    """
+    Calculate PiUV, the divergence of Tau, where Tau is a 2D symmetric tensor.
+
+    Parameters:
+    -----------
+    Tau11 : numpy.ndarray
+        Element (2D array) of the 2D symmetric tensor Tau in physical or spectral space, 
+        depending on the 'spectral' flag.
+    Tau12 : numpy.ndarray
+        Element (2D array) of the 2D symmetric tensor Tau in physical or spectral space, 
+        depending on the 'spectral' flag.
+    Tau22 : numpy.ndarray
+        Element (2D array) of the 2D symmetric tensor Tau in physical or spectral space, 
+        depending on the 'spectral' flag.
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+    spectral : bool, optional
+        If True, assumes input Tau elements are in spectral space and returns PiOmega in spectral space.
+        If False (default), assumes input Tau elements are in physical space and returns PiOmega in physical space.
+
+    Returns:
+    --------
+    PiOmega : numpy.ndarray
+        PiOmega (2D array) in physical or spectral space, depending on the 'spectral' flag.
+
+    Notes:
+    ------
+    This function serves as a wrapper for Tau2PiUV_2DFHIT_spectral() and Tau2PiUV_2DFHIT_physical().
+    Depending on the 'spectral' flag, it selects the appropriate function and computes PiUV.
+    """
+    if not spectral:
+        # If 'spectral' flag is False, compute PiUV in physical space
+        PiUV1, PiUV2 = Tau2PiUV_2DFHIT_physical(Tau11, Tau12, Tau22, Kx, Ky)
+        return PiUV1, PiUV2
+    else:
+        # If 'spectral' flag is True, compute PiUV in spectral space
+        Tau11_hat = Tau11
+        Tau12_hat = Tau12
+        Tau22_hat = Tau22
+        PiUV1_hat, PiUV2_hat = Tau2PiUV_2DFHIT_spectral(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky)
+        return PiUV1_hat, PiUV2_hat
+
+
+def Sigma2PiOmega(Sigma1, Sigma2, Kx, Ky, spectral = False):
+    """
+    Compute the divergence of Sigma, referred to as PiOmega, in either physical or spectral space.
+
+    Parameters:
+    -----------
+    Sigma1, Sigma2 : numpy.ndarray
+        The components of Sigma.
+    Kx, Ky : numpy.ndarray
+        The wavenumbers in the x and y directions, respectively.
+    spectral : bool, optional
+        If True, assumes input Sigma elements are in spectral space and returns PiOmega in spectral space.
+        If False (default), assumes input Sigma elements are in physical space and returns PiOmega in physical space.
+
+    Returns:
+    --------
+    PiOmega or PiOmega_hat : numpy.ndarray
+        The divergence of Sigma, referred to as PiOmega, in either physical (PiOmega) or spectral (PiOmega_hat) space 
+        depending on the 'spectral' flag.
+    
+    Notes:
+    ------
+    This function serves as a wrapper for Sigma2PiOmega_spectral() and Sigma2PiOmega_physical().
+    Depending on the 'spectral' flag, it selects the appropriate function and computes PiOmega.
+    """
+    if not spectral:
+        # If 'spectral' flag is False, compute PiOmega in physical space
+        PiOmega = Sigma2PiOmega_physical(Sigma1, Sigma2, Kx, Ky)
+        return PiOmega
+    else:
+        # If 'spectral' flag is True, compute PiOmega in spectral space
+        Sigma1_hat = Sigma1
+        Sigma2_hat = Sigma2
+        PiOmega_hat = Sigma2PiOmega_spectral(Sigma1_hat, Sigma2_hat, Kx, Ky)
         return PiOmega_hat
 
 
@@ -517,6 +600,7 @@ def Tau2PiOmega_2DFHIT_spectral(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky):
 
     return PiOmega_hat
 
+
 def Tau2PiOmega_2DFHIT_physical(Tau11, Tau12, Tau22, Kx, Ky):
     """
     Calculate PiOmega, the curl of the divergence of Tau, where Tau is a 2D symmetric tensor in physical space
@@ -550,6 +634,121 @@ def Tau2PiOmega_2DFHIT_physical(Tau11, Tau12, Tau22, Kx, Ky):
     
     # Transform PiOmega back to physical space using inverse 2D Fast Fourier Transform
     return np.real(np.fft.ifft2(PiOmega_hat))
+
+############################################################################################################
+
+def Tau2PiUV_2DFHIT_spectral(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky):
+    """
+    Compute the divergence of Tau, where Tau is a 2D symmetric tensor in spectral space, and return PiUV in spectral space.
+    
+    Parameters:
+    -----------
+    Tau11_hat, Tau12_hat, Tau22_hat : numpy.ndarray
+        The spectral representations of the components of the 2D symmetric tensor Tau.
+    Kx, Ky : numpy.ndarray
+        The wavenumbers in the x and y directions, respectively.
+        
+    Returns:
+    --------
+    PiUV1_hat, PiUV2_hat : numpy.ndarray
+        The spectral representations of the components of the divergence of Tau, denoted as PiUV.
+
+    Notes:
+    ------
+    The function computes the spectral representations of the components of the divergence of Tau, PiUV1 and PiUV2, 
+    using the relationships:
+    PiUV1_hat = (1j*Kx)*Tau11_hat + (1j*Ky)*Tau12_hat
+    PiUV2_hat = (1j*Kx)*Tau12_hat + (1j*Ky)*Tau22_hat
+    """
+    
+    # Compute PiUV1_hat and PiUV2_hat using the relationship in spectral space
+    PiUV1_hat = (1j*Kx)*Tau11_hat + (1j*Ky)*Tau12_hat
+    PiUV2_hat = (1j*Kx)*Tau12_hat + (1j*Ky)*Tau22_hat
+
+    return PiUV1_hat, PiUV2_hat
+
+def Tau2PiUV_2DFHIT_physical(Tau11, Tau12, Tau22, Kx, Ky):
+    """
+    Compute the divergence of Tau in physical space, where Tau is a 2D symmetric tensor, 
+    and return PiUV in physical space.
+    
+    Parameters:
+    -----------
+    Tau11, Tau12, Tau22 : numpy.ndarray
+        The physical representations of the components of the 2D symmetric tensor Tau.
+    Kx, Ky : numpy.ndarray
+        The wavenumbers in the x and y directions, respectively.
+        
+    Returns:
+    --------
+    PiUV1, PiUV2 : numpy.ndarray
+        The components of the divergence of Tau, denoted as PiUV, in physical space.
+
+    Notes:
+    ------
+    The function first converts the physical Tau tensor components to spectral space, 
+    then calculates the spectral PiUV components using Tau2PiUV_2DFHIT_spectral() function,
+    and finally transforms the spectral PiUV components back to physical space.
+    """
+    # Transform the physical components of Tau to spectral space
+    Tau11_hat = np.fft.fft2(Tau11)
+    Tau12_hat = np.fft.fft2(Tau12)
+    Tau22_hat = np.fft.fft2(Tau22)
+
+    # Compute PiUV1_hat and PiUV2_hat using the spectral space function
+    PiUV1_hat, PiUV2_hat = Tau2PiUV_2DFHIT_spectral(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky)
+
+    # Transform the spectral components of PiUV back to physical space
+    PiUV1,  PiUV2 = np.real(np.fft.ifft2(PiUV1_hat)), np.real(np.fft.ifft2(PiUV2_hat))
+
+    return PiUV1, PiUV2
+
+############################################################################################################
+
+def Sigma2PiOmega_spectral(Sigma1_hat, Sigma2_hat, Kx, Ky):
+    """
+    Compute the divergence of Sigma, referred to as PiOmega, in spectral space.
+
+    Parameters:
+    -----------
+    Sigma1_hat, Sigma2_hat : numpy.ndarray
+        The spectral representations of the components of Sigma.
+    Kx, Ky : numpy.ndarray
+        The wavenumbers in the x and y directions, respectively.
+
+    Returns:
+    --------
+    PiOmega_hat : numpy.ndarray
+        The spectral representation of PiOmega, the divergence of Sigma.
+    """
+    # Calculate PiOmega in spectral space using the given mathematical relationships
+    PiOmega_hat = (1j*Kx)*Sigma1_hat + (1j*Ky)*Sigma2_hat
+    return PiOmega_hat
+
+
+def Sigma2PiOmega_physical(Sigma1, Sigma2, Kx, Ky):
+    """
+    Compute the divergence of Sigma, referred to as PiOmega, in physical space.
+
+    Parameters:
+    -----------
+    Sigma1, Sigma2 : numpy.ndarray
+        The physical representations of the components of Sigma.
+    Kx, Ky : numpy.ndarray
+        The wavenumbers in the x and y directions, respectively.
+    
+    Returns:
+    --------
+    PiOmega : numpy.ndarray
+        The physical representation of PiOmega, the divergence of Sigma.
+    """
+    # Transform Sigma elements to spectral space via 2D Fast Fourier Transform
+    Sigma1_hat, Sigma2_hat = np.fft.fft2(Sigma1), np.fft.fft2(Sigma2)
+    # Compute PiOmega in spectral space
+    PiOmega_hat = Sigma2PiOmega_spectral(Sigma1_hat, Sigma2_hat, Kx, Ky)
+    # Convert the result back to physical space
+    PiOmega = np.real(np.fft.ifft2(PiOmega_hat))
+    return PiOmega
 
 ############################################################################################################
 
