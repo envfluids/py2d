@@ -1,7 +1,7 @@
 import numpy as np
 from py2d.initialize import initialize_wavenumbers_2DFHIT
 
-def filter2D_2DFHIT(U, filterType='gaussian', coarseGrainingType='spectral', Delta=None, Ngrid=None):
+def filter2D_2DFHIT(U, filterType='gaussian', coarseGrainType='spectral', Delta=None, Ngrid=None):
     """
     Filters and coarse grains 2D square grids
     Use Case: 2D Forced Homogenous Isotropic Tubulence (2D-FHIT)
