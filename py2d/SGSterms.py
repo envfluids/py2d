@@ -121,13 +121,20 @@ def PiUV(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=Non
     Returns:
     PiUV1, PiUV2 (numpy.ndarray): PiUV components.
     """
+
     # Get the shape of the DNS field
     NX_DNS, NY_DNS = Omega_DNS.shape
     Lx, Ly = 2 * np.pi, 2 * np.pi
 
+    # Define the shape of the LES grid
+    if coarseGrainType == None or coarseGrainType == 'physical':
+        NX_LES, NY_LES = NX_DNS, NY_DNS
+    elif coarseGrainType == 'spectral':
+        NX_LES, NY_LES = N_LES, N_LES
+
     # Initialize the wavenumbers for the DNS and LES fields
     Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
-    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_2DFHIT(NX_LES, NY_LES, Lx, Ly, INDEXING='ij')
 
     # Convert the vorticity field to a stream function and then to velocity components
     Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
@@ -187,10 +194,17 @@ def PiOmega(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=
     # Define the shape and domain size of the grid
     NX_DNS, NY_DNS = Omega_DNS.shape
     Lx, Ly = 2 * np.pi, 2 * np.pi
+
+    # Define the shape of the LES grid
+    # Define the shape of the LES grid
+    if coarseGrainType == None or coarseGrainType == 'physical':
+        NX_LES, NY_LES = NX_DNS, NY_DNS
+    elif coarseGrainType == 'spectral':
+        NX_LES, NY_LES = N_LES, N_LES
     
     # Initialize the wavenumbers for the DNS and LES grids
     Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
-    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_2DFHIT(NX_LES, NY_LES, Lx, Ly, INDEXING='ij')
 
     # Convert the vorticity field to a stream function and then to velocity components
     Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
