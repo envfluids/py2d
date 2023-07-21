@@ -127,7 +127,7 @@ def PiUV(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=Non
 
     # Initialize the wavenumbers for the DNS and LES fields
     Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
-    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_2DFHIT(N_LES, N_LES, Lx, Ly, INDEXING='ij')
+    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
 
     # Convert the vorticity field to a stream function and then to velocity components
     Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
@@ -198,7 +198,7 @@ def PiOmega(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=
     
     # Compute convective terms in DNS and filtered fields
     UOmega_x = derivative_2DFHIT(U_DNS*Omega_DNS, [1,0], Kx_DNS, Ky_DNS)
-    VOmega_y = derivative_2DFHIT(V_DNS*Omega_DNS, [1,0], Kx_DNS, Ky_DNS)
+    VOmega_y = derivative_2DFHIT(V_DNS*Omega_DNS, [0,1], Kx_DNS, Ky_DNS)
     
     # Apply the filter to the computed convective terms
     UOmega_x_f = filter2D_2DFHIT(UOmega_x, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
@@ -213,6 +213,8 @@ def PiOmega(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=
     U_f_Omega_f_x = derivative_2DFHIT(U_f*Omega_f, [1,0], Kx_LES, Ky_LES)
     V_f_Omega_f_y = derivative_2DFHIT(V_f*Omega_f, [0,1], Kx_LES, Ky_LES)
     
+    print(UOmega_x_f.dtype, VOmega_y_f.dtype, U_f_Omega_f_x.dtype, V_f_Omega_f_y.dtype)
+
     # Compute PiOmega using the difference between filtered and non-filtered convective terms
     PiOmega = UOmega_x_f + VOmega_y_f - (U_f_Omega_f_x + V_f_Omega_f_y)
 
