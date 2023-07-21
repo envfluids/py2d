@@ -9,7 +9,9 @@ import numpy as nnp
 import jax.numpy as np
 from jax import jit
 
-from py2d.convert import strain_rate_2DFHIT
+from py2d.convert import strain_rate_2DFHIT_spectral
+
+strain_rate_2DFHIT_spectral = jit(strain_rate_2DFHIT_spectral)
 
 @jit
 def eddy_viscosity_smag(Cs, Delta, characteristic_S):
@@ -27,7 +29,7 @@ def characteristic_strain_rate_smag(Psi_hat, Kx, Ky, Ksq):
     Characteristic strain rate
     Required for Smagorinsky Model
     '''
-    (S11_hat, S12_hat, _) = strain_rate_2DFHIT(Psi_hat, Kx, Ky, Ksq)
+    (S11_hat, S12_hat, _) = strain_rate_2DFHIT_spectral(Psi_hat, Kx, Ky)
     S11 = np.real(np.fft.ifft2(S11_hat))
     S12 = np.real(np.fft.ifft2(S12_hat))
     characteristic_S = 2 * np.sqrt(S11 ** 2 + S12 ** 2)

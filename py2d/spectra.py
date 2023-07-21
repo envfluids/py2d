@@ -1,7 +1,7 @@
 import numpy as np
 
 from py2d.initialize import initialize_wavenumbers_2DFHIT
-from py2d.derivative import derivative_2D_FHIT
+from py2d.derivative import derivative_2DFHIT
 
 def spectrum_angled_average_2DFHIT(A, spectral = False):
     '''
@@ -202,9 +202,9 @@ def energyTransfer_spectra_2DFHIT(Kx, Ky, U=None, V=None, Tau11=None, Tau12=None
             raise ValueError("U, V, Tau11, Tau12, Tau22 must be provided to calculate energy transfer using 'Tau' method")
 
         # Calculate the derivatives of U with respect to x and y, and the derivative of V with respect to x.
-        Ux = derivative_2D_FHIT(U, [1, 0], Kx=Kx, Ky=Ky, spectral=spectral)
-        Uy = derivative_2D_FHIT(U, [0, 1], Kx=Kx,Ky=Ky, spectral=spectral)
-        Vx = derivative_2D_FHIT(V, [1, 0], Kx=Kx, Ky=Ky, spectral=spectral)
+        Ux = derivative_2DFHIT(U, [1, 0], Kx=Kx, Ky=Ky, spectral=spectral)
+        Uy = derivative_2DFHIT(U, [0, 1], Kx=Kx,Ky=Ky, spectral=spectral)
+        Vx = derivative_2DFHIT(V, [1, 0], Kx=Kx, Ky=Ky, spectral=spectral)
 
         # If the data is in physical space, convert it to spectral space using 2D FFT. 
         if spectral == False:
@@ -300,8 +300,8 @@ def enstrophyTransfer_spectra_2DFHIT(Kx, Ky, Omega=None, Sigma1=None, Sigma2=Non
             raise ValueError("Omega, Sigma1, Sigma2 must be provided to calculate enstrophy transfer using 'Sigma' method")
 
         # Calculating the derivatives of Omega in x and y direction.
-        Omegax = derivative_2D_FHIT(Omega, [1, 0], Kx=Kx, Ky=Ky, spectral=spectral)
-        Omegay = derivative_2D_FHIT(Omega, [0, 1], Kx=Kx, Ky=Ky, spectral=spectral)
+        Omegax = derivative_2DFHIT(Omega, [1, 0], Kx=Kx, Ky=Ky, spectral=spectral)
+        Omegay = derivative_2DFHIT(Omega, [0, 1], Kx=Kx, Ky=Ky, spectral=spectral)
 
         # If the input is in the physical space, we need to convert it to spectral space using 2D FFT.
         if not spectral:
