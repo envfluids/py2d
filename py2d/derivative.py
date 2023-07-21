@@ -24,7 +24,7 @@ def derivative_2DFHIT(T, order, Kx, Ky, spectral=False):
 
     # If the input data is not in the spectral domain, we transform it
     if spectral == False:
-        Tderivative = derivative_2DFHIT_spectral(T, order, Kx, Ky)
+        Tderivative = derivative_2DFHIT_physical(T, order, Kx, Ky)
         return Tderivative
     else:  # if it is already in the spectral domain, we do nothing
         T_hat = T
@@ -89,6 +89,8 @@ def derivative_2DFHIT_physical(T, order, Kx, Ky, ):
 
     # Transform the result back into the physical domain
     Tderivative = np.real(np.fft.ifft2(Tderivative_hat))
+
+    
     
     return Tderivative
 
