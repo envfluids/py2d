@@ -213,6 +213,43 @@ def Tau2PiUV_2DFHIT(Tau11, Tau12, Tau22, Kx, Ky, spectral=False):
         return PiUV1_hat, PiUV2_hat
 
 
+def PiUV2PiOmega(PiUV1, PiUV2, Kx, Ky, spectral = False):
+    """
+    Compute the Curl of PiUV, referred to as PiOmega, in either physical or spectral space.
+
+    Parameters:
+    -----------
+    PiUV1, PiUV2 : numpy.ndarray
+        The components of PiUV.
+    Kx, Ky : numpy.ndarray
+        The wavenumbers in the x and y directions, respectively.
+    spectral : bool, optional
+        If True, assumes input Sigma elements are in spectral space and returns PiOmega in spectral space.
+        If False (default), assumes input Sigma elements are in physical space and returns PiOmega in physical space.
+
+    Returns:
+    --------
+    PiOmega or PiOmega_hat : numpy.ndarray
+        The divergence of Sigma, referred to as PiOmega, in either physical (PiOmega) or spectral (PiOmega_hat) space 
+        depending on the 'spectral' flag.
+    
+    Notes:
+    ------
+    This function serves as a wrapper for PiUV2PiOmega_spectral() and PiUV2PiOmega_physical().
+    Depending on the 'spectral' flag, it selects the appropriate function and computes PiOmega.
+    """
+    if not spectral:
+        # If 'spectral' flag is False, compute PiOmega in physical space
+        PiOmega = PiUV2PiOmega_physical(PiUV1, PiUV2, Kx, Ky)
+        return PiOmega
+    else:
+        # If 'spectral' flag is True, compute PiOmega in spectral space
+        PiUV1_hat = PiUV1
+        PiUV2_hat = PiUV2
+        PiOmega_hat = PiUV2PiOmega_spectral(PiUV1_hat, PiUV2_hat, Kx, Ky)
+        return PiOmega_hat
+
+
 def Sigma2PiOmega(Sigma1, Sigma2, Kx, Ky, spectral = False):
     """
     Compute the divergence of Sigma, referred to as PiOmega, in either physical or spectral space.
@@ -699,7 +736,7 @@ def Tau2PiUV_2DFHIT_physical(Tau11, Tau12, Tau22, Kx, Ky):
     PiUV1_hat, PiUV2_hat = Tau2PiUV_2DFHIT_spectral(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky)
 
     # Transform the spectral components of PiUV back to physical space
-    PiUV1,  PiUV2 = np.real(np.fft.ifft2(PiUV1_hat)), np.real(np.fft.ifft2(PiUV2_hat))
+    PiUV1, PiUV2 = np.real(np.fft.ifft2(PiUV1_hat)), np.real(np.fft.ifft2(PiUV2_hat))
 
     return PiUV1, PiUV2
 
@@ -746,6 +783,53 @@ def Sigma2PiOmega_physical(Sigma1, Sigma2, Kx, Ky):
     Sigma1_hat, Sigma2_hat = np.fft.fft2(Sigma1), np.fft.fft2(Sigma2)
     # Compute PiOmega in spectral space
     PiOmega_hat = Sigma2PiOmega_spectral(Sigma1_hat, Sigma2_hat, Kx, Ky)
+    # Convert the result back to physical space
+    PiOmega = np.real(np.fft.ifft2(PiOmega_hat))
+    return PiOmega
+
+############################################################################################################
+
+def PiUV2PiOmega_spectral(PiUV1_hat, PiUV2_hat, Kx, Ky):
+    """
+    Compute the Curl of PiUV, referred to as PiOmega, in spectral space.
+
+    Parameters:
+    -----------
+    PiUV1_hat, PiUV2_hat : numpy.ndarray
+        The spectral representations of the components of Sigma.
+    Kx, Ky : numpy.ndarray
+        The wavenumbers in the x and y directions, respectively.
+
+    Returns:
+    --------
+    PiOmega_hat : numpy.ndarray
+        The spectral representation of PiOmega, the Curl of PiUV.
+    """
+    # Calculate PiOmega in spectral space using the given mathematical relationships
+    PiOmega_hat = (1j*Ky)*PiUV1_hat - (1j*Kx)*PiUV2_hat
+    return PiOmega_hat
+
+
+def PiUV2PiOmega_physical(PiUV1, PiUV2, Kx, Ky):
+    """
+    Compute the Curl of PiUV, referred to as PiOmega, in physical space.
+
+    Parameters:
+    -----------
+    PiUV1, PiUV2 : numpy.ndarray
+        The physical representations of the components of PiUV.
+    Kx, Ky : numpy.ndarray
+        The wavenumbers in the x and y directions, respectively.
+    
+    Returns:
+    --------
+    PiOmega : numpy.ndarray
+        The physical representation of PiOmega, the divergence of Sigma.
+    """
+    # Transform Sigma elements to spectral space via 2D Fast Fourier Transform
+    PiVU1_hat, PiUV2_hat = np.fft.fft2(PiUV1), np.fft.fft2(PiUV2)
+    # Compute PiOmega in spectral space
+    PiOmega_hat = PiUV2PiOmega_spectral(PiVU1_hat, PiUV2_hat, Kx, Ky)
     # Convert the result back to physical space
     PiOmega = np.real(np.fft.ifft2(PiOmega_hat))
     return PiOmega
