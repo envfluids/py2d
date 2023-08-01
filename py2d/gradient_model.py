@@ -9,7 +9,7 @@ def real_ifft2(val):
     return np.real(np.fft.ifft2(val))
 
 @jit
-def GM2(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+def PiOmegaGM2(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     A = Delta**2 / 12
 
@@ -26,7 +26,7 @@ def GM2(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     return PiOmegaGM2
 
 @jit
-def GM4(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+def PiOmegaGM4(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     B1 = Delta**4 / 144
     B2 = Delta**4 / 288
@@ -49,7 +49,7 @@ def GM4(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     return PiOmegaGM4
 
 @jit
-def GM6(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+def PiOmegaGM6(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     PiOmegaGM4 = GM4(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
