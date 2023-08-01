@@ -23,9 +23,9 @@ def Tau_eddy_viscosity(eddy_viscosity, Psi_hat, Kx, Ky):
     S12 = np.real(np.fft.ifft2(S12_hat))
     S22 = np.real(np.fft.ifft2(S22_hat))
 
-    Tau11 = -2*eddy_viscosity_smag*S11
-    Tau12 = -2*eddy_viscosity_smag*(S12)
-    Tau22 = -2*eddy_viscosity_smag*S22
+    Tau11 = -2*eddy_viscosity*S11
+    Tau12 = -2*eddy_viscosity*(S12)
+    Tau22 = -2*eddy_viscosity*S22
 
     return Tau11, Tau12, Tau22
 
