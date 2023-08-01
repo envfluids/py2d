@@ -185,7 +185,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # -------------- Initialize PiOmega Model --------------
 
     # PiOmega_eddyViscosity_model = SGSModel()  # Initialize SGS Model
-    PiOmega_eddyViscosity_model=SGSModel(Kx,Ky,Ksq,Delta,SGSModel_string)
+    PiOmega_eddyViscosity_model=SGSModel(Kx, Ky, Ksq, Delta, method=SGSModel_string, C_MODEL=eddyViscosityCoeff)
     # PiOmega_eddyViscosity_model.set_method(SGSModel_string) # Set SGS model to calculate PiOmega and Eddy Viscosity
     
     if SGSModel_string == 'CNN':
