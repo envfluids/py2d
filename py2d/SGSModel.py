@@ -136,37 +136,43 @@ class SGSModel:
         Grad_Omega_hat_diry = Ky*np.fft.fft2( eddy_viscosity * np.fft.ifft2(Ky*Omega_hat) )
         PiOmega_hat = Grad_Omega_hat_dirx + Grad_Omega_hat_diry
 
-        #''' test: difference between local and not
+
+        # --------- DEBUG MODE ------------------------------------------------
+        #''' test: difference between local  ∇.(ν_e ∇ω ) and not (ν_e ∇.(∇ω)=ν_e ∇^2 ω)
         c_dynamic_old = coefficient_dleith_PsiOmega(Psi_hat, Omega_hat, characteristic_Omega, Kx, Ky, Ksq, Delta)
         Cl_old = c_dynamic_old ** (1/3)
         eddy_viscosity_old = eddy_viscosity_leith(Cl_old, Delta, characteristic_Omega)
         Grad_Omega_hat_old = eddy_viscosity_old *(Ksq*Omega_hat)
 
         import matplotlib.pyplot as plt
-        # VMIN, VMAX = -2, 2
-        # plt.figure(figsize=(10,3))
-        # plt.subplot(1,3,1)
-        # plt.title(r'$\Pi=\nu_e \nabla.(\nabla \omega)$, Leith (domain average)')
-        # plt.pcolor(np.fft.ifft2(Grad_Omega_hat_old).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-        # plt.subplot(1,3,2)
-        # plt.title(r'$\Pi=\nabla.(\nu_e \nabla \omega)$, Leith (local)')
-        # plt.pcolor(np.fft.ifft2(Grad_Omega_hat).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-        # plt.subplot(1,3,3)
-        # plt.pcolor(np.fft.ifft2(Grad_Omega_hat_old-Grad_Omega_hat).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-        # plt.show()
+        plt.rcParams['figure.dpi'] = 350
+        VMIN, VMAX = -2, 2
+        fig, axes = plt.subplots(2,3, figsize=(12,8))
+        plt.subplot(2,3,1)
+        plt.title(r'$\Pi=\nu_e \nabla.(\nabla \omega)$, Leith (domain average)')
+        plt.pcolor(np.fft.ifft2(Grad_Omega_hat_old).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
+        plt.subplot(2,3,2)
+        plt.title(r'$\Pi=\nabla.(\nu_e \nabla \omega)$, Leith (local)')
+        plt.pcolor(np.fft.ifft2(PiOmega_hat).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
+        plt.subplot(2,3,3)
+        plt.pcolor(np.fft.ifft2(Grad_Omega_hat_old).real-np.fft.ifft2(PiOmega_hat).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
 
-        # plt.figure(figsize=(7,7))
-        # plt.subplot(2,2,1)
-        # plt.title(r'$C_L$')
-        # plt.pcolor(Cl,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-        # plt.subplot(2,2,2)
+        plt.subplot(2,3,4)
+        plt.title(r'$C_L$')
+        plt.pcolor(Cl,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
+        plt.subplot(2,3,5)
+        plt.title(r'$\nu_e$')
+        plt.pcolor(eddy_viscosity,cmap='gray_r');plt.colorbar()
+        # plt.subplot(2,3,6)
         # plt.title(r'$\nu_e$')
-        # plt.pcolor(eddy_viscosity,cmap='gray_r');plt.colorbar()
-        # plt.subplot(2,2,4)
-        # plt.title(r'$\nu_e$')
-        # plt.pcolor(eddy_viscosity,vmin=eddy_viscosity_old, cmap='gray_r');plt.colorbar()
-        # plt.show()
-        # stop_test
+        # plt.pcolor(eddy_viscosity, cmap='gray_r');plt.colorbar()
+        
+        for i, ax in enumerate(axes.flat):
+            # Set the aspect ratio to equal
+            ax.set_aspect('equal')
+
+        plt.show()
+        stop_test
         #'''
 
         #PiOmega_hat is instead replaced
