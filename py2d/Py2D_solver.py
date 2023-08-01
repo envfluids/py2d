@@ -441,7 +441,7 @@ if __name__ == '__main__':
     sys.path.append('examples')
     sys.path.append('py2d')
     sys.path.append('.')
-    SGSModel_list = ['DLEITH_Local']#['DLEITH_tau_Local','DLEITH_sigma_Local']#, 'NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6']:
+    SGSModel_list = ['NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'DLEITH_tau_Local','DLEITH_sigma_Local', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6']:
     for SGSModel_string in SGSModel_list:
         # Script to call the function with the given parameters
         Py2D_solver(Re=20e3, # Reynolds number
