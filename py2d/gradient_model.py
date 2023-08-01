@@ -9,7 +9,7 @@ def real_ifft2(val):
     return np.real(np.fft.ifft2(val))
 
 @jit
-def PiOmegaGM2(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+def PiOmegaGM2_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     A = Delta**2 / 12
 
@@ -26,12 +26,12 @@ def PiOmegaGM2(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     return PiOmegaGM2
 
 @jit
-def PiOmegaGM4(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+def PiOmegaGM4_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     B1 = Delta**4 / 144
     B2 = Delta**4 / 288
 
-    PiOmegaGM2 = GM2(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+    PiOmegaGM2 = PiOmegaGM2_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     Uxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 0], Kx, Ky))
     Uxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 1], Kx, Ky))
@@ -49,9 +49,9 @@ def PiOmegaGM4(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     return PiOmegaGM4
 
 @jit
-def PiOmegaGM6(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+def PiOmegaGM6_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
-    PiOmegaGM4 = GM4(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+    PiOmegaGM4 = PiOmegaGM4_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     C1 = Delta**6 / 3456
     C2 = Delta**6 / 10368

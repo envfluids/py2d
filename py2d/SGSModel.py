@@ -3,7 +3,7 @@ import numpy as nnp
 
 from py2d.eddy_viscosity_models import eddy_viscosity_smag, characteristic_strain_rate_smag, coefficient_dsmag_PsiOmega
 from py2d.eddy_viscosity_models import eddy_viscosity_leith, characteristic_omega_leith, coefficient_dleith_PsiOmega
-from py2d.gradient_model import PiOmegaGM2, PiOmegaGM4, PiOmegaGM6
+from py2d.gradient_model import PiOmegaGM2_2DFHIT, PiOmegaGM4_2DFHIT, PiOmegaGM6_2DFHIT
 # from py2d.uv2tau_CNN import evaluate_model, init_model
 
 class SGSModel:
@@ -119,7 +119,7 @@ class SGSModel:
         U_hat, V_hat = self.U_hat, self.V_hat
 
         eddy_viscosity = 0
-        PiOmega = PiOmegaGM2(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
+        PiOmega = PiOmegaGM2_2DFHIT(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         PiOmega_hat = np.fft.fft2(PiOmega)
         
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
@@ -132,7 +132,7 @@ class SGSModel:
         U_hat, V_hat = self.U_hat, self.V_hat
 
         eddy_viscosity = 0
-        PiOmega = PiOmegaGM4(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
+        PiOmega = PiOmegaGM4_2DFHIT(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         PiOmega_hat = np.fft.fft2(PiOmega)
         
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
@@ -145,7 +145,7 @@ class SGSModel:
         U_hat, V_hat = self.U_hat, self.V_hat
 
         eddy_viscosity = 0
-        PiOmega = PiOmegaGM6(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
+        PiOmega = PiOmegaGM6_2DFHIT(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         PiOmega_hat = np.fft.fft2(PiOmega)
         
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
