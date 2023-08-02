@@ -88,6 +88,19 @@ def coefficient_dsmag_PsiOmega(Psi_hat, Omega_hat, characteristic_S, Kx, Ky, Ksq
     return cs
 
 @jit
+def coefficient_dsmaglocal_PsiOmega(Psi_hat, Omega_hat, characteristic_S, Kx, Ky, Ksq, Delta):
+    '''
+    cs = Cs**2
+    Dynamic Coefficient for Dynamic Smagorinsky Model (DSMAG) with local Cs
+    '''
+    (Psif_hat, Omegaf_hat, Omega_lap, Omegaf_lap, Delta_test, nx_test) = initialize_filtered_variables_PsiOmega(
+        Psi_hat, Omega_hat, Ksq, Delta)
+    L = residual_jacobian_PsiOmega(Psi_hat, Omega_hat, Psif_hat, Omegaf_hat, Kx, Ky, nx_test)
+    M = residual_dsmag_PsiOmega(Omega_lap, Omegaf_lap, characteristic_S, Delta, Delta_test, nx_test)
+    cs = coefficient_dynamiclocal_PsiOmega(L, M)
+    return cs
+
+@jit
 def coefficient_dleith_PsiOmega(Psi_hat, Omega_hat, characteristic_Omega, Kx, Ky, Ksq, Delta):
     '''
     cl = Cl**3
