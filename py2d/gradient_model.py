@@ -8,8 +8,29 @@ from py2d.derivative import derivative_2DFHIT_spectral
 def real_ifft2(val):
     return np.real(np.fft.ifft2(val))
 
+# PiOmegaGM2
+def PiOmegaGM2_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False):
+
+    if spectral:
+        Omega_hat, U_hat, V_hat = Omega, U, V
+    else:
+        Omega_hat = np.fft.fft2(Omega)
+        U_hat = np.fft.fft2(U)
+        V_hat = np.fft.fft2(V)
+
+    if filterType=='gaussian' or filterType=='box':
+        # GM2 for gaussian and box is same
+        PiOmegaGM2 = PiOmegaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+
+    if spectral:
+        PiOmegaGM2_hat = np.fft.fft2(PiOmegaGM2)
+        return PiOmegaGM2_hat
+    else:
+        return PiOmegaGM2
+
 @jit
-def PiOmegaGM2_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+# Needed for jit
+def PiOmegaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     A = Delta**2 / 12
 
@@ -25,13 +46,32 @@ def PiOmegaGM2_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     return PiOmegaGM2
 
+# PiOmegaGM4
+def PiOmegaGM4_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False):
+
+    if spectral:
+        Omega_hat, U_hat, V_hat = Omega, U, V
+    else:
+        Omega_hat = np.fft.fft2(Omega)
+        U_hat = np.fft.fft2(U)
+        V_hat = np.fft.fft2(V)
+
+    if filterType=='gaussian':
+        PiOmegaGM4 = PiOmegaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+
+    if spectral:
+        PiOmegaGM4_hat = np.fft.fft2(PiOmegaGM4)
+        return PiOmegaGM4_hat
+    else:
+        return PiOmegaGM4
+
 @jit
-def PiOmegaGM4_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+def PiOmegaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     B1 = Delta**4 / 144
     B2 = Delta**4 / 288
 
-    PiOmegaGM2 = PiOmegaGM2_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+    PiOmegaGM2 = PiOmegaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     Uxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 0], Kx, Ky))
     Uxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 1], Kx, Ky))
@@ -48,10 +88,29 @@ def PiOmegaGM4_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     
     return PiOmegaGM4
 
-@jit
-def PiOmegaGM6_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+# PiOmegaGM6
+def PiOmegaGM6_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False):
 
-    PiOmegaGM4 = PiOmegaGM4_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+    if spectral:
+        Omega_hat, U_hat, V_hat = Omega, U, V
+    else:
+        Omega_hat = np.fft.fft2(Omega)
+        U_hat = np.fft.fft2(U)
+        V_hat = np.fft.fft2(V)
+
+    if filterType=='gaussian':
+        PiOmegaGM6 = PiOmegaGM6_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+
+    if spectral:
+        PiOmegaGM6_hat = np.fft.fft2(PiOmegaGM6)
+        return PiOmegaGM6_hat
+    else:
+        return PiOmegaGM6
+
+@jit
+def PiOmegaGM6_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+
+    PiOmegaGM4 = PiOmegaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     C1 = Delta**6 / 3456
     C2 = Delta**6 / 10368
@@ -71,3 +130,5 @@ def PiOmegaGM6_2DFHIT(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     PiOmegaGM6 = PiOmegaGM4 + C2 * (Omegaxxxy*(3*Uxxy + Vxxx) + Omegaxyyy*(Uyyy - 3*Uxxy) + 
                                             3*Omegaxxyy*Uxyy + Uxxx*(Omegaxxxx - 3*Omegaxxyy) - Omegayyyy*Uxyy)
     return PiOmegaGM6
+
+
