@@ -50,9 +50,9 @@ elif case == 'K4':
 
 NX = 64
 # dataType = 'Re' + str(int(Re/1000)) + 'kNX' + str(NX) + 'nx' + str(fkx) + 'ny' + str(fky) + 'r0p1'
-# dataType = 'results/Re20000_fkx4fky4_r0.1_b0/DSMAG/NX64/dt0.0005_IC1/data'
+dataType = 'results/Re20000_fkx4fky4_r0.1_b0/DSMAG/NX64/dt0.0005_IC1/data'
 # dataType = 'results/Re20000_fkx4fky4_r0.1_b0/DSMAG_sigma_Local/NX64/dt0.0005_IC1/data'
-dataType = 'results/Re20000_fkx4fky4_r0.1_b0/DSMAG_tau_Local/NX64/dt0.0005_IC1/data'
+# dataType = 'results/Re20000_fkx4fky4_r0.1_b0/DSMAG_tau_Local/NX64/dt0.0005_IC1/data'
 
 # DATA_DIR = dataType + '/train1/'
 
@@ -241,24 +241,21 @@ savemat(output_filename, {
 import matplotlib.pyplot as plt
 
 plt.figure(figsize=(12,5),dpi=150)
-plt.subplot(2,1,1)
+plt.subplot(1,2,1)
 plt.title(dataType)
 plt.loglog(energy_spectra_mean)
 plt.ylim([1e-6,1e0])
-plt.subplot(2,1,1)
+plt.subplot(1,2,2)
 plt.title(dataType)
 plt.loglog(enstrophy_spectra_mean)
-plt.ylim([1e-6,1e0])
-
+plt.ylim([1e-3,1e1])
+#%%
 plt.figure(figsize=(5,5),dpi=150)
-plt.semilogy(Omega_std,)
-
-    'Omega_std': ,
-    'Omega_pdf_fastkde': pdf_fastkde,
-    'Omega_bins_fastkde': bins_fastkde,
-    'Omega_pdf_scipy': pdf_scipy,
-    'Omega_bins_scipy': bins_scipy,
-    'Omega_pdf_skl': pdf_skl,
-    'Omega_bins_skl': bins_skl,
-    'Omega_pdf_sm': pdf_sm,
-    'Omega_bins_sm': bins_sm,
+plt.title(dataType)
+plt.semilogy(bins_fastkde,pdf_fastkde,label='fastked')
+plt.semilogy(bins_scipy,pdf_scipy,label='scipy')
+plt.semilogy(bins_skl,pdf_skl,label='scikit-learn')
+plt.semilogy(bins_sm,pdf_sm,label='sm')
+plt.ylim([1e-4,1e-1])
+plt.xlim([-30,30])
+plt.legend()
