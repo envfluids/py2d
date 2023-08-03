@@ -220,6 +220,7 @@ except Exception as e:
 
 output_filename = dataType + '_' + str(percent_data) + '_aposteriori_dataRM.mat'
 savemat(output_filename, {
+    'wavenumbers': wavenumbers,
     'energy_spectra': energy_spectra_mean,
     'enstrophy_spectra': enstrophy_spectra_mean,
     'energy': energy_arr,
@@ -238,6 +239,26 @@ savemat(output_filename, {
 })
 #%%
 import matplotlib.pyplot as plt
+
+plt.figure(figsize=(12,5),dpi=150)
+plt.subplot(2,1,1)
 plt.title(dataType)
 plt.loglog(energy_spectra_mean)
 plt.ylim([1e-6,1e0])
+plt.subplot(2,1,1)
+plt.title(dataType)
+plt.loglog(enstrophy_spectra_mean)
+plt.ylim([1e-6,1e0])
+
+plt.figure(figsize=(5,5),dpi=150)
+plt.semilogy(Omega_std,)
+
+    'Omega_std': ,
+    'Omega_pdf_fastkde': pdf_fastkde,
+    'Omega_bins_fastkde': bins_fastkde,
+    'Omega_pdf_scipy': pdf_scipy,
+    'Omega_bins_scipy': bins_scipy,
+    'Omega_pdf_skl': pdf_skl,
+    'Omega_bins_skl': bins_skl,
+    'Omega_pdf_sm': pdf_sm,
+    'Omega_bins_sm': bins_sm,
