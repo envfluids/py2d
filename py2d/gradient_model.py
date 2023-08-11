@@ -376,6 +376,11 @@ def SigmaGM6_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     Omegaxxx = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [3, 0], Kx, Ky))
     Omegaxxy = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [2, 1], Kx, Ky))
     Omegaxyy = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [1, 2], Kx, Ky))
+    Omegayyy = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [0, 3], Kx, Ky))
+
+    Sigma1GM4, Sigma2GM4 = SigmaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     Sigma1GM6 = Sigma1GM4 + C1*(Uxxy*Omegaxxy + Uxyy*Omegaxyy) + C2*(Uxxx*Omegaxxx + Uyyy*Omegayyy)
     Sigma2GM6 = Sigma2GM4 + C1*(Vxxy*Omegaxxy + Vxyy*Omegaxyy) + C2*(Vxxx*Omegaxxx + Vyyy*Omegayyy)
+
+    return Sigma1GM6, Sigma2GM6
