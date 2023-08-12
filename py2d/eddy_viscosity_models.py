@@ -99,6 +99,19 @@ def coefficient_dsmag_PsiOmega(Psi_hat, Omega_hat, characteristic_S, Kx, Ky, Ksq
     return cs
 
 @jit
+def coefficient_dsmaglocal_PsiOmega(Psi_hat, Omega_hat, characteristic_S, Kx, Ky, Ksq, Delta):
+    '''
+    cs = Cs**2
+    Dynamic Coefficient for Dynamic Smagorinsky Model (DSMAG) with local Cs
+    '''
+    (Psif_hat, Omegaf_hat, Omega_lap, Omegaf_lap, Delta_test, nx_test) = initialize_filtered_variables_PsiOmega(
+        Psi_hat, Omega_hat, Ksq, Delta)
+    L = residual_jacobian_PsiOmega(Psi_hat, Omega_hat, Psif_hat, Omegaf_hat, Kx, Ky, nx_test)
+    M = residual_dsmag_PsiOmega(Omega_lap, Omegaf_lap, characteristic_S, Delta, Delta_test, nx_test)
+    cs = coefficient_dynamiclocal_PsiOmega(L, M)
+    return cs
+
+@jit
 def coefficient_dleith_PsiOmega(Psi_hat, Omega_hat, characteristic_Omega, Kx, Ky, Ksq, Delta):
     '''
     cl = Cl**3
@@ -112,6 +125,19 @@ def coefficient_dleith_PsiOmega(Psi_hat, Omega_hat, characteristic_Omega, Kx, Ky
     return cl
 
 @jit
+def coefficient_dleithlocal_PsiOmega(Psi_hat, Omega_hat, characteristic_Omega, Kx, Ky, Ksq, Delta):
+    '''
+    cl = Cl**3
+    Dynamic Coefficient for Dynamic Leith Model (DLEITH)
+    '''
+    (Psif_hat, Omegaf_hat, Omega_lap, Omegaf_lap, Delta_test, nx_test) = initialize_filtered_variables_PsiOmega(
+        Psi_hat, Omega_hat, Ksq, Delta)
+    L = residual_jacobian_PsiOmega(Psi_hat, Omega_hat, Psif_hat, Omegaf_hat, Kx, Ky, nx_test)
+    M = residual_dleith_PsiOmega(Omega_lap, Omegaf_lap, characteristic_Omega, Delta, Delta_test, nx_test)
+    cl = coefficient_dynamiclocal_PsiOmega(L, M)
+    return cl
+
+@jit
 def coefficient_dynamic_PsiOmega(L, M):
     '''
     Dynamic Coefficient
@@ -120,8 +146,24 @@ def coefficient_dynamic_PsiOmega(L, M):
     LM = L * M
     MM = M * M
     LM_pos = 0.5 * (LM + np.abs(LM))
-    
+
     c_dynamic = np.mean(LM_pos) / np.mean(MM)
+    return c_dynamic
+
+
+@jit
+def coefficient_dynamiclocal_PsiOmega(L, M):
+    '''
+    Dynamic Coefficient
+    Required for DSMAG and DLEITH model
+    Attemps for: LOCAL
+    '''
+    LM = L * M
+    MM = M * M
+    LM_pos = 0.5 * (LM + np.abs(LM))
+
+    #c_dynamic = np.mean(LM_pos) / np.mean(MM)
+    c_dynamic = (LM_pos) / np.mean(MM)
     return c_dynamic
 
 @jit
@@ -218,20 +260,20 @@ def spectral_filter_square_same_size_2DFHIT(q_hat, N_LES):
     '''
     A sharp spectral filter for 2D flow variables. The function takes a 2D square matrix and a cutoff
     frequency, performs a FFT, applies a filter in the frequency domain, and then performs an inverse FFT
-    to return the filtered data. 
+    to return the filtered data.
 
     Parameters:
     q (numpy.ndarray): The input 2D square matrix.
     N_LES (int): The cutoff frequency.
 
     Returns:
-    numpy.ndarray: The filtered data. The data is in the frequency domain. 
+    numpy.ndarray: The filtered data. The data is in the frequency domain.
     '''
     kc = N_LES / 2
     (nx, ny) = q_hat.shape
     Lx = 2 * np.pi
     Ly = 2 * np.pi
-    
+
     kx = 2 * np.pi * np.fft.fftfreq(nx, d=Lx/nx)
     ky = 2 * np.pi * np.fft.fftfreq(ny, d=Lx/nx)
     Kx, Ky = np.meshgrid(kx, ky, indexing='ij')
