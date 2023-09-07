@@ -2,7 +2,7 @@ import numpy as nnp
 import jax.numpy as np
 from jax import jit
 
-from py2d.derivative import derivative_2DFHIT_spectral
+from derivative import derivative_2DFHIT_spectral
 
 @jit
 def real_ifft2(val):
@@ -82,9 +82,9 @@ def PiOmegaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     Omegaxyy = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [1, 2], Kx, Ky))
     Omegayyy = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [0, 3], Kx, Ky))
 
-    PiOmegaGM4 = PiOmegaGM2 + B2 * (Omegaxxy * (2*Uxy + Vxx) + 
+    PiOmegaGM4 = PiOmegaGM2 + B2 * (Omegaxxy * (2*Uxy + Vxx) +
                                      Uxx * (Omegaxxx - 2*Omegaxyy) - Uxy*Omegayyy + Uyy*Omegaxyy)
-    
+
     return PiOmegaGM4
 
 # PiOmegaGM6
@@ -125,7 +125,7 @@ def PiOmegaGM6_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     Omegaxyyy = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [1, 3], Kx, Ky))
     Omegayyyy = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [0, 4], Kx, Ky))
 
-    PiOmegaGM6 = PiOmegaGM4 + C2 * (Omegaxxxy*(3*Uxxy + Vxxx) + Omegaxyyy*(Uyyy - 3*Uxxy) + 
+    PiOmegaGM6 = PiOmegaGM4 + C2 * (Omegaxxxy*(3*Uxxy + Vxxx) + Omegaxyyy*(Uyyy - 3*Uxxy) +
                                             3*Omegaxxyy*Uxyy + Uxxx*(Omegaxxxx - 3*Omegaxxyy) - Omegayyyy*Uxyy)
     return PiOmegaGM6
 
@@ -152,7 +152,7 @@ def TauGM2_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False):
         return Tau11GM2_hat, Tau12GM2_hat, Tau22GM2_hat
     else:
         return Tau11GM2, Tau12GM2, Tau22GM2
-    
+
 @jit
 def TauGM2_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
@@ -189,7 +189,7 @@ def TauGM4_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False):
         return Tau11GM4_hat, Tau12GM4_hat, Tau22GM4_hat
     else:
         return Tau11GM4, Tau12GM4, Tau22GM4
-    
+
 @jit
 def TauGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
@@ -230,7 +230,7 @@ def TauGM6_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False):
         return Tau11GM6_hat, Tau12GM6_hat, Tau22GM6_hat
     else:
         return Tau11GM6, Tau12GM6, Tau22GM6
-    
+
 @jit
 def TauGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 

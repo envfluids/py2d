@@ -9,14 +9,14 @@ import numpy as nnp
 import jax.numpy as np
 from jax import jit
 
-from py2d.convert import strain_rate_2DFHIT_spectral
+from convert import strain_rate_2DFHIT_spectral
 
 strain_rate_2DFHIT_spectral = jit(strain_rate_2DFHIT_spectral)
 
 @jit
 def Tau_eddy_viscosity(eddy_viscosity, Psi_hat, Kx, Ky):
     '''
-    Calculate the eddy viscosity term (Tau) in the momentum equation 
+    Calculate the eddy viscosity term (Tau) in the momentum equation
     '''
     S11_hat, S12_hat, S22_hat = strain_rate_2DFHIT_spectral(Psi_hat, Kx, Ky)
     S11 = np.real(np.fft.ifft2(S11_hat))
