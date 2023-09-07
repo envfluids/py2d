@@ -1,14 +1,14 @@
 import jax.numpy as np
 import numpy as nnp
 
-from eddy_viscosity_models import eddy_viscosity_smag, characteristic_strain_rate_smag, coefficient_dsmag_PsiOmega
-from eddy_viscosity_models import eddy_viscosity_leith, characteristic_omega_leith, coefficient_dleith_PsiOmega
-from eddy_viscosity_models import characteristic_omega_leith, coefficient_dleithlocal_PsiOmega, coefficient_dsmaglocal_PsiOmega
-from gradient_model import PiOmegaGM2_gaussian, PiOmegaGM4_gaussian, PiOmegaGM6_gaussian
+from py2d.eddy_viscosity_models import eddy_viscosity_smag, characteristic_strain_rate_smag, coefficient_dsmag_PsiOmega
+from py2d.eddy_viscosity_models import eddy_viscosity_leith, characteristic_omega_leith, coefficient_dleith_PsiOmega
+from py2d.eddy_viscosity_models import characteristic_omega_leith, coefficient_dleithlocal_PsiOmega, coefficient_dsmaglocal_PsiOmega
+from py2d.gradient_model import PiOmegaGM2_gaussian, PiOmegaGM4_gaussian, PiOmegaGM6_gaussian
 
 # from py2d.uv2tau_CNN import evaluate_model, init_model
-from eddy_viscosity_models import Tau_eddy_viscosity
-from convert import Tau2PiOmega_2DFHIT
+from py2d.eddy_viscosity_models import Tau_eddy_viscosity
+from py2d.convert import Tau2PiOmega_2DFHIT
 
 class SGSModel:
 
@@ -134,7 +134,7 @@ class SGSModel:
 
         self.PiOmega_hat, self.eddy_viscosity, self.C_MODEL = PiOmega_hat, eddy_viscosity, Cs
         return PiOmega_hat, eddy_viscosity, Cs
-
+    
     def dsmaglocal_method(self):#, Psi_hat, Omega_hat, Kx, Ky, Ksq, Delta):
         '''
         Smagorinsky model with local Cs
@@ -157,13 +157,13 @@ class SGSModel:
         elif self.localflag=='from_tau':
             # Calculate the PI term for local: ∇×∇.(-2 ν_e S_{ij} )
             Tau11, Tau12, Tau22 = Tau_eddy_viscosity(eddy_viscosity, Psi_hat, Kx, Ky)
-
+            
             Tau11_hat = np.fft.fft2(Tau11)
             Tau12_hat = np.fft.fft2(Tau12)
             Tau22_hat = np.fft.fft2(Tau22)
-
+            
             PiOmega_hat = Tau2PiOmega_2DFHIT(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky, spectral=True)
-
+   
         #--------- DEBUG MODE ------------------------------------------------
         # import matplotlib.pyplot as plt
         # plt.rcParams['figure.dpi'] = 350
@@ -172,15 +172,15 @@ class SGSModel:
         # Cs_old = np.sqrt(c_dynamic_old)
         # eddy_viscosity_old = eddy_viscosity_smag(Cs_old, Delta, characteristic_S)
         # Grad_Omega_hat_old = eddy_viscosity_old*(Ksq*Omega_hat)
-
+        
         # Tau11, Tau12, Tau22 = Tau_eddy_viscosity(eddy_viscosity, Psi_hat, Kx, Ky)
-
+        
         # Tau11_hat = np.fft.fft2(Tau11)
         # Tau12_hat = np.fft.fft2(Tau12)
         # Tau22_hat = np.fft.fft2(Tau22)
-
+            
         # PiOmega_hat_tau = Tau2PiOmega_2DFHIT(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky, spectral=True)
-
+    
 
         # VMIN, VMAX = -3, 3
         # fig, axes = plt.subplots(2,3, figsize=(12,8))
@@ -190,15 +190,15 @@ class SGSModel:
         # plt.subplot(2,3,2)
         # plt.title(r'$\Pi=\nabla.(\nu_e \nabla \omega)$, (local)')
         # plt.pcolor(np.fft.ifft2(PiOmega_hat).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-
+        
         # plt.subplot(2,3,3) #  ∇×∇.(-2 ν_e S_{ij} )
         # plt.title(r'$\Pi=\nabla \times \nabla . ( -2 \nu_e \overline{S}_{ij})$, (local)')
         # plt.pcolor(np.fft.ifft2(PiOmega_hat_tau).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-
+        
         # plt.subplot(2,3,4)
         # plt.title(r'$\nu_e \nabla.(\nabla \omega) - \nabla.(\nu_e \nabla \omega) $')
         # plt.pcolor(np.fft.ifft2(Grad_Omega_hat_old).real-np.fft.ifft2(PiOmega_hat).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-
+        
         # plt.subplot(2,3,6)
         # plt.title(r'$C_S$')
         # plt.pcolor(Cs,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
@@ -208,12 +208,12 @@ class SGSModel:
         # # plt.subplot(2,3,6)
         # # plt.title(r'$\nu_e$')
         # # plt.pcolor(eddy_viscosity, cmap='gray_r');plt.colorbar()
-
-
+        
+        
         # for i, ax in enumerate(axes.flat):
         #     # Set the aspect ratio to equal
         #     ax.set_aspect('equal')
-
+        
         # plt.show()
         # stop_test
 
@@ -257,58 +257,58 @@ class SGSModel:
         elif self.localflag=='from_tau':
             # Calculate the PI term for local: ∇×∇.(-2 ν_e S_{ij} )
             Tau11, Tau12, Tau22 = Tau_eddy_viscosity(eddy_viscosity, Psi_hat, Kx, Ky)
-
+            
             Tau11_hat = np.fft.fft2(Tau11)
             Tau12_hat = np.fft.fft2(Tau12)
             Tau22_hat = np.fft.fft2(Tau22)
-
+            
             PiOmega_hat = Tau2PiOmega_2DFHIT(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky, spectral=True)
+        
+        # --------- DEBUG MODE ------------------------------------------------
+        #''' test: difference between local  ∇.(ν_e ∇ω ) and not (ν_e ∇.(∇ω)=ν_e ∇^2 ω)
+        c_dynamic_old = coefficient_dleith_PsiOmega(Psi_hat, Omega_hat, characteristic_Omega, Kx, Ky, Ksq, Delta)
+        Cl_old = c_dynamic_old ** (1/3)
+        eddy_viscosity_old = eddy_viscosity_leith(Cl_old, Delta, characteristic_Omega)
+        Grad_Omega_hat_old = eddy_viscosity_old *(Ksq*Omega_hat)
 
-        # # --------- DEBUG MODE ------------------------------------------------
-        # #''' test: difference between local  ∇.(ν_e ∇ω ) and not (ν_e ∇.(∇ω)=ν_e ∇^2 ω)
-        # c_dynamic_old = coefficient_dleith_PsiOmega(Psi_hat, Omega_hat, characteristic_Omega, Kx, Ky, Ksq, Delta)
-        # Cl_old = c_dynamic_old ** (1/3)
-        # eddy_viscosity_old = eddy_viscosity_leith(Cl_old, Delta, characteristic_Omega)
-        # Grad_Omega_hat_old = eddy_viscosity_old *(Ksq*Omega_hat)
+        PiOmega_hat_tau = Tau2PiOmega_2DFHIT(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky, spectral=True)
 
-        # PiOmega_hat_tau = Tau2PiOmega_2DFHIT(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky, spectral=True)
+        import matplotlib.pyplot as plt
+        plt.rcParams['figure.dpi'] = 350
+        VMIN, VMAX = -2, 2
+        fig, axes = plt.subplots(2,3, figsize=(12,8))
+        plt.subplot(2,3,1)
+        plt.title(r'$\Pi=\nu_e \nabla.(\nabla \omega)$, Leith (domain average)')
+        plt.pcolor(np.fft.ifft2(Grad_Omega_hat_old).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
+        plt.subplot(2,3,2)
+        plt.title(r'$\Pi=\nabla.(\nu_e \nabla \omega)$, Leith (local)')
+        plt.pcolor(np.fft.ifft2(PiOmega_hat).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
+        
+        plt.subplot(2,3,3) #  ∇×∇.(-2 ν_e S_{ij} )
+        plt.title(r'$\Pi=\nabla \times \nabla . ( -2 \nu_e \overline{S}_{ij})$, Leith (local)')
+        plt.pcolor(np.fft.ifft2(PiOmega_hat_tau).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
 
-        # import matplotlib.pyplot as plt
-        # plt.rcParams['figure.dpi'] = 350
-        # VMIN, VMAX = -2, 2
-        # fig, axes = plt.subplots(2,3, figsize=(12,8))
-        # plt.subplot(2,3,1)
-        # plt.title(r'$\Pi=\nu_e \nabla.(\nabla \omega)$, Leith (domain average)')
-        # plt.pcolor(np.fft.ifft2(Grad_Omega_hat_old).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-        # plt.subplot(2,3,2)
-        # plt.title(r'$\Pi=\nabla.(\nu_e \nabla \omega)$, Leith (local)')
-        # plt.pcolor(np.fft.ifft2(PiOmega_hat).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-
-        # plt.subplot(2,3,3) #  ∇×∇.(-2 ν_e S_{ij} )
-        # plt.title(r'$\Pi=\nabla \times \nabla . ( -2 \nu_e \overline{S}_{ij})$, Leith (local)')
-        # plt.pcolor(np.fft.ifft2(PiOmega_hat_tau).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-
-        # plt.subplot(2,3,4)
-        # plt.title(r'$\nu_e \nabla.(\nabla \omega) - \nabla.(\nu_e \nabla \omega) $')
-        # plt.pcolor(np.fft.ifft2(Grad_Omega_hat_old).real-np.fft.ifft2(PiOmega_hat).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-
+        plt.subplot(2,3,4)
+        plt.title(r'$\nu_e \nabla.(\nabla \omega) - \nabla.(\nu_e \nabla \omega) $')
+        plt.pcolor(np.fft.ifft2(Grad_Omega_hat_old).real-np.fft.ifft2(PiOmega_hat).real,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
+        
+        plt.subplot(2,3,6)
+        plt.title(r'$C_L$')
+        plt.pcolor(Cl,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
+        plt.subplot(2,3,5)
+        plt.title(r'$Local, \nu_e(x,y)$')
+        plt.pcolor(eddy_viscosity,cmap='gray_r');plt.colorbar()
         # plt.subplot(2,3,6)
-        # plt.title(r'$C_L$')
-        # plt.pcolor(Cl,vmin=VMIN,vmax=VMAX,cmap='bwr');plt.colorbar()
-        # plt.subplot(2,3,5)
-        # plt.title(r'$Local, \nu_e(x,y)$')
-        # plt.pcolor(eddy_viscosity,cmap='gray_r');plt.colorbar()
-        # # plt.subplot(2,3,6)
-        # # plt.title(r'$\nu_e$')
-        # # plt.pcolor(eddy_viscosity, cmap='gray_r');plt.colorbar()
+        # plt.title(r'$\nu_e$')
+        # plt.pcolor(eddy_viscosity, cmap='gray_r');plt.colorbar()
+        
+        
+        for i, ax in enumerate(axes.flat):
+            # Set the aspect ratio to equal
+            ax.set_aspect('equal')
 
-
-        # for i, ax in enumerate(axes.flat):
-        #     # Set the aspect ratio to equal
-        #     ax.set_aspect('equal')
-
-        # plt.show()
-        # stop_test
+        plt.show()
+        stop_test
 
         #PiOmega_hat is instead replaced
         eddy_viscosity = 0
