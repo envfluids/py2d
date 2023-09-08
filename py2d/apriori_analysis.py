@@ -1,4 +1,41 @@
 from py2d.derivative import derivative_2DFHIT
+import numpy as np
+
+def energy_2DFHIT(Psi, Omega, spectral = False):
+    '''Calculates energy as the mean of 0.5 * Psi * Omega.
+
+    Args:
+        Psi (np.ndarray): The stream function matrix.
+        Omega (np.ndarray): The vorticity matrix.
+        spectral (bool): Whether to perform inverse Fast Fourier Transform on Psi and Omega. Default is False.
+
+    Returns:
+        float: The calculated energy.
+    '''
+    if spectral:
+        Psi = np.fft.ifft2(Psi).real
+        Omega = np.fft.ifft2(Omega).real
+        
+    energy = np.mean(0.5 * Psi * Omega)
+    return energy
+
+
+def enstrophy_2DFHIT(Omega, spectral = False):
+    '''Calculates enstrophy as the mean of 0.5 * Omega * Omega.
+
+    Args:
+        Omega (np.ndarray): The vorticity matrix.
+        spectral (bool): Whether to perform inverse Fast Fourier Transform on Omega. Default is False.
+
+    Returns:
+        float: The calculated enstrophy.
+    '''
+    if spectral:
+        Omega = np.fft.ifft2(Omega).real
+        
+    enstrophy = np.mean(0.5 * Omega * Omega)
+    return enstrophy
+
 
 def energyTransfer_2DFHIT(U, V, Tau11, Tau12, Tau22, Kx, Ky):
     """
