@@ -21,25 +21,49 @@ try:
 except:
     os.system("pip3 install natsort")
     from natsort import natsorted, ns
-#%% Case select
-METHOD = 'DLEITH' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local,
-# METHOD = 'DSMAG' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local,
+
+from mypathdictionary import *
+#%%
+import matplotlib.cbook as cbook
+from matplotlib import cm
+import matplotlib.pyplot as plt
+DPI = 150
+
+plt.rcParams.update({
+    'font.size': 20,
+    'text.usetex': True,
+    'text.latex.preamble': r'\usepackage{amsfonts}',
+    'figure.dpi': DPI,
+    'savefig.dpi': DPI
+
+})
+# %% Case select
+# METHOD = 'DLEITH_tau_Local' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local,
+METHOD = 'DSMAG_tau_Local' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local,
 # METHOD = 'NoSGS'
 
 # case = str(sys.argv[1])
 # percent_data = float(sys.argv[2])
-CASENO = 2
-NX = 64
+# CASENO = 1
+# NX = 32
 # CASENO = 2
 # NX = 128
 
-NUM_DATA_Classic = 2_00
-NUM_DATA_RL =1_000
-if CASENO == 2:
+CASENO = 4
+NX = 512
+
+if CASENO == 1:
     NUM_DATA_Classic = 2_00
+    NUM_DATA_RL =1_000
+elif CASENO == 2:
+    NUM_DATA_Classic = 5_00
     # NUM_DATA_RL =3_00
-    NUM_DATA_RL =1000 #0
+    # NUM_DATA_RL =100
+    NUM_DATA_RL =1#00 #0
     # NUM_DATA_RL =5000 #0
+elif CASENO == 4:
+    NUM_DATA_Classic = 2_00
+    NUM_DATA_RL =100#0 #0
 #%% Load DNS results
 # directory = '/mnt/Mount/bridges2_phy/jakhar/DNS_data/'
 # filename = 'Re20kNX1024nx4ny4r0p1b20_1024_0.01_aposteriori_data.mat'
@@ -53,10 +77,11 @@ if CASENO==1:
       # dataType = '/mnt/Mount/bridges2_phy/jakhar/py2d/results/Re20000_fkx4fky4_r0.1_b0.0/NoSGS/NX1024/dt5e-05_IC1/data'
 elif CASENO==2:
     # mat_contents = scipy.io.loadmat('results/Re20000_fkx4fky4_r0.1_b20.0/Re20kNX1024nx4ny4r0p1b20_1024_1.0_aposteriori_data.mat')
-    mat_contents = scipy.io.loadmat('results/Re20000_fkx4fky4_r0.1_b20.0/Re20kNX1024nx4ny4r0p1b20_aposteriori_data.mat')
+    mat_contents = scipy.io.loadmat('results/Re20000_fkx4fky4_r0.1_b20/Re20kNX1024nx4ny4r0p1b20_aposteriori_data.mat')
 
-    # patthadd = '/media/rmojgani/hdd/PostDoc/Projects/py2d_local/results/Re20000_fkx4fky4_r0.1_b20.0'
-    # mat_contents = scipy.io.loadmat('results/Re20000_fkx4fky4_r0.1_b20.0/Re20kNX1024nx4ny4r0p1b20_1024_0.1_aposteriori_data.mat')
+elif CASENO==4:
+    mat_contents = scipy.io.loadmat('results/Re20000_fkx25fky25_r0.1_b0/Re20kNX1024nx25ny25r0p1_512_aposteriori_data.mat')
+
 elif CASENO==10:
       patthadd = '/media/rmojgani/hdd/PostDoc/Projects/py2d_local/'
       mat_contents = scipy.io.loadmat('results/Re100kNX2048nx4ny0r0p1/Re100kNX2048nx4ny0r0p1_aposteriori_data.mat')
@@ -66,36 +91,21 @@ energy_spectra_DNS = mat_contents['energy_spectra'].reshape(-1,)
 enstrophy_spectra_DNS = mat_contents['enstrophy_spectra'].reshape(-1,)
 # wavenumbers_spectra_DNS = mat_contents['wavenumbers_spectra'].reshape(-1,)
 
+
 pdf_DNS = np.array([mat_contents['Omega_bins_scipy'][0,:],mat_contents['Omega_pdf_scipy'][0,:]]).T
 std_omega_DNS =  mat_contents['Omega_std'][0][0]
 
 wavenumbers_spectra_DNS = np.arange(mat_contents['energy_spectra'].shape[1])
-
-
 #%% Load Classic results
-
-
-# dataType = 'Re' + str(int(Re/1000)) + 'kNX' + str(NX) + 'nx' + str(fkx) + 'ny' + str(fky) + 'r0p1'
-if CASENO==1 or CASENO==10:
-    if 'LEITH' in METHOD:
-        dataType = 'results/Re20000_fkx4fky4_r0.1_b0/'+METHOD+'/NX'+str(NX)+'/dt0.0005_IC1/data'
-        # dataType = '/mnt/Mount/envfluids/PostDoc/Projects/py2d/results/Re20000_fkx4fky4_r0.1_b0/'+METHOD+'/NX'+str(NX)+'/dt0.0005_IC1/data'
-    elif 'SMAG' in METHOD:
-        dataType = 'results/Re20000_fkx4fky4_r0.1_b0/'+METHOD+'/NX'+str(NX)+'/dt0.0005_IC1/data'
-        # dataType = '/mnt/Mount/envfluids/PostDoc/Projects/py2d/results/Re20000_fkx4fky4_r0.1_b0/'+METHOD+'/NX'+str(NX)+'/dt0.0005_IC1/data'
-
-elif CASENO==2:
-    # dataType = '/mnt/Mount/envfluids/PostDoc/Projects/py2d/'
-    # dataType = dataType+'results/Re20000_fkx4fky4_r0.1_b20/'+METHOD+'/NX'+str(NX)+'/dt0.0005_IC1/data'
-    # dataType = dataType+'results/Re20000_fkx4fky4_r0.1_b20.0/'+METHOD+'/NX'+str(NX)+'/dt0.0005_IC1/data'
-    dataType = '/mnt/Mount/envfluids/PostDoc/Projects/py2d/results/Re20000_fkx4fky4_r0.1_b20/'+METHOD+'/NX'+str(NX)+'/dt0.0005_IC1/data'#----------
-
-
+dataType = mypathdictionaryclassic(CASENO, NX, METHOD)
 
 if 'sigma_Local' in METHOD:
     METHOD_str = '∇.(ν_e ∇ω )'
+    METHOD_str_legend = 'from sigma'
+
 elif 'tau_Local' in METHOD:
     METHOD_str = '∇×∇.(-2 ν_e S_{ij})'
+    METHOD_str_legend = 'from tau'
 else:
     METHOD_str = METHOD
 METHOD_str += ', data='+str(NUM_DATA_Classic)
@@ -184,6 +194,11 @@ bin_max = 40#(Omega_mean + 10*Omega_std)#, np.max(Omega_arr))
 if CASENO==2:
     bin_min = -50#(Omega_mean - 10*Omega_std)#, np.min(Omega_arr))
     bin_max = 50#(Omega_mean + 10*Omega_std)#, np.max(Omega_arr))
+elif CASENO==4:
+    # bin_min = -70#(Omega_mean - 10*Omega_std)#, np.min(Omega_arr))
+    # bin_max = 70#(Omega_mean + 10*Omega_std)#, np.max(Omega_arr))
+    bin_min = -100
+    bin_max = -bin_min
 bins = np.linspace(bin_min, bin_max, 81)
 
 print('bin min', bin_min)
@@ -214,11 +229,10 @@ except Exception as e:
 
 #%% Load RL results
 from py2d.spectra import *
-from mypathdictionary import mypathdictionary
 energy_spectra_RL_list, enstrophy_spectra_RL_list = [], []
 Omega_list = []
 
-path_RL = mypathdictionary(CASENO, NX, METHOD)
+path_RL = mypathdictionaryRL(CASENO, NX, METHOD)
 
 if 'LEITH' in METHOD :
     METHOD_RL = 'LEITH_RL'
@@ -272,15 +286,11 @@ def error_spec(enstrophy_spectra_mean, enstrophy_spectra_DNS) :
 
     return error_ens
 #%% Plot - Spectra
-import matplotlib.pyplot as plt
-
-plt.figure(figsize=(12,5),dpi=150)
+plt.figure(figsize=(15,7))
 plt.subplot(1,2,1)
-plt.title('C'+str(CASENO)+': '+METHOD)
 plt.loglog(wavenumbers_spectra_DNS, energy_spectra_DNS, linewidth=5, color="0.75")
 plt.loglog(wavenumbers, energy_spectra_mean)
 plt.loglog(wavenumbers_RL, energy_spectra_RL_mean,'k')
-
 
 # plt.ylim([1e-6,1e0])
 plt.ylim([1e-8,1e1])
@@ -288,21 +298,26 @@ plt.ylim([1e-8,1e1])
 error_tke = error_spec(energy_spectra_mean, energy_spectra_DNS)
 error_tke_RL = error_spec(energy_spectra_RL_mean, energy_spectra_DNS)
 
-
 plt.subplot(1,2,2)
-plt.title('C'+str(CASENO)+': '+METHOD)
-
 plt.loglog(wavenumbers_spectra_DNS, enstrophy_spectra_DNS, linewidth=5, color="0.75",label='DNS')
-plt.loglog(wavenumbers, enstrophy_spectra_mean,label=METHOD_str)
+plt.loglog(wavenumbers, enstrophy_spectra_mean,label=METHOD_str_legend)
 plt.loglog(wavenumbers_RL, enstrophy_spectra_RL_mean,'k',label=METHOD_RL)
 
 error_ens = error_spec(enstrophy_spectra_mean, enstrophy_spectra_DNS)
 error_ens_RL = error_spec(enstrophy_spectra_RL_mean, enstrophy_spectra_DNS)
 
-plt.legend()
-
 # plt.ylim([1e-3,1e1])
 plt.ylim([1e-3,1e2])
+
+for icount in [1,2]:
+    plt.subplot(1,2,icount)
+    plt.title('C'+str(CASENO)+': '+METHOD)
+
+    plt.tight_layout()
+    plt.gca().set_xlim(left=1)
+    # plt.legend()
+
+plt.savefig('books_read.png')
 plt.show()
 print(' Error spectra:                               error_tke', 'error_ens')
 print(METHOD_RL   , NX, ':', error_tke_RL, error_ens_RL)
@@ -327,11 +342,13 @@ from PDE_KDE import myKDE, mybandwidth_scott
 BANDWIDTH = mybandwidth_scott(Omega_arr_RL)
 if CASENO==2:
     BANDWIDTH = mybandwidth_scott(Omega_arr_RL)*2
+if CASENO==4:
+    BANDWIDTH = mybandwidth_scott(Omega_arr_RL)
 Vecpoints, exp_log_kde, log_kde, kde = myKDE(Omega_arr_RL,BANDWIDTH=BANDWIDTH)
 #%% Plot - PDF
 num_file = filecount
 std_omega = 1#std_omega_DNS
-plt.figure(figsize=(7,5),dpi=150)
+plt.figure(figsize=(7,5))
 plt.title(METHOD)
 # plt.semilogy(bins_fastkde/std_omega,pdf_fastkde,label='fastked')
 plt.semilogy(bins_scipy/std_omega,pdf_scipy,label='scipy')
@@ -367,7 +384,10 @@ plt.grid(which='minor', linestyle='-',
 plt.gca().xaxis.set_minor_locator(plt.MultipleLocator(0.5))
 
 #plt.xlim([XMIN, XMAX])
-plt.xlim([-50, 50])
+if CASENO==2:
+    plt.xlim([-50, 50])
+elif CASENO==4:
+    plt.xlim([-100, 100])
 plt.ylim([YMIN/1000, YMAX])
 plt.legend()
 #%% Interpolate PDFs
@@ -422,21 +442,26 @@ error_all_RL = error_pdf_all/pdf_all
 print(METHOD_str,":", error_in_RL, error_out_RL, error_all_RL)
 
 #%% Plot PDFs
-fig, axs= plt.subplots(1,3, sharex=True, figsize=(16,5), dpi=150)
+fig, axs= plt.subplots(1,3, sharex=True, figsize=(16,5))
 
 yhor = np.ones_like(bins)*1e-12
 
 axs[0].fill_between(bins, yhor, pdf_DNS_on_bins, where=(in_band), color='C0', alpha=0.3)
 
-axs[0].semilogy(bins_scipy, pdf_scipy       , '+-r' , label=METHOD_str)
+axs[0].semilogy(bins_scipy, pdf_scipy       , '+-r' , label=METHOD_str_legend)
 axs[0].semilogy(bins      , pdf_data_on_bins, '+-g', label=METHOD_RL)
 axs[0].semilogy(bins      , pdf_DNS_on_bins , '.k' , label='DNS')
-axs[0].legend(loc='upper left')
+# axs[0].legend(loc='upper left')
 #axs[0][0].legend(bbox_to_anchor=(1.04, 1))
 
 plt.subplot(1,3,1)
-plt.xlim([bin_min, bin_max])
-plt.ylim([YMIN/100, YMAX*10])
+
+if CASENO==2:
+
+    plt.ylim([YMIN/100, YMAX*10])
+elif CASENO==4:
+    plt.xlim([-100, 100])
+    plt.ylim([YMIN, YMAX])
 
 axs[1].fill_between(bins, yhor, np.abs(pdf_data_on_bins-pdf_DNS_on_bins), where=(in_band), color='C0', alpha=0.3)
 
@@ -445,9 +470,13 @@ axs[1].semilogy(bins[in_band],np.abs(pdf_data_on_bins-pdf_DNS_on_bins)[in_band],
 axs[1].semilogy(bins[out_band],np.abs(pdf_data_on_bins-pdf_DNS_on_bins)[out_band], '.r')
 plt.subplot(1,3,2)
 plt.title('RL')
-plt.xlim([bin_min, bin_max])
+# plt.xlim([bin_min, bin_max])
+plt.xlim([-100, 100])
 # plt.ylim([YMIN/1e2, YMAX/1e1])
-plt.ylim([YMIN/1e2, YMAX/1e1])
+if CASENO==2:
+    plt.ylim([YMIN/1e2, YMAX/1e1])
+elif CASENO==4:
+    plt.ylim([YMIN/1e2, YMAX])
 
 #plt.text(-30, 1e-3, str(error_in_RL)+str(error_out_RL)+str(error_all_RL))
 
@@ -460,20 +489,36 @@ axs[ii].semilogy(bins[out_band],np.abs(pdf_scipy-pdf_DNS_on_bins)[out_band], '+r
 
 plt.subplot(1,3,3)
 plt.title(METHOD)
-plt.xlim([bin_min, bin_max])
-plt.ylim([YMIN/1e2, YMAX/1e1])
+# plt.xlim([bin_min, bin_max])
 
+if CASENO==2:
+    plt.ylim([YMIN/1e2, YMAX/1e1])
+elif CASENO==4:
+    plt.ylim([YMIN/1e2, YMAX])
+
+for icount in [1,2,3]:
+    plt.subplot(1,3,icount)
+plt.xlim([bin_min, bin_max])
 plt.show()
 #%% SAVE SPECTRA
-np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD+'_energy.dat', np.vstack([wavenumbers, energy_spectra_mean]).T, delimiter='\t')
-np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD_RL+'_energy.dat', np.vstack([wavenumbers_RL, energy_spectra_RL_mean]).T, delimiter='\t')
+filename_save = 'C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD
+filenameRL_save = 'C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD_RL
 
-np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD+'_enstrophy.dat', np.vstack([wavenumbers, enstrophy_spectra_mean]).T, delimiter='\t')
-np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD_RL+'_enstrophy.dat', np.vstack([wavenumbers_RL, enstrophy_spectra_RL_mean]).T, delimiter='\t')
+np.savetxt(filename_save+'_energy.dat', np.vstack([wavenumbers, energy_spectra_mean]).T, delimiter='\t')
+np.savetxt(filenameRL_save+'_energy.dat', np.vstack([wavenumbers_RL, energy_spectra_RL_mean]).T, delimiter='\t')
+
+np.savetxt('C'+str(CASENO)+'_energy.dat', np.vstack([wavenumbers_spectra_DNS, energy_spectra_DNS]).T, delimiter='\t')
+
+
+
+np.savetxt(filename_save+'_enstrophy.dat', np.vstack([wavenumbers, enstrophy_spectra_mean]).T, delimiter='\t')
+np.savetxt(filenameRL_save+'_enstrophy.dat', np.vstack([wavenumbers_RL, enstrophy_spectra_RL_mean]).T, delimiter='\t')
+
+np.savetxt('C'+str(CASENO)+'_enstrophy.dat', np.vstack([wavenumbers_spectra_DNS, enstrophy_spectra_DNS]).T, delimiter='\t')
 
 #%% SAVE PDF
-np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD+'_pdf.dat', np.vstack([bins, pdf_DNS_on_bins, pdf_scipy ]).T, delimiter='\t')
-np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD_RL+'_pdf.dat', np.vstack([bins, pdf_DNS_on_bins, pdf_data_on_bins ]).T, delimiter='\t')
+np.savetxt(filename_save+'_pdf.dat', np.vstack([bins, pdf_DNS_on_bins, pdf_scipy ]).T, delimiter='\t')
+np.savetxt(filenameRL_save+'_pdf.dat', np.vstack([bins, pdf_DNS_on_bins, pdf_data_on_bins ]).T, delimiter='\t')
 # #%%
 # np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_energy.dat', np.vstack([wavenumbers_spectra_DNS, energy_spectra_DNS]).T, delimiter='\t')
 # np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_enstrophy.dat', np.vstack([wavenumbers_spectra_DNS, enstrophy_spectra_DNS]).T, delimiter='\t')

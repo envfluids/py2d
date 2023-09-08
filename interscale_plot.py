@@ -28,17 +28,17 @@ METHOD = 'DLEITH' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local,
 
 # case = str(sys.argv[1])
 # percent_data = float(sys.argv[2])
-CASENO = 1
-NX = 128
-# CASENO = 2
+# CASENO = 1
 # NX = 128
+CASENO = 2
+NX = 64
 
-NUM_DATA_Classic = 2#_00
-NUM_DATA_RL =1#_000
+NUM_DATA_Classic = 2_00
+NUM_DATA_RL =1_000
 if CASENO == 2:
     NUM_DATA_Classic = 2_00
     # NUM_DATA_RL =3_00
-    NUM_DATA_RL =250_0 #0
+    NUM_DATA_RL =2_500 #0
 
 #%% Load DNS results
 # directory = '/mnt/Mount/bridges2_phy/jakhar/DNS_data/'
@@ -214,54 +214,11 @@ except Exception as e:
 
 #%% Load RL results
 from py2d.spectra import *
+from mypathdictionary import mypathdictionary
 energy_spectra_RL_list, enstrophy_spectra_RL_list = [], []
 Omega_list = []
-if CASENO==1:
-    if NX==32:
-        if 'LEITH' in METHOD :
-            path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnu/experiments/flowControl_turb_code/'
-            path_RL += '_result_vracer_C1_N32_R_z1_State_invariantlocalandglobalgradgrad_Action_CL_nAgents16_CREWARD1_Tspin0.0_Thor20000.0_NumRLSteps2000.0_EPERU1.0/CLpost'
-        elif 'SMAG' in METHOD :
-            path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnucs/experiments/flowControl_turb_code/'
-            path_RL += '_result_vracer_C1_N32_R_z1_State_invariantlocalandglobalgradgrad_Action_CS_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0/CSpost'
-    elif NX==64:
-        if 'LEITH' in METHOD :
-            path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnu/experiments/flowControl_turb_code/'
-            path_RL += '_result_vracer_C1_N64_R_z1_State_invariantlocalandglobalgradgrad_Action_CL_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0/CLpost'
-        elif 'SMAG' in METHOD :
-            path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnucs/experiments/flowControl_turb_code/'
-            path_RL += '_result_vracer_C1_N64_R_z1_State_invariantlocalandglobalgradgrad_Action_CS_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0/CSpost'
-    elif NX==128:
-        if 'LEITH' in METHOD :
-            path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnu/experiments/flowControl_turb_code/'
-            path_RL += '_result_vracer_C1_N128_R_z1_State_invariantlocalandglobalgradgrad_Action_CL_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0/CLpost'
-        if 'SMAG' in METHOD :
-            path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnucs/experiments/flowControl_turb_code/'
-            path_RL += '_result_vracer_C1_N128_R_z1_State_invariantlocalandglobalgradgrad_Action_CS_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0/CSpost'
 
-elif CASENO==2:
-    #path_RL = 'results/Re20000_fkx4fky4_r0.1_b20.0/RL/NX'+str(NX)
-    #path_RL += '_result_vracer_C2_N64_R_z1_State_invariantlocalandglobalgradgrad_Action_CL_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0/CLpost'
-    #path_RL += '_result_vracer_C2_N128_R_z1_State_invariantlocalandglobalgradgrad_Action_CL_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0/CLpost'
-    if NX==64:
-        if 'SMAG' in METHOD :
-            path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnucs/experiments/flowControl_turb_code/'
-            path_RL += '_result_vracer_C2_N64_R_z1_State_invariantlocalandglobalgradgrad_Action_CS_nAgents16_CREWARD1_Tspin0.0_Thor20000.0_NumRLSteps2000.0_EPERU1.0/CSpost'
-
-        elif 'LEITH' in METHOD :
-            path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnu/experiments/flowControl_turb_code/'
-            path_RL += '_result_vracer_C2_N64_R_z1_State_invariantlocalandglobalgradgrad_Action_CL_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0/CLpost'
-        # path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnucs/experiments/flowControl_turb_code/'
-        # path_RL += '_result_vracer_C2_N64_R_z1_State_invariantlocalandglobalgradgrad_Action_CS_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0/CSpost'
-    if NX == 128:
-        #path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnu/experiments/flowControl_turb_code/'
-        #path_RL += '_result_vracer_C2_N128_R_z1_State_invariantlocalandglobalgradgrad_Action_CL_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0_56/CLpost'
-        if 'SMAG' in METHOD :
-            path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnus/experiments/flowControl_turb_code/'
-            path_RL += '_result_vracer_C2_N64_R_z1_State_invariantlocalandglobalgradgrad_Action_CS_nAgents16_CREWARD1_Tspin0.0_Thor20000.0_NumRLSteps2000.0_EPERU1.0/CSpost/'
-        elif 'LEITH' in METHOD :
-            path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnu/experiments/flowControl_turb_code/'
-            path_RL += '_result_vracer_C2_N128_R_z1_State_invariantlocalandglobalgradgrad_Action_CL_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0_56/CLpost/'
+path_RL = mypathdictionary(CASENO, NX, METHOD)
 
 if 'LEITH' in METHOD :
     METHOD_RL = 'LEITH_RL'
