@@ -160,6 +160,8 @@ def enstrophy_angled_average_2DFHIT(Omega, spectral=False):
 def energyTransfer_spectra_2DFHIT(Kx, Ky, U=None, V=None, Tau11=None, Tau12=None, Tau22=None, Psi=None, PiOmega=None, method='Tau', spectral=False):
     '''
     Compute the energy transfer spectra using 2D Forced Homogeneous Isotropic Turbulence (2D-FHIT)
+    PTau > 0: dissipation
+    PTau < 0: backscatter
 
     Parameters
     ----------
@@ -226,7 +228,7 @@ def energyTransfer_spectra_2DFHIT(Kx, Ky, U=None, V=None, Tau11=None, Tau12=None
         N_LES = U.shape[0]
 
         # Compute the energy transfer function in spectral space.
-        Ptau_hat = -(-np.conj(Tau11_hat)*U1x_hat + np.conj(Tau22_hat)*U1x_hat - np.conj(Tau12_hat)*U1y_hat - np.conj(Tau12_hat)*V1x_hat)/(N_LES*N_LES)
+        Ptau_hat = (-np.conj(Tau11_hat)*U1x_hat + np.conj(Tau22_hat)*U1x_hat - np.conj(Tau12_hat)*U1y_hat - np.conj(Tau12_hat)*V1x_hat)/(N_LES*N_LES)
 
     # If the method is 'PiOmega', calculate the energy transfer using Psi and PiOmega.
     elif method == 'PiOmega':
@@ -246,7 +248,7 @@ def energyTransfer_spectra_2DFHIT(Kx, Ky, U=None, V=None, Tau11=None, Tau12=None
         N_LES = Psi.shape[0]
 
         # Compute the energy transfer function in spectral space.
-        Ptau_hat = -(np.conj(PiOmega_hat)*Psi1_hat)/(N_LES*N_LES)
+        Ptau_hat = (np.conj(PiOmega_hat)*Psi1_hat)/(N_LES*N_LES)
 
     else:  # If an unsupported method is provided, raise an error.
         raise ValueError("Invalid method. Choose either 'Tau' or 'PiOmega'")
@@ -261,6 +263,8 @@ def energyTransfer_spectra_2DFHIT(Kx, Ky, U=None, V=None, Tau11=None, Tau12=None
 def enstrophyTransfer_spectra_2DFHIT(Kx, Ky, Omega=None, Sigma1=None, Sigma2=None, PiOmega=None, method='Sigma', spectral=False):
     '''
     Compute the enstrophy transfer spectra using 2D Forced Homogeneous Isotropic Turbulence (2D-FHIT)
+    PZ > 0: dissipation
+    PZ < 0: backscatter
 
     Parameters
     ----------
@@ -333,7 +337,7 @@ def enstrophyTransfer_spectra_2DFHIT(Kx, Ky, Omega=None, Sigma1=None, Sigma2=Non
             PiOmega_hat = PiOmega
 
         # Computing the enstrophy transfer function in spectral space. Dividing by N_LES**2 is scale the fourier transform.
-        Pz_hat = -(np.conj(PiOmega_hat) * Omega_hat) / (N_LES * N_LES)
+        Pz_hat = (np.conj(PiOmega_hat) * Omega_hat) / (N_LES * N_LES)
 
     else:  # If an unsupported method is provided, raise an error.
         raise ValueError("Invalid method. Choose either 'Sigma' or 'PiOmega'")
