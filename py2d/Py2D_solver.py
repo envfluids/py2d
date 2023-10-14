@@ -113,7 +113,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     # Filter Width
     Delta = 2 * Lx / NX
-   
+
     Lx, _, X, Y, dx, dx = gridgen(Lx, Lx, NX, NX)
     # -------------- Create the meshgrid both in physical and spectral space --------------
     Kx, Ky, _, Ksq, invKsq = initialize_wavenumbers_2DFHIT(NX, NX, Lx, Lx)
@@ -155,18 +155,18 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     # -------------- Print the run configuration --------------
 
-    run_config2 = [["Time Step (dt)", dt], ["Resume Simulation", resumeSim], 
-                  ["Read Initialization (readTrue), If False: Will read IC from a file", readTrue], 
-                  ["Saving Data  (saveData)", saveData], 
-                  ["Save data every t th timestep (tSAVE)", tSAVE], 
-                  ["Save data every Nth iteration (NSAVE)", NSAVE], 
-                  ["Length of simulation (tTotal)", tTotal], 
+    run_config2 = [["Time Step (dt)", dt], ["Resume Simulation", resumeSim],
+                  ["Read Initialization (readTrue), If False: Will read IC from a file", readTrue],
+                  ["Saving Data  (saveData)", saveData],
+                  ["Save data every t th timestep (tSAVE)", tSAVE],
+                  ["Save data every Nth iteration (NSAVE)", NSAVE],
+                  ["Length of simulation (tTotal)", tTotal],
                   ["Maximum Number of Iterations (maxit)", maxit]]
-    
-    geometry_mesh2 = [["Number of Grid Points (NX)", NX], 
-                     ["Domain Length (L)", Lx], 
+
+    geometry_mesh2 = [["Number of Grid Points (NX)", NX],
+                     ["Domain Length (L)", Lx],
                      ["Mesh size (dx)", dx]]
-    
+
     table_flow_spec2 = [["Reynolds Number (Re)", Re],
                        ["Deterministic Forcing Wavenumber (fkx)", fkx],
                        ["Deterministic Forcing Wavenumber (fky)", fky],
@@ -237,7 +237,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
             Psi0_hat = Omega2Psi_2DFHIT_spectral(Omega0_hat, invKsq)
             Psi1_hat = Omega2Psi_2DFHIT_spectral(Omega1_hat, invKsq)
-            
+
         else:
             # Path of Initial Conditions
 
@@ -442,7 +442,8 @@ if __name__ == '__main__':
     sys.path.append('py2d')
     sys.path.append('.')
     #SGSModel_list = ['NoSGS', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6']
-    SGSModel_list = ['SMAG','DSMAG','DSMAG_tau_Local','DSMAG_sigma_Local']
+    # SGSModel_list = ['SMAG','DSMAG','DSMAG_tau_Local','DSMAG_sigma_Local']
+    SGSModel_list = ['DSMAG_tau_Local_LocalS','DSMAG_sigma_Local_LocalS']
     #SGSModel_list = [ 'LEITH', 'DLEITH', DLEITH_tau_Local', 'DLEITH_sigma_Local']
     for SGSModel_string in SGSModel_list:
         # Script to call the function with the given parameters
@@ -460,5 +461,5 @@ if __name__ == '__main__':
                        tTotal=10.0, # Total time of simulation
                        readTrue=False,
                        ICnum=1, # Initial condition number: Choose between 1 to 20
-                       resumeSim=False, # tart new simulation (False) or resume simulation (True) 
+                       resumeSim=False, # tart new simulation (False) or resume simulation (True)
                        )
