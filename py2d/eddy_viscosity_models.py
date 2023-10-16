@@ -15,7 +15,7 @@ strain_rate_2DFHIT_spectral = jit(strain_rate_2DFHIT_spectral)
 
 def Tau_eddy_viscosity(eddy_viscosity, Psi_hat, Kx, Ky):
     '''
-    Calculate the eddy viscosity term (Tau) in the momentum equation 
+    Calculate the eddy viscosity term (Tau) in the momentum equation
     '''
     S11_hat, S12_hat, S22_hat = strain_rate_2DFHIT_spectral(Psi_hat, Kx, Ky)
     S11 = np.real(np.fft.ifft2(S11_hat))
@@ -30,7 +30,7 @@ def Tau_eddy_viscosity(eddy_viscosity, Psi_hat, Kx, Ky):
 
 def Sigma_eddy_viscosity(eddy_viscosity, Omega_hat, Kx, Ky):
     '''
-    Calculate the eddy viscosity term (Tau) in the momentum equation 
+    Calculate the eddy viscosity term (Tau) in the momentum equation
     '''
     Omegax_hat = (1.j) * Kx * Omega_hat
     Omegay_hat = (1.j) * Ky * Omega_hat
@@ -53,6 +53,14 @@ def eddy_viscosity_smag(Cs, Delta, characteristic_S):
     eddy_viscosity = (Cs * Delta) ** 2 * characteristic_S_mean
     return eddy_viscosity
 
+def eddy_viscosity_smag_local(Cs, Delta, characteristic_S):
+    '''
+    Smagorinsky Model (SMAG) - Local characteristic_S
+    '''
+    characteristic_S2 = characteristic_S ** 2
+    characteristic_S = np.sqrt(characteristic_S2)
+    eddy_viscosity = (Cs * Delta) ** 2 * characteristic_S
+    return eddy_viscosity
 
 def characteristic_strain_rate_smag(Psi_hat, Kx, Ky, Ksq):
     '''
