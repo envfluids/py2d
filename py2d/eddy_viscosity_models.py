@@ -35,8 +35,11 @@ def Sigma_eddy_viscosity(eddy_viscosity, Omega_hat, Kx, Ky):
     Omegax_hat = (1.j) * Kx * Omega_hat
     Omegay_hat = (1.j) * Ky * Omega_hat
 
-    Sigma1 = -eddy_viscosity*Omegax_hat
-    Sigma2 = -eddy_viscosity*Omegay_hat
+    Omegax = np.real(np.fft.ifft2(Omegax_hat))
+    Omegay = np.real(np.fft.ifft2(Omegay_hat))
+
+    Sigma1 = -eddy_viscosity*Omegax
+    Sigma2 = -eddy_viscosity*Omegay
 
     return Sigma1, Sigma2
 
