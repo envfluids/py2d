@@ -163,9 +163,9 @@ def TauGM2_gaussian(U_hat, V_hat, Kx, Ky, Delta):
     Vx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky))
     Vy = -Ux
 
-    Tau11GM2 = A * (Ux**2 + Vy**2)
-    Tau12GM2 = A * (Ux*Uy + Vx*Vy)
-    Tau22GM2 = A * (Uy**2 + Vy**2)
+    Tau11GM2 = A * (Ux**2 + Uy**2)
+    Tau12GM2 = A * (Ux*Vx + Uy*Vy)
+    Tau22GM2 = A * (Vx**2 + Vy**2)
 
     return Tau11GM2, Tau12GM2, Tau22GM2
 
