@@ -2,7 +2,9 @@ import jax.numpy as np
 import numpy as nnp
 
 from py2d.eddy_viscosity_models import eddy_viscosity_smag, characteristic_strain_rate_smag, coefficient_dsmag_PsiOmega
+from py2d.eddy_viscosity_models import eddy_viscosity_smag_local
 from py2d.eddy_viscosity_models import eddy_viscosity_leith, characteristic_omega_leith, coefficient_dleith_PsiOmega
+from py2d.eddy_viscosity_models import eddy_viscosity_leith_local
 from py2d.eddy_viscosity_models import characteristic_omega_leith, coefficient_dleithlocal_PsiOmega, coefficient_dsmaglocal_PsiOmega
 from py2d.gradient_model import PiOmegaGM2_gaussian, PiOmegaGM4_gaussian, PiOmegaGM6_gaussian
 
@@ -28,6 +30,7 @@ class SGSModel:
             self.calculate = self.no_sgs_method
         #----------------------------------------------------------------------
         # Smagorinsky
+        #----------------------------------------------------------------------
         elif method == 'SMAG':
             self.calculate = self.smag_method
         #----------------------
@@ -59,6 +62,7 @@ class SGSModel:
             self.charflag='local'
         #----------------------------------------------------------------------
         # Leith
+        #----------------------------------------------------------------------
         elif method == 'LEITH':
             self.calculate = self.leith_method
         #----------------------
@@ -72,6 +76,18 @@ class SGSModel:
         elif method == 'DLEITH_sigma_Local':
             self.calculate = self.dleithlocal_method
             self.localflag='from_sigma'
+        #----------------------
+        elif method == 'DLEITH_tau_Local_LocalS':
+            print('SGS model: Dynamic Leith with local CL(x,y), Π=∇×∇.(-2 ν_e S_{ij} ); where characteristics lenght is local')
+            self.calculate = self.dleithlocal_method
+            self.localflag='from_tau'
+            self.charflag='local'
+        #----------------------
+        elif method == 'DLEITH_sigma_Local_LocalS':
+            print('SGS model: Dynamic Leith with local CL(x,y), Π=∇.(ν_e ∇ω ); where characteristics lenght is local')
+            self.calculate = self.dleithlocal_method
+            self.localflag='from_sigma'
+            self.charflag='local'
         #----------------------------------------------------------------------
         # Gradient models
         elif method == 'PiOmegaGM2':
@@ -266,7 +282,14 @@ class SGSModel:
         #
         c_dynamic = coefficient_dleithlocal_PsiOmega(Psi_hat, Omega_hat, characteristic_Omega, Kx, Ky, Ksq, Delta)
         Cl = c_dynamic ** (1/3)
-        eddy_viscosity = eddy_viscosity_leith(Cl, Delta, characteristic_Omega)
+        
+        
+        if "local" in self.charflag:
+            eddy_viscosity = eddy_viscosity_leith_local(Cl, Delta, characteristic_Omega)
+        else:
+            '<|S|> is averaged in the domain'
+            eddy_viscosity = eddy_viscosity_leith(Cl, Delta, characteristic_Omega)
+        
 
         if self.localflag=='from_sigma':
             # Calculate the PI term for local PI = ∇.(ν_e ∇ω )

@@ -84,6 +84,16 @@ def eddy_viscosity_leith(Cl, Delta, characteristic_Omega):
     return eddy_viscosity
 
 @jit
+def eddy_viscosity_leith_local(Cl, Delta, characteristic_Omega):
+    '''
+    Leith Model (LEITH)
+    '''
+    characteristic_Omega_mean = (characteristic_Omega)
+    ls = Cl * Delta
+    eddy_viscosity = ls ** 3 * characteristic_Omega_mean
+    return eddy_viscosity
+
+@jit
 def characteristic_omega_leith(Omega_hat, Kx, Ky):
     '''
     Characteristic Gradient of Omega
