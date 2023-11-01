@@ -48,8 +48,13 @@ def initialize_wavenumbers_2DFHIT(nx, ny, Lx, Ly, INDEXING='ij'):
         2D array of wavenumbers in the x-direction.
     Ky : numpy.ndarray
         2D array of wavenumbers in the y-direction.
+    Kabs : numpy.ndarray
+        2D array of the absolute values of the wavenumbers.
     Ksq : numpy.ndarray
         2D array of the square of the wavenumber magnitudes.
+    invKsq : numpy.ndarray
+        2D array of the inverse of the square of the wavenumber magnitudes.
+    
 
     Notes:
     ------
