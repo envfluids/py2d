@@ -33,6 +33,15 @@ def mypathdictionaryRL(CASENO, NX, METHOD):
 
     elif CASENO==2:
         if NX==32:
+            # Redo
+            # if 'SMAG' in METHOD :
+            #     path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnucs_redo/experiments/flowControl_turb_code/'
+            #     path_RL += '_result_vracer_C2_N32_R_z1_State_invariantlocalandglobalgradgrad_Action_CS_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0/CSpost'
+            #     # ongoing
+            # elif 'LEITH' in METHOD :
+            #     path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnucs_redo/experiments/flowControl_turb_code/'
+            #     path_RL += '_result_vracer_C2_N32_R_z1_State_invariantlocalandglobalgradgrad_Action_CL_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0/CLpost'
+                # ongoing
             if 'SMAG' in METHOD :
                 path_RL = '/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnucs/experiments/flowControl_turb_code/'
                 path_RL += '_result_vracer_C2_N32_R_z1_State_invariantlocalandglobalgradgrad_Action_CS_nAgents16_CREWARD1_Tspin0.0_Thor10000.0_NumRLSteps1000.0_EPERU1.0/CSpost'

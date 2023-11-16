@@ -22,7 +22,11 @@ except:
     os.system("pip3 install natsort")
     from natsort import natsorted, ns
 
-from mypathdictionary import *
+#from mypathdictionary import *
+# from mypathdictionary2 import *
+from mypathdictionary3 import *
+# from mypathdictionary3_tests import *
+
 #%%
 import matplotlib.cbook as cbook
 from matplotlib import cm
@@ -38,19 +42,18 @@ plt.rcParams.update({
 
 })
 # %% Case select
-# METHOD = 'DLEITH_tau_Local' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local,
-METHOD = 'DSMAG_tau_Local' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local,
+# METHOD = 'DLEITH_sigma_Local' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local
+METHOD = 'DSMAG_tau_Local' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local, || DSMAG_sigma_Local_LocalS , DSMAG_tau_Local_LocalS/
 # METHOD = 'NoSGS'
 
 # case = str(sys.argv[1])
 # percent_data = float(sys.argv[2])
-# CASENO = 1
-# NX = 32
+CASENO = 1
+NX = 32
 # CASENO = 2
 # NX = 128
-
-CASENO = 4
-NX = 512
+# CASENO = 4
+# NX = 256
 
 if CASENO == 1:
     NUM_DATA_Classic = 2_00
@@ -59,11 +62,12 @@ elif CASENO == 2:
     NUM_DATA_Classic = 5_00
     # NUM_DATA_RL =3_00
     # NUM_DATA_RL =100
-    NUM_DATA_RL =1#00 #0
+    # NUM_DATA_RL = 3_50 #0
     # NUM_DATA_RL =5000 #0
+    # BANDWIDTH_R = 10
 elif CASENO == 4:
     NUM_DATA_Classic = 2_00
-    NUM_DATA_RL =100#0 #0
+    NUM_DATA_RL =1000 #0
 #%% Load DNS results
 # directory = '/mnt/Mount/bridges2_phy/jakhar/DNS_data/'
 # filename = 'Re20kNX1024nx4ny4r0p1b20_1024_0.01_aposteriori_data.mat'
@@ -80,7 +84,8 @@ elif CASENO==2:
     mat_contents = scipy.io.loadmat('results/Re20000_fkx4fky4_r0.1_b20/Re20kNX1024nx4ny4r0p1b20_aposteriori_data.mat')
 
 elif CASENO==4:
-    mat_contents = scipy.io.loadmat('results/Re20000_fkx25fky25_r0.1_b0/Re20kNX1024nx25ny25r0p1_512_aposteriori_data.mat')
+    # mat_contents = scipy.io.loadmat('results/Re20000_fkx25fky25_r0.1_b0/Re20kNX1024nx25ny25r0p1_512_aposteriori_data.mat')
+    mat_contents = scipy.io.loadmat('results/Re20000_fkx25fky25_r0.1_b0/Re20kNX1024nx25ny25r0p1_aposteriori_data.mat')
 
 elif CASENO==10:
       patthadd = '/media/rmojgani/hdd/PostDoc/Projects/py2d_local/'
@@ -108,8 +113,9 @@ elif 'tau_Local' in METHOD:
     METHOD_str_legend = 'from tau'
 else:
     METHOD_str = METHOD
-METHOD_str += ', data='+str(NUM_DATA_Classic)
+    METHOD_str_legend = ''
 
+METHOD_str += ', data='+str(NUM_DATA_Classic)
 
 nx, ny = NX,NX
 Lx,Ly = 2*np.pi,2*np.pi
@@ -173,7 +179,6 @@ for file in natsorted(os.listdir(directory), alg=ns.PATH | ns.IGNORECASE):
     indices = np.random.choice(omega_flattened.shape[0], num_samples, replace=False)
     sampled_data = omega_flattened[indices]
     Omega_list.append(sampled_data)
-
 #%%
 # Convert lists to numpy arrays
 energy_arr = nnp.array(energy_list)
@@ -197,7 +202,7 @@ if CASENO==2:
 elif CASENO==4:
     # bin_min = -70#(Omega_mean - 10*Omega_std)#, np.min(Omega_arr))
     # bin_max = 70#(Omega_mean + 10*Omega_std)#, np.max(Omega_arr))
-    bin_min = -100
+    bin_min = -120
     bin_max = -bin_min
 bins = np.linspace(bin_min, bin_max, 81)
 
@@ -232,7 +237,7 @@ from py2d.spectra import *
 energy_spectra_RL_list, enstrophy_spectra_RL_list = [], []
 Omega_list = []
 
-path_RL = mypathdictionaryRL(CASENO, NX, METHOD)
+path_RL, NUM_DATA_RL, BANDWIDTH_R = mypathdictionaryRL(CASENO, NX, METHOD)
 
 if 'LEITH' in METHOD :
     METHOD_RL = 'LEITH_RL'
@@ -266,6 +271,7 @@ for file in natsorted(os.listdir(path_RL), alg=ns.PATH | ns.IGNORECASE):
         indices = np.random.choice(omega_flattened.shape[0], num_samples, replace=False)
         sampled_data = omega_flattened[indices]
         Omega_list.append(sampled_data)
+        Omega_list.append(-sampled_data)
 
         filecount += 1
         if filecount>NUM_DATA_RL: break
@@ -288,6 +294,7 @@ def error_spec(enstrophy_spectra_mean, enstrophy_spectra_DNS) :
 #%% Plot - Spectra
 plt.figure(figsize=(15,7))
 plt.subplot(1,2,1)
+wavenumbers_spectra_DNS = np.array(range(0,513))
 plt.loglog(wavenumbers_spectra_DNS, energy_spectra_DNS, linewidth=5, color="0.75")
 plt.loglog(wavenumbers, energy_spectra_mean)
 plt.loglog(wavenumbers_RL, energy_spectra_RL_mean,'k')
@@ -333,6 +340,9 @@ if CASENO==2:
 XMIN, XMAX = -5, 5
 YMIN, YMAX = 1e-5, 1e-1
 
+if CASENO==4:
+    YMIN, YMAX = 1e-7, 1e-1
+
 
 #%% KDE
 from PDE_KDE import myKDE, mybandwidth_scott
@@ -341,9 +351,9 @@ from PDE_KDE import myKDE, mybandwidth_scott
 
 BANDWIDTH = mybandwidth_scott(Omega_arr_RL)
 if CASENO==2:
-    BANDWIDTH = mybandwidth_scott(Omega_arr_RL)*2
+    BANDWIDTH = mybandwidth_scott(Omega_arr_RL)*BANDWIDTH_R
 if CASENO==4:
-    BANDWIDTH = mybandwidth_scott(Omega_arr_RL)
+    BANDWIDTH = mybandwidth_scott(Omega_arr_RL)*BANDWIDTH_R
 Vecpoints, exp_log_kde, log_kde, kde = myKDE(Omega_arr_RL,BANDWIDTH=BANDWIDTH)
 #%% Plot - PDF
 num_file = filecount
@@ -457,11 +467,12 @@ axs[0].semilogy(bins      , pdf_DNS_on_bins , '.k' , label='DNS')
 plt.subplot(1,3,1)
 
 if CASENO==2:
-
-    plt.ylim([YMIN/100, YMAX*10])
+    plt.ylim([YMIN/10, YMAX*10])
 elif CASENO==4:
-    plt.xlim([-100, 100])
+    # plt.xlim([-100, 100])
     plt.ylim([YMIN, YMAX])
+plt.xlim([-10, 10])
+plt.ylim([YMIN/10, YMAX])
 
 axs[1].fill_between(bins, yhor, np.abs(pdf_data_on_bins-pdf_DNS_on_bins), where=(in_band), color='C0', alpha=0.3)
 
@@ -492,17 +503,46 @@ plt.title(METHOD)
 # plt.xlim([bin_min, bin_max])
 
 if CASENO==2:
-    plt.ylim([YMIN/1e2, YMAX/1e1])
+    plt.ylim([YMIN/1e1, YMAX/1e1])
 elif CASENO==4:
     plt.ylim([YMIN/1e2, YMAX])
 
 for icount in [1,2,3]:
     plt.subplot(1,3,icount)
 plt.xlim([bin_min, bin_max])
+
 plt.show()
-#%% SAVE SPECTRA
+#%%
+plt.figure(figsize=(4,10))
+plt.subplot(3,1,1)
+plt.plot(bins,pdf_DNS_on_bins, '.b',label='DNS')
+plt.plot(bins,pdf_data_on_bins, '-r', label=METHOD_RL)
+plt.plot(bins,pdf_scipy, ':k', label=METHOD_str_legend)
+# plt.ylim([YMIN/1e2, YMAX])
+plt.legend(loc='best')
+
+plt.subplot(3,1,2)
+
+plt.plot(bins,np.abs(pdf_data_on_bins-pdf_DNS_on_bins), '-r')
+plt.plot(bins,np.abs(pdf_scipy-pdf_DNS_on_bins), ':k')
+# plt.plot(bins,np.abs(pdf_DNS_on_bins-pdf_DNS_on_bins), '.b')
+# plt.gca().set_yscale('log')
+# plt.ylim([YMIN/1e20, YMAX/10])
+
+plt.subplot(3,1,3)
+
+plt.semilogy(bins,np.abs(pdf_data_on_bins-pdf_DNS_on_bins)/pdf_DNS_on_bins, '-r')
+plt.semilogy(bins,np.abs(pdf_scipy-pdf_DNS_on_bins)/pdf_DNS_on_bins, ':k')
+plt.semilogy(bins,np.abs(pdf_DNS_on_bins-pdf_DNS_on_bins)/pdf_DNS_on_bins, '.b')
+
+# plt.ylim([YMIN/1e2, YMAX])
+for icount in range(3):
+    plt.subplot(3,1,icount+1)
+    plt.tight_layout()
+# stop
+
 filename_save = 'C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD
-filenameRL_save = 'C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD_RL
+filenameRL_save = 'C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD_RL+'_OG'
 
 np.savetxt(filename_save+'_energy.dat', np.vstack([wavenumbers, energy_spectra_mean]).T, delimiter='\t')
 np.savetxt(filenameRL_save+'_energy.dat', np.vstack([wavenumbers_RL, energy_spectra_RL_mean]).T, delimiter='\t')
@@ -516,11 +556,11 @@ np.savetxt(filenameRL_save+'_enstrophy.dat', np.vstack([wavenumbers_RL, enstroph
 
 np.savetxt('C'+str(CASENO)+'_enstrophy.dat', np.vstack([wavenumbers_spectra_DNS, enstrophy_spectra_DNS]).T, delimiter='\t')
 
-#%% SAVE PDF
+#$%% SAVE PDF
 np.savetxt(filename_save+'_pdf.dat', np.vstack([bins, pdf_DNS_on_bins, pdf_scipy ]).T, delimiter='\t')
 np.savetxt(filenameRL_save+'_pdf.dat', np.vstack([bins, pdf_DNS_on_bins, pdf_data_on_bins ]).T, delimiter='\t')
-# #%%
-# np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_energy.dat', np.vstack([wavenumbers_spectra_DNS, energy_spectra_DNS]).T, delimiter='\t')
-# np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_enstrophy.dat', np.vstack([wavenumbers_spectra_DNS, enstrophy_spectra_DNS]).T, delimiter='\t')
-# np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_pdf.dat', np.vstack([bins, pdf_DNS_on_bins, pdf_DNS_on_bins ]).T, delimiter='\t')
-
+#$%%
+np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_energy.dat', np.vstack([wavenumbers_spectra_DNS, energy_spectra_DNS]).T, delimiter='\t')
+np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_enstrophy.dat', np.vstack([wavenumbers_spectra_DNS, enstrophy_spectra_DNS]).T, delimiter='\t')
+np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_pdf.dat', np.vstack([bins, pdf_DNS_on_bins, pdf_DNS_on_bins ]).T, delimiter='\t')
+stop

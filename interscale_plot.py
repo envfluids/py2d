@@ -23,18 +23,20 @@ except:
     from natsort import natsorted, ns
 #%% Parameters
 METHOD = 'DLEITH' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local,
-# METHOD = 'DSMAG' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local,
+# METHOD = 'DSMAG_tau_Local' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local,
 # METHOD = 'NoSGS'
 
 # case = str(sys.argv[1])
 # percent_data = float(sys.argv[2])
-# CASENO = 1
-# NX = 128
-CASENO = 2
-NX = 64
+CASENO = 1
+NX = 32
+# CASENO = 4
+# NX = 256
+# CASENO = 2
+# NX = 64
 
 NUM_DATA_Classic = 2_00
-NUM_DATA_RL =1_000
+NUM_DATA_RL =1#_000
 if CASENO == 2:
     NUM_DATA_Classic = 2_00
     # NUM_DATA_RL =3_00
@@ -44,7 +46,6 @@ if CASENO == 2:
 # directory = '/mnt/Mount/bridges2_phy/jakhar/DNS_data/'
 # filename = 'Re20kNX1024nx4ny4r0p1b20_1024_0.01_aposteriori_data.mat'
 # mat_contents = scipy.io.loadmat(filename)
-
 if CASENO==1:
       patthadd = '/media/rmojgani/hdd/PostDoc/Projects/py2d_local/'
       mat_contents = scipy.io.loadmat('results/Re20000_fkx4fky4_r0.1_b0/Re20000_fkx4fky4_r0.1_b0.0_1024_1.0_aposteriori_data.mat')
@@ -60,6 +61,10 @@ elif CASENO==2:
     # patthadd = '/media/rmojgani/hdd/PostDoc/Projects/py2d_local/results/Re20000_fkx4fky4_r0.1_b20.0'
     # mat_contents = scipy.io.loadmat('results/Re20000_fkx4fky4_r0.1_b20.0/Re20kNX1024nx4ny4r0p1b20_1024_0.1_aposteriori_data.mat')
     KF = 4
+
+elif CASENO==4:
+    mat_contents = scipy.io.loadmat('results/Re20000_fkx25fky25_r0.1_b0/Re20kNX1024nx25ny25r0p1_aposteriori_data.mat')
+    KF = 25
 
 elif CASENO==10:
       patthadd = '/media/rmojgani/hdd/PostDoc/Projects/py2d_local/'
@@ -214,11 +219,13 @@ except Exception as e:
 
 #%% Load RL results
 from py2d.spectra import *
-from mypathdictionary import mypathdictionary
+# from mypathdictionary import *
+# path_RL = mypathdictionaryRL(CASENO, NX, METHOD)
+from mypathdictionary3 import *
+path_RL, NUM_DATA_RL, BANDWIDTH_R = mypathdictionaryRL(CASENO, NX, METHOD)
+#%%
 energy_spectra_RL_list, enstrophy_spectra_RL_list = [], []
 Omega_list = []
-
-path_RL = mypathdictionary(CASENO, NX, METHOD)
 
 if 'LEITH' in METHOD :
     METHOD_RL = 'LEITH_RL'
@@ -478,8 +485,7 @@ np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD_RL+'_pdf.dat', np.vstack([
 # np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_enstrophy.dat', np.vstack([wavenumbers_spectra_DNS, enstrophy_spectra_DNS]).T, delimiter='\t')
 # np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_pdf.dat', np.vstack([bins, pdf_DNS_on_bins, pdf_DNS_on_bins ]).T, delimiter='\t')
 
-#%%
-#%%
+#%% Plot settings
 import matplotlib.cbook as cbook
 from matplotlib import cm
 import matplotlib.pyplot as plt
@@ -491,9 +497,8 @@ plt.rcParams.update({
     'text.latex.preamble': r'\usepackage{amsfonts}',
     'figure.dpi': DPI,
     'savefig.dpi': DPI
-
 })
-#%%
+#%% Definitions for interscale for DNS
 import sys
 sys.path.append('/media/rmojgani/hdd/PostDoc/ScratchBook/spectra/experiments/case2/')
 from filters import filter_guassian, filter_cutoff, filter_cutoff_coarsen
@@ -549,10 +554,31 @@ def PI_from_convection_conserved(psi_hat, w1_hat, Kx, Ky, filter):
     PI = np.fft.ifft2(PI_hat).real
     return PI, PI_hat
 #%%
+from mypathdictionary3 import *
 sys.path.append('/mnt/Mount/jetstream_volume2/RLonKorali_beta_rewardxy_localnucs/experiments/flowControl_turb_code/_model/py2d/')
+# METHOD = 'DSMAG_tau_Local'
+METHOD = 'DLEITH_tau_Local'
+
+MYLOAD = 'RL'
+NSAMPLE = 50#0#1#00
+
+from py2d.spectra import *
+if MYLOAD == 'RL':
+    path_RL, _, _ = mypathdictionaryRL(CASENO, NX, METHOD)
+else:
+    path_RL = mypathdictionaryclassic(CASENO, NX, METHOD)
+
 from convert import Tau2PiOmega_2DFHIT
 from eddy_viscosity_models import Tau_eddy_viscosity
-NSAMPLE = 10
+
+# NSAMPLE = 1
+spec_tke_mean = 0
+spec_ens_mean = 0
+
+Eflux_hat_M = []
+Zflux_hat_M = []
+
+PI_M = []
 
 icount = 0
 filecount = 0
@@ -560,30 +586,35 @@ for file in natsorted(os.listdir(path_RL), alg=ns.PATH | ns.IGNORECASE):
     # Check if file ends with .mat
     if file.endswith('.mat') and filecount%1==0:
         file_path = os.path.join(path_RL, file)
-        print(f'RL → {filecount}/{NUM_DATA_RL}, Loaded: {file_path}')
+        print(f'RL → {filecount}/{NSAMPLE}, Loaded: {file_path}')
 
         # Load .mat file
         mat_contents_RL = scipy.io.loadmat(file_path)
 
-        psiCurrent_hat = mat_contents_RL['psi_hat']
-        ve = mat_contents_RL['veRL']
-        Tau11, Tau12, Tau22 = Tau_eddy_viscosity(0.01, psiCurrent_hat, Kx, Ky)
+        if MYLOAD == 'RL':
+            Omega = np.fft.ifft2(mat_contents_RL['w_hat']).real
+            Psi = np.fft.ifft2(mat_contents_RL['psi_hat']).real
+            psi_hat = mat_contents_RL['psi_hat']
+        else:
+            Omega = mat_contents_RL['Omega']
+            Psi = Omega2Psi_2DFHIT(Omega, invKsq=invKsq)
 
-        Tau11_hat = np.fft.fft2(Tau11)
-        Tau12_hat = np.fft.fft2(Tau12)
-        Tau22_hat = np.fft.fft2(Tau22)
+        if MYLOAD == 'RL':
+            ve = np.abs(mat_contents_RL['veRL'])
+            print( 'min(ν_e)', np.min(ve) )
+            Tau11, Tau12, Tau22 = Tau_eddy_viscosity(ve, psi_hat, Kx, Ky)
 
-        PiOmega_hat = Tau2PiOmega_2DFHIT(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky, spectral=True)
-        PI_hat = PiOmega_hat
-        PI = np.fft.ifft2(PI_hat).real
-        #%%
-        NSAMPLE = 1
-        spec_tke_mean = 0
-        spec_ens_mean = 0
 
-        Eflux_hat_M = []
-        Zflux_hat_M = []
+            Tau11_hat = np.fft.fft2(Tau11)
+            Tau12_hat = np.fft.fft2(Tau12)
+            Tau22_hat = np.fft.fft2(Tau22)
 
+            PiOmega_hat = Tau2PiOmega_2DFHIT(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky, spectral=True)
+            PI_hat = PiOmega_hat
+            PI = np.fft.ifft2(PI_hat).real
+
+            if  np.min(ve) < 0 :
+                stop
         # PI, PI_hat = PI_from_convection_conserved(Psi_hat, Omega_hat, Kx, Ky, filter)
 
 
@@ -597,7 +628,7 @@ for file in natsorted(os.listdir(path_RL), alg=ns.PATH | ns.IGNORECASE):
         # # spec, k = enstrophyTransfer_spectra_2DFHIT(Kx, Ky, Omega=Omega_hat, Sigma1=None, Sigma2=None, PiOmega=PI_hat, method='PiOmega', spectral=True)
 
         # needs :
-        Psi = Omega2Psi_2DFHIT(Omega, invKsq=invKsq)
+        # Psi = Omega2Psi_2DFHIT(Omega, invKsq=invKsq)
         spec_tke, k = energyTransfer_spectra_2DFHIT(Kx, Ky, U=None, V=None, Tau11=None, Tau12=None, Tau22=None, Psi=Psi, PiOmega=PI, method='PiOmega', spectral=False)
 
         spec_tke_mean +=spec_tke
@@ -606,40 +637,617 @@ for file in natsorted(os.listdir(path_RL), alg=ns.PATH | ns.IGNORECASE):
         Eflux_hat_M = np.append(Eflux_hat_M, spec_tke)
         Zflux_hat_M = np.append(Zflux_hat_M, spec_ens)
 
-        icount += 1
-        if icount > NSAMPLE: break
-        #%%
-        kplot_str='a'
-        kmax = int(NLES/2)
-        plt.figure(figsize=(14,7))
-        plt.subplot(1,2,1)
-        plt.title('Sample size:'+str(NSAMPLE)+', filter:'+myfilter )
-        plt.text(NLES/2, YMAXEflux*0.75, rf'$\kappa_c={kmax}$',fontsize=24)
-        plt.plot(k,spec_tke_mean/NSAMPLE)
-        # plt.ylim([YMINEflux, YMAXEflux])
-        plt.ylabel('$T_E=\mathbb{R}( \hat{\Pi} . \hat{\psi} )$')
+        PI_M = np.append(PI_M, PI)
 
 
-        plt.subplot(1,2,2)
-        plt.text(NLES/2, YMAXZflux*0.75, rf'$\kappa_c={kmax}$',fontsize=24)
-        plt.plot(k,spec_ens_mean/NSAMPLE)
-        # plt.ylim([YMINZflux, YMAXZflux])
-        plt.ylabel('$T_Z=\mathbb{R}( \hat{\Pi} . \hat{\omega} )$')
+        filecount += 1
+        if filecount > NSAMPLE: break
+##%%
+kplot_str='\kappa'
+kmax = int(NLES/2)
+plt.figure(figsize=(14,7))
+plt.subplot(1,2,1)
+plt.title('Sample size:'+str(NSAMPLE))#+', filter:'+myfilter )
+# plt.text(NLES/2, YMAXEflux*0.75, rf'$\kappa_c={kmax}$',fontsize=24)
+plt.plot(k,spec_tke_mean/NSAMPLE)
+# plt.ylim([YMINEflux, YMAXEflux])
+plt.ylabel('$T_E=\mathbb{R}( \hat{\Pi} . \hat{\psi} )$')
+# plt.ylim([-0.0006, 0.0006])
 
-        for icount in [1,2]:
-            plt.subplot(1,2,icount)
-            plt.xlabel(rf'${kplot_str}$')
-            # plt.plot([NLES/2,NLES/2],[-10,10],'--r', linewidth=2)
 
-            plt.gca().set_xscale('log')
+plt.subplot(1,2,2)
+# plt.text(NLES/2, YMAXZflux*0.75, rf'$\kappa_c={kmax}$',fontsize=24)
+plt.plot(k,spec_ens_mean/NSAMPLE)
+# plt.ylim([YMINZflux, YMAXZflux])
+plt.ylabel('$T_Z=\mathbb{R}( \hat{\Pi} . \hat{\omega} )$')
+# plt.ylim([-0.05, 0.05])
 
-            plt.gca().set_xlim(left=1)
-            plt.grid(which='major', linestyle='--',
-                      linewidth='1.0', color='black', alpha=0.25)
-            plt.grid(which='minor', linestyle='-',
-                      linewidth='0.5', color='red', alpha=0.15)
+for icount in [1,2]:
+    plt.subplot(1,2,icount)
+    plt.xlabel(rf'${kplot_str}$')
+    # plt.plot([NLES/2,NLES/2],[-10,10],'--r', linewidth=2)
 
-            plt.tight_layout()
-        #%%
-        filename_save = METHOD_RL+'interscale_k'+str(KF)+'_NLES'+str(NLES)
-        results = np.vstack((k, spec_ens_mean/NSAMPLE, spec_tke_mean/NSAMPLE)).T
+
+    plt.gca().set_xlim(left=1)
+    plt.grid(which='major', linestyle='--',
+              linewidth='1.0', color='black', alpha=0.25)
+    plt.grid(which='minor', linestyle='-',
+              linewidth='0.5', color='red', alpha=0.15)
+
+    plt.gca().set_xscale('log')
+    plt.xlim([1, 512])
+    # plt.xlim([1, 32])
+    plt.tight_layout()
+##%%
+# filename_save = METHOD_RL+'interscale_k'+str(KF)+'_NLES'+str(NLES)
+# results = np.vstack((k, spec_ens_mean/NSAMPLE, spec_tke_mean/NSAMPLE)).T
+#%%
+matrix_action = mat_contents_RL['veRL']
+xagent = np.linspace(1, NX, 4+1, endpoint= True)-1
+yagent =np.linspace(1, NX, 4+1, endpoint= True)-1
+Xagent, Yagent = np.meshgrid(xagent, yagent, indexing='ij')
+
+plt.figure(figsize=(6,5))
+plt.contourf(matrix_action, levels=101)#, vmin=-0.15, vmax=0.15);
+plt.gca().set_aspect('equal', adjustable='box')
+plt.scatter(Xagent, Yagent, c='k', marker='+',alpha=0.5); plt.colorbar();
+#%%
+from scipy.interpolate import RectBivariateSpline
+##%%
+L = 2*np.pi
+nActiongrid = 4
+xaction = np.linspace(0,L,nActiongrid, endpoint=True)
+yaction = np.linspace(0,L,nActiongrid, endpoint=True)
+upsamplesize = NX # 1 for testing, will be changed to grid size eventually
+
+# def upsample(action, xaction, yaction, arr_action, upsamplesize):
+#     '''
+#     action: list of lenght  ...
+#     forcing: np.array Nx x Nx
+#     '''
+
+#     upsample_action = RectBivariateSpline(xaction, yaction, arr_action, kx=2, ky=2)
+
+#     # Initlize action
+#     x2 = np.linspace(0,L, upsamplesize, endpoint=True)
+#     y2 = np.linspace(0,L,  upsamplesize, endpoint=True)
+#     forcing = upsample_action(x2, y2)
+#     return forcing
+def upsample(xaction, yaction, arr_action, upsamplesize):
+
+
+    Nfine = upsamplesize
+    Ncoarse = 4
+
+    Ahat = np.zeros((Nfine,Nfine), dtype=np.complex128)
+    Ahat[:Ncoarse,:Ncoarse] = np.fft.fft2(arr_action)
+    forcing = np.fft.ifft2(Ahat).real*(NX/Ncoarse)*(NX/Ncoarse)
+
+    return forcing
+
+
+matrix_action = mat_contents_RL['veRL']
+# forcing = upsample(action, Xaction, Yaction, arr_action, upsamplesize)
+indices = np.linspace(0, NX-1, num=4).astype('int')
+##%%
+kdegree = 1
+upsample_action = RectBivariateSpline(xaction, yaction, matrix_action[indices,][:,indices], kx=kdegree, ky=kdegree)
+
+# Initlize action
+x2 = np.linspace(0,L, upsamplesize, endpoint=True)
+y2 = np.linspace(0,L,  upsamplesize, endpoint=True)
+# forcing = upsample_action(x2, y2)
+
+forcing = mat_contents_RL['veRL']#upsample( matrix_action[indices,][:,indices], xaction, yaction, 32)
+##%%
+import matplotlib as mpl
+
+fig = plt.figure(figsize=(5,5))
+ax = fig.add_subplot(111)
+mesh = ax.contourf(forcing, levels=101,  vmin=-0.15, vmax=0.150);
+mesh.set_clim(-0.15,0.15)
+# plt.colorbar(mesh, boundaries=np.linspace(0, 2, 6))
+# plt.clim(vmin=-0.15, vmax=0.15)
+# cbar = plt.colorbar()
+# ax, _ = mpl.colorbar.make_axes(plt.gca(), shrink=0.5)
+# cbar = mpl.colorbar.ColorbarBase(ax, cmap=cm,
+                       # norm=mpl.colors.Normalize(vmin=-0.15, vmax=0.15))
+# ax.set_clim(-0.15, 0.15)
+# mesh.colorbar()
+# cbar.set_ticks(np.linspace(-0.15, 0.15,3,endpoint=True))
+
+
+plt.gca().set_aspect('equal', adjustable='box')
+plt.scatter(Xagent, Yagent, c='r', marker='o',alpha=1.0)
+plt.scatter(Xagent, Yagent, c='w', marker='+',alpha=1.0)
+plt.xlim([0,NX-1])
+plt.ylim([0,NX-1])
+
+##%%
+plt.figure()
+
+VMIN = np.min(forcing)
+VMAX = np.max(forcing)
+
+CS = plt.contourf(forcing, levels = 101, vmin = VMIN, vmax = VMAX, cmap=cm.bwr)
+m = plt.cm.ScalarMappable(cmap=cm.bwr)
+m.set_array(forcing)
+m.set_clim(VMIN, VMAX)
+plt.colorbar(m, boundaries=np.linspace(VMIN, VMAX, 51,endpoint=True))
+plt.gca().set_aspect('equal', adjustable='box')
+plt.scatter(Xagent, Yagent, c='k', marker='o',alpha=0.5)
+plt.scatter(Xagent, Yagent, c='w', marker='+',alpha=1.0)
+##%%
+PPLOT = Omega
+plt.figure()
+VMIN = min( np.min(Omega),  -np.max(Omega))
+VMAX = max( np.max(Omega),  np.min(-Omega))
+
+CS = plt.contourf(Omega, levels = 101, vmin = VMIN, vmax = VMAX, cmap=cm.bwr)
+m = plt.cm.ScalarMappable(cmap=cm.bwr_r)
+m.set_array(forcing)
+m.set_clim(VMIN, VMAX)
+plt.colorbar(m, boundaries=np.linspace(VMIN, VMAX, 51,endpoint=True))
+plt.gca().set_aspect('equal', adjustable='box')
+plt.scatter(Xagent, Yagent, c='k', marker='o',alpha=0.5)
+plt.scatter(Xagent, Yagent, c='w', marker='+',alpha=1.0)
+#%%
+def smag_cs(Kx, Ky, psi_hat, forcing):
+    cs = forcing * ((2*np.pi/NX )**2)
+    S1 = np.real(np.fft.ifft2(-Ky*Kx*psi_hat)) # make sure .*
+    S2 = 0.5*np.real(np.fft.ifft2(-(Kx*Kx - Ky*Ky)*psi_hat))
+    S  = 2.0*(S1*S1 + S2*S2)**0.5
+#        cs = (0.17 * 2*np.pi/NX )**2  # for LX = 2 pi
+    Smean = (np.mean(S**2.0))**0.5;
+    ve = cs*Smean
+
+    return ve, cs, S
+##%%
+ve, cs, S = smag_cs(Kx, Ky, psi_hat, forcing)
+#%%
+w1_hat = mat_contents_RL['w_hat']
+Grad_Omega_hat_dirx = Kx*np.fft.fft2( ve * np.fft.ifft2(Kx*w1_hat) )
+Grad_Omega_hat_diry = Ky*np.fft.fft2( ve * np.fft.ifft2(Ky*w1_hat) )
+PiOmega_hat = Grad_Omega_hat_dirx + Grad_Omega_hat_diry
+
+plt.figure(figsize=(26,4),dpi=250)
+
+icount = 1
+title_str = ['{S}','$c_s$','$\psi$','$\Pi$','']
+for PPLOT in [S, forcing, np.fft.ifft2(psi_hat).real, np.fft.ifft2(PiOmega_hat).real]:
+# for PPLOT in [np.fft.ifft2(PiOmega_hat).real]:
+    plt.subplot(1,4,icount)
+    plt.title(title_str[icount-1])
+
+    VMIN = np.min(PPLOT)
+    VMAX = np.max(PPLOT)
+
+    CS = plt.contourf(PPLOT, levels = 101, vmin = VMIN, vmax = VMAX, cmap=cm.bwr)
+    m = plt.cm.ScalarMappable(cmap=cm.bwr_r)
+    m.set_array(PPLOT)
+    m.set_clim(VMIN, VMAX)
+    plt.colorbar(m, boundaries=np.linspace(VMIN, VMAX, 51,endpoint=True))
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.scatter(Xagent, Yagent, c='k', marker='o',alpha=0.5)
+    plt.scatter(Xagent, Yagent, c='w', marker='+',alpha=1.0)
+
+    icount += 1
+plt.show()
+#%%
+# PPLOT = PPLOT3-PPLOT1
+
+# VMIN = -60#np.min(PPLOT)
+# VMAX = 60#np.max(PPLOT)
+
+# plt.figure()
+# CS = plt.contourf(PPLOT, levels = 101)#, vmin = VMIN, vmax = VMAX, cmap=cm.bwr_r)
+
+# m = plt.cm.ScalarMappable(cmap=cm.bwr_r)
+# m.set_array(PPLOT)
+# m.set_clim(VMIN, VMAX)
+# plt.colorbar(m, boundaries=np.linspace(VMIN, VMAX, 51,endpoint=True))
+# plt.gca().set_aspect('equal', adjustable='box')
+# plt.scatter(Xagent, Yagent, c='k', marker='o',alpha=0.5)
+# plt.scatter(Xagent, Yagent, c='w', marker='+',alpha=1.0)
+# plt.show()
+#%%
+degree = 2
+xcoarse = np.linspace(0,L,NLES, endpoint=True)
+ycoarse = np.linspace(0,L,NLES, endpoint=True)
+xfine = np.linspace(0,L,1024, endpoint=True)
+yfine = np.linspace(0,L,1024, endpoint=True)
+
+fig,ax = plt.subplots()
+
+LEVELS=101
+ax.clear()
+w1Python = Omega
+upsample_action = RectBivariateSpline(xcoarse, ycoarse, w1Python, kx=degree, ky=degree)
+w1Python = upsample_action(xfine, yfine)
+plt.contourf(w1Python,vmin=-26,vmax=26,levels=LEVELS, cmap='bwr');plt.axis('square')
+#ax.set_title('%03d'%(i))
+ax.grid(False)
+ax.axis('off')
+#%%
+Omega = scipy.io.loadmat('10001.mat')['Omega']
+
+w1Python_down = Omega[::32,::32]
+upsample_action = RectBivariateSpline(xcoarse, ycoarse, w1Python_down, kx=degree, ky=degree)
+w1Python_down_up = upsample_action(xfine, yfine)
+
+
+from py2d.filter import *
+w1Python = np.fft.fft2(Omega)
+w1Python_hat = coarse_spectral_filter_square_2DFHIT(w1Python, 32)
+w1Python_f = np.fft.ifft2(w1Python_hat).real
+
+upsample_action = RectBivariateSpline(xcoarse, ycoarse, w1Python_f, kx=degree, ky=degree)
+w1Python_f_up = upsample_action(xfine, yfine)
+#%%
+NCoarse = 32
+Delta = 2*L/NCoarse
+w1Python_f_gauss = filter2D_2DFHIT(Omega, filterType='gaussian', coarseGrainType='spectral', Delta=Delta, Ngrid=NCoarse)
+# w1Python_f_gauss = np.fft.ifft2()
+
+upsample_action = RectBivariateSpline(xcoarse, ycoarse, w1Python_f_gauss, kx=degree, ky=degree)
+w1Python_f_gauss_up = upsample_action(xfine, yfine)
+
+#%% Plot 3x3
+plt.figure(figsize=(17,22), dpi=150)
+plt.subplot(4,3,1);plt.title('DNS')
+plt.contourf(Omega,vmin=-26,vmax=26,levels=LEVELS, cmap='bwr');plt.axis('square')
+
+
+plt.subplot(4,3,4);plt.title('Downsample')
+plt.pcolor(w1Python_down, cmap='bwr');plt.axis('square')
+
+plt.subplot(4,3,5);plt.title('Downsample: Contourf, default')
+plt.contourf(w1Python_down,vmin=-26,vmax=26,levels=LEVELS, cmap='bwr');plt.axis('square')
+
+plt.subplot(4,3,6);plt.title('Downsample: Contourf, Bi-quadratic')
+plt.contourf(w1Python_down_up,vmin=-26,vmax=26,levels=LEVELS, cmap='bwr');plt.axis('square')
+
+
+plt.subplot(4,3,7);plt.title('Spectral Filter')
+plt.pcolor(w1Python_f, cmap='bwr');plt.axis('square')
+
+plt.subplot(4,3,8);plt.title('S Filter: Contourf, default')
+plt.contourf(w1Python_f,vmin=-26,vmax=26,levels=LEVELS, cmap='bwr');plt.axis('square')
+
+plt.subplot(4,3,9);plt.title('S Filter: ontourf, Bi-quadratic')
+plt.contourf(w1Python_f_up,vmin=-26,vmax=26,levels=LEVELS, cmap='bwr');plt.axis('square')
+
+plt.subplot(4,3,10);plt.title('Gaussian Filter')
+plt.pcolor(w1Python_f_gauss, cmap='bwr');plt.axis('square')
+
+plt.subplot(4,3,11);plt.title('S Filter: Contourf, default')
+plt.contourf(w1Python_f_gauss,vmin=-26,vmax=26,levels=LEVELS, cmap='bwr');plt.axis('square')
+
+plt.subplot(4,3,12);plt.title('S Filter: ontourf, Bi-quadratic')
+plt.contourf(w1Python_f_gauss_up,vmin=-26,vmax=26,levels=LEVELS, cmap='bwr');plt.axis('square')
+#%% Movie - Preload
+METHOD = 'DLEITH_tau_Local' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local,
+# METHOD = 'DSMAG_tau_Local' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local,
+for METHOD in ['DLEITH_tau_Local' ]:#['LEITH', 'DLEITH' , 'DLEITH_sigma_Local', 'DLEITH_tau_Local']:
+    path_classic = mypathdictionaryclassic(CASENO, NX, METHOD)
+    file_path = os.path.join(path_classic, file)
+
+    mat_contents_classic = scipy.io.loadmat(file_path)
+    Omega =  mat_contents_classic['Omega']
+
+    plt.figure(figsize=(17,22), dpi=150)
+
+    plt.subplot(4,3,12);plt.title(METHOD)
+    plt.contourf(Omega,vmin=-26,vmax=26,levels=LEVELS, cmap='bwr');plt.axis('square')
+    plt.colorbar()
+
+#%% Movie
+import matplotlib.animation as animation
+from IPython import display
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+DPI = 300
+max_val = 25
+LEVELS = np.linspace(-max_val, max_val, 100)
+vmin=-max_val
+vmax=max_val
+#for METHOD in ['DSMAG_tau_Local']:
+# for METHOD in ['LEITH', 'DLEITH' , 'DLEITH_sigma_Local', 'DLEITH_tau_Local',
+#                'SMAG', 'DSMAG' , 'DSMAG_sigma_Local', 'DSMAG_tau_Local']:
+for METHOD in [ 'DSMAG' ,'DSMAG_sigma_Local', 'DSMAG_tau_Local']:
+    print('Animation generation, method', METHOD)
+
+    filename_save = METHOD
+    path_classic = mypathdictionaryclassic(CASENO, NX, METHOD)
+
+    fig = plt.figure(dpi=DPI)
+    ax = fig.add_subplot(111)
+    div = make_axes_locatable(ax)
+    #cax = div.append_axes('right', '5%', '5%')
+
+    im = ax.contourf(Omega, vmin=-max_val, vmax=max_val, levels=LEVELS, cmap='bwr');
+    plt.axis('square')
+
+    cb = plt.colorbar(im, ax=ax, ticks=np.linspace(-max_val, max_val, 11))
+    # cb.ax.set_yticklabels(['{:.2f}'.format(i) for i in np.linspace(-max_val, max_val, 11)])
+    #cb = fig.colorbar(im, cax=cax)
+
+    def animate(i,LEVELS=100):
+        cax.cla()
+        print(i)
+        file= str(i+1)+'.mat'
+        file_path = os.path.join(path_classic, file)
+
+        mat_contents_classic = scipy.io.loadmat(file_path)
+        Omega =  mat_contents_classic['Omega']
+        #upsample_action = RectBivariateSpline(xcoarse, ycoarse, w1Python, kx=2, ky=2)
+        #w1Python = upsample_action(xfine, yfine)
+        im = ax.contourf(Omega,vmin=-max_val, vmax=max_val,levels=LEVELS, cmap='bwr');plt.axis('square')
+        #fig.colorbar(im, cax=cax)
+        #cb = fig.colorbar(im, cax=cax)
+
+        #ax.set_title('%03d'%(i))
+        ax.set_title(METHOD)
+        ax.grid(False)
+        ax.axis('off')
+
+    MAX_FRAMES= 200#0
+    interval = 0.005#in seconds
+    ani = animation.FuncAnimation(fig,animate,save_count=MAX_FRAMES,blit=False)
+    FFwriter = animation.FFMpegWriter()
+    ani.save(filename_save+'.mp4', writer = FFwriter, dpi=DPI)
+    plt.show()
+#%% PDF of Π
+BANDWIDTH = mybandwidth_scott(PI_M)
+
+Vecpoints, exp_log_kde, log_kde, kde = myKDE(PI_M,BANDWIDTH=BANDWIDTH)
+plt.figure(figsize=(5,5))
+plt.semilogy(Vecpoints/np.std(PI_M), exp_log_kde, ':k', alpha=0.75, linewidth=2, label=METHOD_RL)
+plt.ylim([1e-5,1e-1])
+plt.xlim([-5,5])
+plt.xlabel(r'$\Pi/\sigma(\Pi)$')
+plt.ylabel(r'$\mathcal{P}\left(\Pi\right)$')
+#%%
+from py2d.apriori_analysis import *
+from py2d.convert import *
+# from py2d.eddy_viscosity_models import Sigma_eddy_viscosity
+#%%
+def Sigma_eddy_viscosity(eddy_viscosity, Omega_hat, Kx, Ky):
+    '''
+    https://github.com/envfluids/py2d/blob/c9df5333ea1b2f085c4d0f159b0e369b09cc221f/py2d/eddy_viscosity_models.py#L38
+    Calculate the eddy viscosity term (Tau) in the momentum equation
+    '''
+    Omegax_hat = (1.j) * Kx * Omega_hat
+    Omegay_hat = (1.j) * Ky * Omega_hat
+
+    Sigma1 = -eddy_viscosity*np.fft.ifft2(Omegax_hat).real
+    Sigma2 = -eddy_viscosity*np.fft.ifft2(Omegay_hat).real
+    print('s1',Sigma1[0,0])
+    return Sigma1, Sigma2
+
+def enstrophyTransfer_2D_FHIT(Omega, Sigma1, Sigma2, Kx, Ky):
+    """
+    Enstrophy transfer of 2D_FHIT using SGS vorticity stress
+
+    Inputs:
+    Omega: Vorticity
+    Sigma1, Sigma2: SGS vorticity stress
+
+    Output:
+    PZ: enstrophy transfer
+    """
+
+    Omegax = derivative_2DFHIT(Omega, [1,0], Kx=Kx, Ky=Ky, spectral=False)
+    Omegay = derivative_2DFHIT(Omega, [0,1], Kx=Kx, Ky=Ky, spectral=False)
+    print((Sigma1[0,0]))
+    print((Omegax[0,0]))
+    PZ = -Sigma1*Omegax - Sigma2*Omegay
+
+    return PZ
+#%%
+# input Psi_hat, ve, Omega
+
+U_hat, V_hat = Psi2UV_2DFHIT_spectral(Psi_hat, Kx, Ky)
+U = np.fft.ifft2(U_hat)
+V = np.fft.ifft2(V_hat)
+
+Tau11, Tau12, Tau22 = Tau_eddy_viscosity(ve, Psi_hat, Kx, Ky)
+
+Tau11_hat = np.fft.fft2(Tau11)
+Tau12_hat = np.fft.fft2(Tau12)
+Tau22_hat = np.fft.fft2(Tau22)
+
+PTau = energyTransfer_2DFHIT(U, V, Tau11, Tau12, Tau22, Kx, Ky)
+
+
+Omega_hat = np.fft.ifft2(Omega)
+Sigma1, Sigma2 = Sigma_eddy_viscosity(ve, Omega_hat, Kx, Ky)
+
+
+PZ = enstrophyTransfer_2D_FHIT(Omega, Sigma1, Sigma2, Kx, Ky)
+
+plt.figure(figsize=(10,5))
+plt.subplot(1,2,1)
+
+plt.pcolor(PTau,cmap='gray_r')
+plt.colorbar();plt.tight_layout();plt.axis('square')
+plt.title(r'$P_{\tau}$')
+
+plt.subplot(1,2,2)
+plt.pcolor(PZ)
+
+plt.colorbar();plt.tight_layout();plt.axis('square')
+plt.title(r'$P_{Z}$')
+
+#%% Distribution of P_tau, P_Z
+BANDWIDTH = mybandwidth_scott(PTau)
+
+Vecpoints, exp_log_kde, log_kde, kde = myKDE(PTau/np.std(PTau), BANDWIDTH=BANDWIDTH )
+
+plt.figure(figsize=(10,5))
+plt.subplot(1,2,1)
+plt.semilogy(Vecpoints, exp_log_kde, ':k', alpha=0.75, linewidth=2, label=METHOD_RL)
+# plt.ylim([1e-5,1e-1])
+# plt.xlim([-5,5])
+plt.xlabel(r'$T_E$')
+plt.ylabel(r'$\mathcal{P}\left(T_E\right)$')
+plt.tight_layout()
+
+BANDWIDTH = mybandwidth_scott(PZ)
+
+Vecpoints, exp_log_kde, log_kde, kde = myKDE(PZ/np.std(PZ),BANDWIDTH=BANDWIDTH)
+plt.subplot(1,2,2)
+
+plt.semilogy(Vecpoints, exp_log_kde, ':k', alpha=0.75, linewidth=2, label=METHOD_RL)
+# plt.ylim([1e-5,1e-1])
+# plt.xlim([-5,5])
+plt.xlabel(r'$T_Z$')
+plt.ylabel(r'$\mathcal{P}\left(T_Z\right)$')
+plt.tight_layout()
+#%%
+
+# METHOD = 'DSMAG_tau_Local'
+METHOD = 'DLEITH_tau_Local'
+
+MYLOAD = 'RL'
+NSAMPLE = 50#0#1#00
+
+from py2d.spectra import *
+if MYLOAD == 'RL':
+    path_RL, _, _ = mypathdictionaryRL(CASENO, NX, METHOD)
+else:
+    path_RL = mypathdictionaryclassic(CASENO, NX, METHOD)
+
+plt.figure(figsize=(10,5))
+
+NSAMPLE = 200#0
+PZ_M = []
+PTau_M = []
+cs_M = []
+ve_M = []
+
+icount = 0
+filecount = 0
+for file in natsorted(os.listdir(path_RL), alg=ns.PATH | ns.IGNORECASE):
+    print(file)
+    # Check if file ends with .mat
+    if file.endswith('.mat') and filecount%1==0:
+
+        file_path = os.path.join(path_RL, file)
+        print(f'RL → {filecount}/{NSAMPLE}, Loaded: {file_path}')
+
+        # Load .mat file
+        mat_contents_RL = scipy.io.loadmat(file_path)
+
+        if MYLOAD == 'RL':
+            Omega = np.fft.ifft2(mat_contents_RL['w_hat']).real
+            Psi = np.fft.ifft2(mat_contents_RL['psi_hat']).real
+            psi_hat = mat_contents_RL['psi_hat']
+        else:
+            Omega = mat_contents_RL['Omega']
+            Psi = Omega2Psi_2DFHIT(Omega, invKsq=invKsq)
+
+        if MYLOAD == 'RL':
+            ve = (mat_contents_RL['veRL']) # abs removed!
+    #         # cs = np.abs(mat_contents_RL['veRL']) # abs removed!
+    #         # cs = (mat_contents_RL['veRL']) # abs removed!
+
+    #         S1 = np.real(np.fft.ifft2(-Ky*Kx*psi_hat)) # make sure .*
+    #         S2 = 0.5*np.real(np.fft.ifft2(-(Kx*Kx - Ky*Ky)*psi_hat))
+    #         S  = 2.0*(S1*S1 + S2*S2)**0.5
+    # #        cs = (0.17 * 2*np.pi/NX )**2  # for LX = 2 pi
+    #         S = (np.mean(S**2.0))**0.5;
+    #         ve = cs*S
+    #         print( 'min(ν_e)', np.min(ve) )
+
+
+        U_hat, V_hat = Psi2UV_2DFHIT_spectral(Psi_hat, Kx, Ky)
+        U = np.fft.ifft2(U_hat)
+        V = np.fft.ifft2(V_hat)
+
+        Tau11, Tau12, Tau22 = Tau_eddy_viscosity(ve, Psi_hat, Kx, Ky)
+
+        Tau11_hat = np.fft.fft2(Tau11)
+        Tau12_hat = np.fft.fft2(Tau12)
+        Tau22_hat = np.fft.fft2(Tau22)
+
+        PTau = energyTransfer_2DFHIT(U, V, Tau11, Tau12, Tau22, Kx, Ky)
+
+
+        Omega_hat = np.fft.ifft2(Omega)
+        Sigma1, Sigma2 = Sigma_eddy_viscosity(ve, Omega_hat, Kx, Ky)
+
+
+        PZ = enstrophyTransfer_2D_FHIT(Omega, Sigma1, Sigma2, Kx, Ky)
+
+
+        cs_M = np.append(cs_M, cs)
+        ve_M = np.append(ve_M, ve)
+
+        # PTau_M = np.append(PTau_M, np.mean(PTau))
+        # PZ_M = np.append(PZ_M, np.mean(PZ))
+        PTau_M = np.append(PTau_M, (PTau))
+        PZ_M = np.append(PZ_M, (PZ))
+
+        filecount += 1
+        if filecount > NSAMPLE: break
+
+#%%
+BANDWIDTH = mybandwidth_scott(PTau_M)
+
+Vecpoints, exp_log_kde, log_kde, kde = myKDE(PTau_M/np.std(PTau_M), BANDWIDTH=BANDWIDTH )
+
+plt.figure(figsize=(12,12))
+plt.subplot(2,2,1)
+plt.semilogy(Vecpoints, exp_log_kde, ':k', alpha=0.75, linewidth=4, label=METHOD_RL)
+# plt.semilogy(bb[:,0], bb[:,1], '--r', alpha=0.75, linewidth=2, label='RL')
+
+plt.semilogy(aa[:,0], aa[:,1], '--b', alpha=0.75, linewidth=2, label='FDNS')
+
+plt.semilogy([0,0],[0,1],'r')
+plt.ylim([1e-3,1e0])
+plt.xlim([-5,5])
+plt.xlabel(r'$T_E$')
+plt.ylabel(r'$\mathcal{P}\left(T_E\right)$')
+plt.tight_layout()
+plt.legend(loc='upper left')
+#%%
+BANDWIDTH = mybandwidth_scott(PZ_M)
+
+Vecpoints, exp_log_kde, log_kde, kde = myKDE(PZ_M/np.std(PZ_M),BANDWIDTH=BANDWIDTH)
+plt.subplot(2,2,2)
+
+plt.semilogy(Vecpoints, exp_log_kde, ':k', alpha=0.75, linewidth=2, label=METHOD_RL)
+
+plt.ylim([1e-3,1e0])
+plt.xlim([-5,5])
+plt.xlabel(r'$T_Z$')
+plt.ylabel(r'$\mathcal{P}\left(T_Z\right)$')
+plt.tight_layout()
+
+
+BANDWIDTH = mybandwidth_scott(cs_M)
+
+Vecpoints, exp_log_kde, log_kde, kde = myKDE(cs_M/np.std(cs_M),BANDWIDTH=BANDWIDTH)
+plt.subplot(2,2,3)
+
+plt.semilogy(Vecpoints, exp_log_kde, ':k', alpha=0.75, linewidth=2, label=METHOD_RL)
+
+plt.ylim([1e-3,1e0])
+plt.xlim([-5,5])
+plt.xlabel(r'$c_s$')
+plt.ylabel(r'$\mathcal{P}\left(c_s\right)$')
+plt.tight_layout()
+
+
+BANDWIDTH = mybandwidth_scott(ve_M)
+
+Vecpoints, exp_log_kde, log_kde, kde = myKDE(ve_M/np.std(ve_M),BANDWIDTH=BANDWIDTH)
+plt.subplot(2,2,4)
+
+plt.semilogy(Vecpoints, exp_log_kde, ':k', alpha=0.75, linewidth=2, label=METHOD_RL)
+
+plt.ylim([1e-3,1e0])
+plt.xlim([-5,5])
+plt.xlabel(r'$\nu_e$')
+plt.ylabel(r'$\mathcal{P}\left(\nu_e\right)$')
+plt.tight_layout()
