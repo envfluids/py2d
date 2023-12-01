@@ -20,45 +20,62 @@ Py2D leverages JAX, a high-performance numerical computing library, allowing for
 
 ## Installation
 
+## Requirements
+
+- python 3.10
+  - [jax](https://pypi.org/project/jax/)
+  - [scipy](https://pypi.org/project/scipy/)
+  - [numpy](https://pypi.org/project/numpy/)
+
+## Set up a new Python environment and install the required libraries:
+
+Create a new Conda environment:
+```
+conda create -n py2d python=3.10
+conda activate py2d
+```
+
 Clone the [py2d git repository](https://github.com/envfluids/py2d.git) to use the latest development version.
 ```
 git clone https://github.com/envfluids/py2d.git
 ```
 
-Then install pyqg locally on your system:
+Then install py2d locally on your system
 ```
-cd py2d && pip install -e ./
+cd py2d
+pip install -e ./
 ```
 
-## Requirements
+> Install basic scientific libraries
+```
+conda install numpy scipy
+```
 
-- python 3.9
-  - [jax](https://pypi.org/project/jax/)
-  - [scipy](https://pypi.org/project/scipy/)
-  - [numpy](https://pypi.org/project/numpy/)
-  - [PyTorch](https://pypi.org/project/torch/) : If coupling LES solver with Neural Networks
+> [Installing JAX](https://jax.readthedocs.io/en/latest/installation.html)
 
-### To use JAX and all requirements for the solver:
+### Note: If using JAX with Pytorch:
 
 > **Warning**
-> Please be aware that using both Torch and JAX on the same code can be challenging due to their use of CuDNN. Specifically, JAX requires the same version of CuDNN that Torch used during compilation, which can cause version mismatch issues.
+> Combining PyTorch and JAX in the same codebase can be challenging due to their dependencies on CuDNN. It's crucial to ensure that JAX and Torch are compatible with the same version of CuDNN. JAX requires CuDNN version 8.6 or above for CUDA 11. However, it's important to verify that the version of PyTorch you are using is compiled against a compatible version of CuDNN. Mismatched versions can lead to runtime issues.
 
-> Currently, for Cuda11, JAX requires CuDNN version 8.6 or above. However, Torch with CUDA 11.8 only supports this specific version of CuDNN. Therefore, it is important to install the appropriate version of PyTorch that matches the required version of CuDNN for JAX.
+As of now, for CUDA 11, JAX works with CuDNN version 8.6 or newer. Ensure that the version of PyTorch you install is compatible with this CuDNN version. If you encounter version mismatch issues, you may need to adjust the versions of the libraries you install or consult the relevant documentation for guidance.
 
-> If you encounter version mismatch issues while using both Torch and JAX, consider installing the appropriate versions of the required libraries or seeking further guidance from the relevant documentation.
-
-**Set up a new python environment and install the required libraries**
+> Install a specific version of CuDNN that is compatible with both JAX and PyTorch:
 ```
-conda create -n jax python=3.9
-conda activate jax
-conda install numpy scipy scikit-learn prettytable 
 conda install -c conda-forge cudnn=8.8.0.121
-conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+```
+
+> Install PyTorch with the appropriate CUDA toolkit version
+```
+conda install pytorch torchvision torchaudio cudatoolkit=11.8 -c pytorch -c nvidia
+```
+
+> Install JAX with CUDA 11 support
+```
 pip install --upgrade "jax[cuda11_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-module load cuda
 ```
-Add the following lines in your SLURM file before running the script. This activates the environment with the required libraries and loads the cuda module 
+
+> If your system uses environment modules, load the CUDA module (this step is system-dependent and may vary)
 ```
-conda activate jax
 module load cuda
 ```
