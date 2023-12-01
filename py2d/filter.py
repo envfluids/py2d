@@ -11,7 +11,8 @@ def filter2D_2DFHIT(U, filterType='gaussian', coarseGrainType='spectral', Delta=
         The 2D input data to be filtered and coarse grained.
     
     filterType : str, optional
-        The type of filter to apply. It can be 'gaussian', 'box', 'boxSpectral' or 'spectral'. 
+        The type of filter to apply. It can be 'gaussian', 'box', 'boxSpectral', 
+        'spectral' or 'spectral-circle', 'spectral-square', 'None'
         The default is 'gaussian'.
     
     coarseGrainType : str, optional
@@ -67,9 +68,16 @@ def filter2D_2DFHIT(U, filterType='gaussian', coarseGrainType='spectral', Delta=
         Gk = Gkx * Gky
         U_f_hat = Gk * U_hat
 
-    elif filterType == 'spectral':
+    elif filterType == 'spectral' or filterType == 'spectral-circle':
         kc = Lx / (Delta)
         U_f_hat = spectral_filter_circle_same_size_2DFHIT(U_hat, kc)
+
+    elif filterType == 'spectral-square':
+        kc = Lx / (Delta)
+        U_f_hat = spectral_filter_square_same_size_2DFHIT(U_hat, kc)
+
+    elif filterType == None:
+        U_f_hat = U_hat
 
     # Apply coarse graining
     if coarseGrainType == 'spectral':
@@ -88,8 +96,7 @@ def filter2D_2DFHIT(U, filterType='gaussian', coarseGrainType='spectral', Delta=
 def spectral_filter_circle_same_size_2DFHIT(q_hat, kc):
     '''
     A sharp spectral filter for 2D flow variables. The function takes a 2D square matrix at high resolution 
-    and Ngrid_coarse for low resolution. The function coasre grains the data in spectral domain and 
-    returns the low resolution data in the frequency domain.
+    The function applies a circular sharp-spectral (cut-off filter) to the input data in the frequency domain.
 
     Parameters:
     q (numpy.ndarray): The input 2D square matrix.
@@ -104,6 +111,26 @@ def spectral_filter_circle_same_size_2DFHIT(q_hat, kc):
     _, _, Kabs_DNS, _, _ = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
 
     q_filtered_hat = np.where(Kabs_DNS < kc, q_hat, 0)
+    return q_filtered_hat
+
+def spectral_filter_square_same_size_2DFHIT(q_hat, kc):
+    '''
+    A sharp spectral filter for 2D flow variables. The function takes a 2D square matrix at high resolution 
+    The function applies a square sharp-spectral (cut-off filter) to the input data in the frequency domain.
+
+    Parameters:
+    q (numpy.ndarray): The input 2D square matrix.
+    kc (int): The cutoff wavenumber.
+
+    Returns:
+    numpy.ndarray: The filtered data. The data is in the frequency domain. 
+    '''
+    NX_DNS, NY_DNS = q_hat.shape
+    Lx, Ly = 2 * np.pi, 2 * np.pi
+
+    Kx_DNS, Ky_DNS, _, _, _ = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+
+    q_filtered_hat = np.where((Kx_DNS < kc) & (Ky_DNS < kc), q_hat, 0)
     return q_filtered_hat
 
 

@@ -436,6 +436,10 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     endTime = timer()
     print('Total Time Taken: ', endTime-startTime)
 
+    Omega = np.real(np.fft.ifft2(Omega1_hat))
+    Omega_cpu = nnp.array(Omega)
+    return Omega_cpu
+
 if __name__ == '__main__':
     import sys
     sys.path.append('examples')
