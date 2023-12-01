@@ -39,43 +39,37 @@ Clone the [py2d git repository](https://github.com/envfluids/py2d.git) to use th
 ```
 git clone https://github.com/envfluids/py2d.git
 ```
-
 Then install py2d locally on your system
 ```
 cd py2d
 pip install -e ./
 ```
-
-> Install basic scientific libraries
+Install basic scientific libraries
 ```
 conda install numpy scipy
 ```
-
-> [Installing JAX](https://jax.readthedocs.io/en/latest/installation.html)
+[Installing JAX](https://jax.readthedocs.io/en/latest/installation.html)
 
 ### Note: If using JAX with Pytorch:
 
 > **Warning**
 > Combining PyTorch and JAX in the same codebase can be challenging due to their dependencies on CuDNN. It's crucial to ensure that JAX and Torch are compatible with the same version of CuDNN. JAX requires CuDNN version 8.6 or above for CUDA 11. However, it's important to verify that the version of PyTorch you are using is compiled against a compatible version of CuDNN. Mismatched versions can lead to runtime issues.
 
-As of now, for CUDA 11, JAX works with CuDNN version 8.6 or newer. Ensure that the version of PyTorch you install is compatible with this CuDNN version. If you encounter version mismatch issues, you may need to adjust the versions of the libraries you install or consult the relevant documentation for guidance.
+> As of now, for CUDA 11, JAX works with CuDNN version 8.6 or newer. Ensure that the version of PyTorch you install is compatible with this CuDNN version. If you encounter version mismatch issues, you may need to adjust the versions of the libraries you install or consult the relevant documentation for guidance.
 
-> Install a specific version of CuDNN that is compatible with both JAX and PyTorch:
+Install a specific version of CuDNN that is compatible with both JAX and PyTorch:
 ```
 conda install -c conda-forge cudnn=8.8.0.121
 ```
-
-> Install PyTorch with the appropriate CUDA toolkit version
+Install PyTorch with the appropriate CUDA toolkit version
 ```
 conda install pytorch torchvision torchaudio cudatoolkit=11.8 -c pytorch -c nvidia
 ```
-
-> Install JAX with CUDA 11 support
+Install JAX with CUDA 11 support
 ```
 pip install --upgrade "jax[cuda11_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ```
-
-> If your system uses environment modules, load the CUDA module (this step is system-dependent and may vary)
+If your system uses environment modules, load the CUDA module (this step is system-dependent and may vary)
 ```
 module load cuda
 ```
