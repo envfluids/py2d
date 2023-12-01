@@ -46,11 +46,21 @@ pip install -e ./
 ```
 Install basic scientific libraries
 ```
-conda install numpy scipy
+pip install numpy scipy
 ```
-[Installing JAX](https://jax.readthedocs.io/en/latest/installation.html)
+### Install JAX 
+JAX can be installed for either CPU-only or GPU-supported environments. Follow the instructions below based on your requirements:
 
-### Note: If using JAX with Pytorch:
+#### For CPU-only usage
+> This installation will allow you to use JAX with CPU support but without GPU acceleration.
+```
+pip install jax
+```
+#### For GPU support
+[Installing JAX](https://jax.readthedocs.io/en/latest/installation.html)
+> Note: Note: GPU support requires a compatible NVIDIA GPU and the correct CUDA and CuDNN versions installed on your system. If you're unsure about your CUDA and CuDNN versions, consult the documentation for your GPU and the JAX installation guide for further guidance.
+
+### If using JAX with Pytorch:
 
 > **Warning**
 > Combining PyTorch and JAX in the same codebase can be challenging due to their dependencies on CuDNN. It's crucial to ensure that JAX and Torch are compatible with the same version of CuDNN. JAX requires CuDNN version 8.6 or above for CUDA 11. However, it's important to verify that the version of PyTorch you are using is compiled against a compatible version of CuDNN. Mismatched versions can lead to runtime issues.
