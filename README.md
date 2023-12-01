@@ -18,14 +18,14 @@ Py2D leverages JAX, a high-performance numerical computing library, allowing for
 - Large Eddy Simulations (LES) with Sub-Grid Scale (SGS) models. The compatible models include Smagorinsky (SMAG), Leith (LEITH), Dynamic Smagorinsky (DSMAG), Dynamic Leith (DLEITH), as well as gradient models - GM2, GM4, and GM6.
 - Coupling Neural Networks-based eddy viscosity or Sub-Grid Scale (SGS) terms with the LES solver. 
 
-## Installation
-
 ## Requirements
 
 - python 3.10
   - [jax](https://pypi.org/project/jax/)
   - [scipy](https://pypi.org/project/scipy/)
   - [numpy](https://pypi.org/project/numpy/)
+
+## Installation
 
 ## Set up a new Python environment and install the required libraries:
 
