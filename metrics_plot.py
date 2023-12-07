@@ -42,29 +42,23 @@ plt.rcParams.update({
 
 })
 # %% Case select
-# METHOD = 'DLEITH_sigma_Local' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local
-METHOD = 'DSMAG_tau_Local' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local, || DSMAG_sigma_Local_LocalS , DSMAG_tau_Local_LocalS/
+METHOD = 'DLEITH_tau_Local' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local
+# METHOD = 'DSMAG_tau_Local' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local, || DSMAG_sigma_Local_LocalS , DSMAG_tau_Local_LocalS/
 # METHOD = 'NoSGS'
 
 # case = str(sys.argv[1])
 # percent_data = float(sys.argv[2])
-CASENO = 1
-NX = 32
+# CASENO = 2
+# NX = 64
 # CASENO = 2
 # NX = 128
-# CASENO = 4
-# NX = 256
+CASENO = 4
+NX = 128
 
 if CASENO == 1:
     NUM_DATA_Classic = 2_00
-    NUM_DATA_RL =1_000
 elif CASENO == 2:
     NUM_DATA_Classic = 5_00
-    # NUM_DATA_RL =3_00
-    # NUM_DATA_RL =100
-    # NUM_DATA_RL = 3_50 #0
-    # NUM_DATA_RL =5000 #0
-    # BANDWIDTH_R = 10
 elif CASENO == 4:
     NUM_DATA_Classic = 2_00
     NUM_DATA_RL =1000 #0
@@ -233,6 +227,7 @@ except Exception as e:
     bins_scipy = np.empty(1)
 
 #%% Load RL results
+import re
 from py2d.spectra import *
 energy_spectra_RL_list, enstrophy_spectra_RL_list = [], []
 Omega_list = []
@@ -248,7 +243,7 @@ METHOD_RL += ', data='+str(NUM_DATA_RL)
 filecount = 0
 for file in natsorted(os.listdir(path_RL), alg=ns.PATH | ns.IGNORECASE):
     # Check if file ends with .mat
-    if file.endswith('.mat') and filecount%1==0:
+    if (file.endswith('.mat') and filecount%1==0) and int(re.findall(r'\d+', file)[1])>5_000:
         file_path = os.path.join(path_RL, file)
         print(f'RL → {filecount}/{NUM_DATA_RL}, Loaded: {file_path}')
 
@@ -353,7 +348,7 @@ BANDWIDTH = mybandwidth_scott(Omega_arr_RL)
 if CASENO==2:
     BANDWIDTH = mybandwidth_scott(Omega_arr_RL)*BANDWIDTH_R
 if CASENO==4:
-    BANDWIDTH = mybandwidth_scott(Omega_arr_RL)*BANDWIDTH_R
+    BANDWIDTH = mybandwidth_scott(Omega_arr_RL)*BANDWIDTH_R*10
 Vecpoints, exp_log_kde, log_kde, kde = myKDE(Omega_arr_RL,BANDWIDTH=BANDWIDTH)
 #%% Plot - PDF
 num_file = filecount
@@ -472,13 +467,18 @@ elif CASENO==4:
     # plt.xlim([-100, 100])
     plt.ylim([YMIN, YMAX])
 plt.xlim([-10, 10])
-plt.ylim([YMIN/10, YMAX])
+# plt.ylim([YMIN/10, YMAX])
+plt.ylim([YMIN, YMAX]) # arXiv
 
 axs[1].fill_between(bins, yhor, np.abs(pdf_data_on_bins-pdf_DNS_on_bins), where=(in_band), color='C0', alpha=0.3)
 
 axs[1].semilogy(bins,np.abs(pdf_data_on_bins-pdf_DNS_on_bins), '-')
 axs[1].semilogy(bins[in_band],np.abs(pdf_data_on_bins-pdf_DNS_on_bins)[in_band], '.k')
 axs[1].semilogy(bins[out_band],np.abs(pdf_data_on_bins-pdf_DNS_on_bins)[out_band], '.r')
+
+
+
+
 plt.subplot(1,3,2)
 plt.title('RL')
 # plt.xlim([bin_min, bin_max])
@@ -513,6 +513,7 @@ plt.xlim([bin_min, bin_max])
 
 plt.show()
 #%%
+stop
 plt.figure(figsize=(4,10))
 plt.subplot(3,1,1)
 plt.plot(bins,pdf_DNS_on_bins, '.b',label='DNS')

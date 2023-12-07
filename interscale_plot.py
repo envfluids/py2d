@@ -28,10 +28,10 @@ METHOD = 'DLEITH' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local,
 
 # case = str(sys.argv[1])
 # percent_data = float(sys.argv[2])
-CASENO = 1
-NX = 32
-# CASENO = 4
-# NX = 256
+# CASENO = 1
+# NX = 32
+CASENO = 4
+NX = 128
 # CASENO = 2
 # NX = 64
 
