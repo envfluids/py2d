@@ -8,7 +8,7 @@
 
 # Import os module
 import os
-os.chdir('../../py2d/')
+# os.chdir('../../py2d/')
 from pathlib import Path
 
 # Import Python Libraries
@@ -195,123 +195,41 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
         model_path = "best_model_mcwiliams_exact.pt"
         cnn_model = init_model(model_type='mcwiliams', model_path=model_path)
 
-    if readTrue:
+    # Initialize conditions
+    Omega0_hat, Omega1_hat, Psi0_hat, Psi1_hat, time, last_file_number_IC, last_file_number_data = initialize_conditions(
+        NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, SAVE_DIR_IC, SAVE_DIR_DATA
+    )
 
-        # -------------- Initialization using pertubration --------------
-        w1_hat, psi_hat, psiPrevious_hat, psiCurrent_hat = initialize_perturbation(NX, Kx, Ky)
-        time = 0.0
+    # Save variables of the solver
+    variables = {
+        'readTrue': readTrue,
+        'ICnum': ICnum,
+        'resumeSim': resumeSim,
+        'saveData': saveData,
+        'NSAVE': NSAVE,
+        'tSAVE': tSAVE,
+        'tTotal': tTotal,
+        'maxit': maxit,
+        'NX': NX,
+        'Lx': Lx,
+        'Re': Re,
+        'dt': dt,
+        'nu': nu,
+        'rho': rho,
+        'alpha': alpha,
+        'SGSModel': SGSModel_string,
+        'fkx': fkx,
+        'fky': fky,
+        'SAVE_DIR': SAVE_DIR,
+    }
 
-    else:
+    # Open file in write mode and save parameters
+    with open(SAVE_DIR + 'parameters.txt', 'w') as f:
+        # Write each variable to a new line in the file
+        for key, value in variables.items():
+            f.write(f'{key}: {value}\n')
 
-        if resumeSim:
-            # Get the last file name (filenames are integers)
-            last_file_number_data = get_last_file(SAVE_DIR_DATA)
-            last_file_number_IC = get_last_file(SAVE_DIR_IC)
-
-            # Print last file names (filenames are integers)
-            if last_file_number_data is not None:
-                print(f"Last data file number: {last_file_number_data}")
-            else:
-                print("No .mat files found")
-
-            if last_file_number_IC is not None:
-                print(f"Last IC file number: {last_file_number_IC}")
-            else:
-                raise ValueError("No .mat initialization files found to resume the simulation")
-
-            # Load initial condition to resume simulation
-            # Resume from the second last saved file -
-            # the last saved file is often corrupted since the jobs stop (reach wall clocktime limit) while the file is being saved.
-            last_file_number_data = last_file_number_data - 1
-            last_file_number_IC = last_file_number_IC - 1
-
-            data_Poi = loadmat(SAVE_DIR_IC + str(last_file_number_IC) + '.mat')
-            Omega0_hat_cpu = data_Poi["Omega0_hat"]
-            Omega1_hat_cpu = data_Poi["Omega1_hat"]
-            time = data_Poi["time"]
-
-            # Convert numpy initialization arrays to jax array
-            Omega0_hat = np.array(Omega0_hat_cpu)
-            Omega1_hat = np.array(Omega1_hat_cpu)
-            time = time[0][0]
-
-            Psi0_hat = Omega2Psi_2DFHIT_spectral(Omega0_hat, invKsq)
-            Psi1_hat = Omega2Psi_2DFHIT_spectral(Omega1_hat, invKsq)
-
-        else:
-            # Path of Initial Conditions
-
-            # Get the absolute path to the directory
-            base_path = Path(__file__).parent.absolute()
-
-            # Construct the full path to the .mat file
-            # Go up one directory before going into ICs
-            IC_DIR = 'data/ICs/NX' + str(NX) + '/'
-            IC_filename = str(ICnum) + '.mat'
-            file_path = os.path.join(base_path, "..", IC_DIR, IC_filename)
-
-            # Resolve the '..' to compute the actual directory
-            file_path = Path(file_path).resolve()
-
-            # -------------- Loading Initial condition (***) --------------
-
-            data_Poi = loadmat(file_path)
-            Omega1 = data_Poi["Omega"]
-            Omega1_hat = np.fft.fft2(Omega1)
-            Omega0_hat = Omega1_hat
-            Psi1_hat = Omega2Psi_2DFHIT_spectral(Omega1_hat, invKsq)
-            Psi0_hat = Psi1_hat
-            time = 0.0
-
-            # Get the last file name (filenames are integers)
-            last_file_number_data = get_last_file(SAVE_DIR_DATA)
-            last_file_number_IC = get_last_file(SAVE_DIR_IC)
-
-            # Set last File numbers
-            if last_file_number_data is None:
-                print(f"Last data file number: {last_file_number_data}")
-                last_file_number_data = 0
-                print("Updated last data file number to " + str(last_file_number_data))
-            else:
-                raise ValueError("Data already exists in the results folder for this case, either resume the simulation (resumeSim = True) or delete data to start a new simulation")
-
-            if last_file_number_IC is None:
-                print(f"Last data file number: {last_file_number_IC}")
-                last_file_number_IC = 0
-                print("Updated last data file number to " + str(last_file_number_IC))
-            else:
-                raise ValueError("Data already exists in the results folder for this case, either resume the simulation (resumeSim = True) or delete data to start a new simulation")
-
-            # Save variables of the solver
-            variables = {
-                'readTrue': readTrue,
-                'ICnum': ICnum,
-                'resumeSim': resumeSim,
-                'saveData': saveData,
-                'NSAVE': NSAVE,
-                'tSAVE': tSAVE,
-                'tTotal': tTotal,
-                'maxit': maxit,
-                'NX': NX,
-                'Lx': Lx,
-                'Re': Re,
-                'dt': dt,
-                'nu': nu,
-                'rho': rho,
-                'alpha': alpha,
-                'SGSModel': SGSModel_string,
-                'fkx': fkx,
-                'fky': fky,
-                'SAVE_DIR': SAVE_DIR,
-            }
-
-            # Open file in write mode and save parameters
-            with open(SAVE_DIR + 'parameters.txt', 'w') as f:
-                # Write each variable to a new line in the file
-                for key, value in variables.items():
-                    f.write(f'{key}: {value}\n')
-
-            print("Parameters of the flow saved to saved to " + SAVE_DIR + 'parameter.txt')
+    print("Parameters of the flow saved to saved to " + SAVE_DIR + 'parameter.txt')
 
     # -------------- Main iteration loop --------------
     print("-------------- Main iteration loop --------------")
@@ -439,6 +357,94 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     Omega = np.real(np.fft.ifft2(Omega1_hat))
     Omega_cpu = nnp.array(Omega)
     return Omega_cpu
+
+def initialize_conditions(NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, SAVE_DIR_IC, SAVE_DIR_DATA ):
+    
+    if readTrue:
+        # Generate random initial conditions
+        w1_hat, psi_hat, psiPrevious_hat, psiCurrent_hat = initialize_perturbation(NX, Kx, Ky)
+        time = 0.0
+        last_file_number_IC = 0
+        last_file_number_data = 0
+        return w1_hat, psi_hat, psiPrevious_hat, psiCurrent_hat, time, last_file_number_IC, last_file_number_data
+
+    if resumeSim:
+        # Resume from the last saved state
+        last_file_number_IC = get_last_file(SAVE_DIR_IC)
+        last_file_number_data = get_last_file(SAVE_DIR_DATA)
+
+        if last_file_number_IC is not None:
+            print(f"Last IC file number: {last_file_number_IC}")
+        else:
+            raise ValueError("No .mat initialization files found to resume the simulation")
+        
+        # Print last file names (filenames are integers)
+        if last_file_number_data is not None:
+            print(f"Last data file number: {last_file_number_data}")
+        else:
+            print("No .mat files found")
+
+        # Load initial condition to resume simulation
+        # Resume from the second last saved file -
+        # the last saved file is often corrupted since the jobs stop (reach wall clocktime limit) while the file is being saved.
+        last_file_number_IC -= 1  # Resume from the second last saved file
+        last_file_number_data -= 1  # Resume from the second last saved file
+
+        data_Poi = loadmat(SAVE_DIR_IC + str(last_file_number_IC) + '.mat')
+        Omega0_hat = np.array(data_Poi["Omega0_hat"])
+        Omega1_hat = np.array(data_Poi["Omega1_hat"])
+        time = data_Poi["time"][0][0]
+
+        Psi0_hat = Omega2Psi_2DFHIT_spectral(Omega0_hat, invKsq)
+        Psi1_hat = Omega2Psi_2DFHIT_spectral(Omega1_hat, invKsq)
+
+        return Omega0_hat, Omega1_hat, Psi0_hat, Psi1_hat, time, last_file_number_IC, last_file_number_data
+
+    else:
+
+        # Path of Initial Conditions
+
+        # Get the absolute path to the directory
+        base_path = Path(__file__).parent.absolute()
+
+        # Construct the full path to the .mat file
+        # Go up one directory before going into ICs
+        IC_DIR = 'data/ICs/NX' + str(NX) + '/'
+        IC_filename = str(ICnum) + '.mat'
+        file_path = os.path.join(base_path, "..", IC_DIR, IC_filename)
+
+        # Resolve the '..' to compute the actual directory
+        file_path = Path(file_path).resolve()
+
+        # -------------- Loading Initial condition (***) --------------
+        data_Poi = loadmat(file_path)
+        Omega1 = data_Poi["Omega"]
+        Omega1_hat = np.fft.fft2(Omega1)
+        Omega0_hat = Omega1_hat
+        Psi1_hat = Omega2Psi_2DFHIT_spectral(Omega1_hat, invKsq)
+        Psi0_hat = Psi1_hat
+        time = 0.0
+
+        # Get the last file name (filenames are integers)
+        last_file_number_data = get_last_file(SAVE_DIR_DATA)
+        last_file_number_IC = get_last_file(SAVE_DIR_IC)
+
+        # Set last File numbers
+        if last_file_number_data is None:
+            print(f"Last data file number: {last_file_number_data}")
+            last_file_number_data = 0
+            print("Updated last data file number to " + str(last_file_number_data))
+        else:
+            raise ValueError("Data already exists in the results folder for this case, either resume the simulation (resumeSim = True) or delete data to start a new simulation")
+
+        if last_file_number_IC is None:
+            print(f"Last data file number: {last_file_number_IC}")
+            last_file_number_IC = 0
+            print("Updated last data file number to " + str(last_file_number_IC))
+        else:
+            raise ValueError("Data already exists in the results folder for this case, either resume the simulation (resumeSim = True) or delete data to start a new simulation")
+        return Omega0_hat, Omega1_hat, Psi0_hat, Psi1_hat, time,last_file_number_IC, last_file_number_data
+
 
 if __name__ == '__main__':
     import sys
