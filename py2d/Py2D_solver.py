@@ -45,7 +45,7 @@ eddyTurnoverTime_2DFHIT_jit = jit(eddyTurnoverTime_2DFHIT)
 # Start timer
 startTime = timer()
 
-def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoeff, dt, saveData, tSAVE, tTotal, readTrue, ICnum, resumeSim):
+def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoeff, dt, saveData, tSAVE, tTotal, readTrue, ICnum, direct_IC, resumeSim):
 
     # -------------- RUN Configuration --------------
     # Use random initial condition or read initialization from a file or use
@@ -197,7 +197,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     # Initialize conditions
     Omega0_hat, Omega1_hat, Psi0_hat, Psi1_hat, time, last_file_number_IC, last_file_number_data = initialize_conditions(
-        NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, SAVE_DIR_IC, SAVE_DIR_DATA
+        NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, direct_IC, SAVE_DIR_IC, SAVE_DIR_DATA
     )
 
     # Save variables of the solver
@@ -358,7 +358,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     Omega_cpu = nnp.array(Omega)
     return Omega_cpu
 
-def initialize_conditions(NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, SAVE_DIR_IC, SAVE_DIR_DATA ):
+def initialize_conditions(NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, direct_IC, SAVE_DIR_IC, SAVE_DIR_DATA ):
     
     if readTrue:
         # Generate random initial conditions
@@ -373,26 +373,33 @@ def initialize_conditions(NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, SAVE_D
         last_file_number_IC = get_last_file(SAVE_DIR_IC)
         last_file_number_data = get_last_file(SAVE_DIR_DATA)
 
-        if last_file_number_IC is not None:
-            print(f"Last IC file number: {last_file_number_IC}")
-        else:
-            raise ValueError("No .mat initialization files found to resume the simulation")
-        
-        # Print last file names (filenames are integers)
-        if last_file_number_data is not None:
-            print(f"Last data file number: {last_file_number_data}")
-        else:
-            print("No .mat files found")
+        if direct_IC is not None:
+            Omega0_hat = np.array(direct_IC["Omega0_hat"])
+            Omega1_hat = np.array(direct_IC["Omega1_hat"])
 
-        # Load initial condition to resume simulation
-        # Resume from the second last saved file -
-        # the last saved file is often corrupted since the jobs stop (reach wall clocktime limit) while the file is being saved.
-        last_file_number_IC -= 1  # Resume from the second last saved file
-        last_file_number_data -= 1  # Resume from the second last saved file
+        else:
+
+            if last_file_number_IC is not None:
+                print(f"Last IC file number: {last_file_number_IC}")
+            else:
+                raise ValueError("No .mat initialization files found to resume the simulation")
+            
+            # Print last file names (filenames are integers)
+            if last_file_number_data is not None:
+                print(f"Last data file number: {last_file_number_data}")
+            else:
+                print("No .mat files found")
+            # Load initial condition to resume simulation
+            # Resume from the second last saved file -
+            # the last saved file is often corrupted since the jobs stop (reach wall clocktime limit) while the file is being saved.
+            # last_file_number_IC -= 1  # Resume from the second last saved file
+            # last_file_number_data -= 1  # Resume from the second last saved file
+
+            data_Poi = loadmat(SAVE_DIR_IC + str(last_file_number_IC) + '.mat')
+            Omega0_hat = np.array(data_Poi["Omega0_hat"])
+            Omega1_hat = np.array(data_Poi["Omega1_hat"])
 
         data_Poi = loadmat(SAVE_DIR_IC + str(last_file_number_IC) + '.mat')
-        Omega0_hat = np.array(data_Poi["Omega0_hat"])
-        Omega1_hat = np.array(data_Poi["Omega1_hat"])
         time = data_Poi["time"][0][0]
 
         Psi0_hat = Omega2Psi_2DFHIT_spectral(Omega0_hat, invKsq)
@@ -471,5 +478,6 @@ if __name__ == '__main__':
                        tTotal=10.0, # Total time of simulation
                        readTrue=False,
                        ICnum=1, # Initial condition number: Choose between 1 to 20
+                       direct_IC=None,
                        resumeSim=False, # tart new simulation (False) or resume simulation (True)
                        )
