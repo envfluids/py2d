@@ -71,9 +71,12 @@ def filter2D_2DFHIT(U, filterType='gaussian', coarseGrainType='spectral', Delta=
         kc = Lx / (Delta)
         U_f_hat = spectral_filter_circle_same_size_2DFHIT(U_hat, kc)
 
+    elif filterType == None:
+        U_f_hat = U_hat
+
     # Apply coarse graining
     if coarseGrainType == 'spectral':
-        U_f_c_hat = coarse_spectral_filter_square_2DFHIT(U_f_hat, Ngrid)
+        U_f_c_hat = coarse_spectral_filter_square_2DFHIT(U_f_hat, Ngrid[0])
 
     elif coarseGrainType == None:
         U_f_c_hat = U_f_hat
