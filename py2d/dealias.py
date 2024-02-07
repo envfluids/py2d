@@ -65,6 +65,9 @@ def padding_for_dealias(u, spectral=False, K=3/2):
     Returns:
     - u_dealias: 2D numpy array in spectral space (if spectral=True) or
                  in physical space (if spectral=False) after dealiasing.
+
+    Note:
+    - The u_hat_dealias needs to be conjugate symmetric for the inverse FFT to be real.
     """
     # Determine the original and dealiased grid sizes
     N_alias = u.shape[0]
