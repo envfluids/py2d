@@ -67,9 +67,13 @@ def filter2D_2DFHIT(U, filterType='gaussian', coarseGrainType='spectral', Delta=
         Gk = Gkx * Gky
         U_f_hat = Gk * U_hat
 
-    elif filterType == 'spectral':
+    elif filterType == 'spectral' or filterType == 'spectral-circle':
         kc = Lx / (Delta)
         U_f_hat = spectral_filter_circle_same_size_2DFHIT(U_hat, kc)
+
+    elif filterType == 'spectral-square':
+        kc = Lx / (Delta)
+        U_f_hat = spectral_filter_square_same_size_2DFHIT(U_hat, kc)
 
     elif filterType == None:
         U_f_hat = U_hat
@@ -90,7 +94,7 @@ def filter2D_2DFHIT(U, filterType='gaussian', coarseGrainType='spectral', Delta=
 
 def spectral_filter_circle_same_size_2DFHIT(q_hat, kc):
     '''
-    A sharp spectral filter for 2D flow variables. The function takes a 2D square matrix at high resolution 
+    A circular sharp spectral filter for 2D flow variables. The function takes a 2D square matrix at high resolution 
     and Ngrid_coarse for low resolution. The function coasre grains the data in spectral domain and 
     returns the low resolution data in the frequency domain.
 
@@ -107,6 +111,33 @@ def spectral_filter_circle_same_size_2DFHIT(q_hat, kc):
     _, _, Kabs_DNS, _, _ = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
 
     q_filtered_hat = np.where(Kabs_DNS < kc, q_hat, 0)
+    return q_filtered_hat
+
+
+def spectral_filter_square_same_size_2DFHIT(q_hat, kc):
+    '''
+    A square sharp spectral filter for 2D flow variables. The function takes a 2D square matrix at high resolution 
+    and applies a cutoff in the spectral domain to retain frequencies where both Kx and Ky are less than kc.
+
+    Parameters:
+    q_hat (numpy.ndarray): The input 2D square matrix in the frequency domain.
+    kc (int): The cutoff wavenumber.
+
+    Returns:
+    numpy.ndarray: The filtered data in the frequency domain, with frequencies where Kx and Ky < kc retained.
+    '''
+    NX_DNS, NY_DNS = q_hat.shape
+    Lx, Ly = 2 * np.pi, 2 * np.pi
+
+    # Assuming initialize_wavenumbers_2DFHIT is a function that initializes the wavenumbers
+    Kx, Ky, _, _, _= initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+
+    # Create a mask where both Kx and Ky are less than kc
+    mask = np.logical_and(np.abs(Kx) < np.abs(kc), np.abs(Ky) < np.abs(kc))
+
+    # Apply the mask to q_hat, setting elements to 0 where the condition is not met
+    q_filtered_hat = np.where(mask, q_hat, 0)
+
     return q_filtered_hat
 
 
