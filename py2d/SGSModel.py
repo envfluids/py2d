@@ -4,7 +4,7 @@ import numpy as nnp
 from py2d.eddy_viscosity_models import eddy_viscosity_smag, characteristic_strain_rate_smag, coefficient_dsmag_PsiOmega
 from py2d.eddy_viscosity_models import eddy_viscosity_leith, characteristic_omega_leith, coefficient_dleith_PsiOmega
 from py2d.eddy_viscosity_models import characteristic_omega_leith, coefficient_dleithlocal_PsiOmega, coefficient_dsmaglocal_PsiOmega
-from py2d.gradient_model import PiOmegaGM2_gaussian, PiOmegaGM4_gaussian, PiOmegaGM6_gaussian
+from py2d.gradient_model import PiOmegaGM2_gaussian, PiOmegaGM2_gaussian_dealias_spectral, PiOmegaGM4_gaussian, PiOmegaGM4_gaussian_dealias_spectral, PiOmegaGM6_gaussian, PiOmegaGM6_gaussian_dealias_spectral
 
 # from py2d.uv2tau_CNN import evaluate_model, init_model
 from py2d.eddy_viscosity_models import Tau_eddy_viscosity
@@ -12,7 +12,7 @@ from py2d.convert import Tau2PiOmega_2DFHIT
 
 class SGSModel:
 
-    def __init__(self, Kx, Ky, Ksq, Delta, method = 'NoSGS', C_MODEL=0):
+    def __init__(self, Kx, Ky, Ksq, Delta, method = 'NoSGS', C_MODEL=0, dealias=True):
         self.set_method(method)
         # Constants
         self.Kx = Kx
@@ -20,6 +20,7 @@ class SGSModel:
         self.Ksq = Ksq
         self.Delta = Delta
         self.C_MODEL = C_MODEL
+        self.dealias = dealias
         # States
         self.Psi_hat, self.PiOmega_hat, self.eddy_viscosity, self.Cl, self.Cs = 0, 0, 0, None, None
 
@@ -99,7 +100,8 @@ class SGSModel:
         Ksq = self.Ksq
         Delta = self.Delta
         C_MODEL = self.C_MODEL
-        return Kx, Ky, Ksq, Delta, C_MODEL
+        dealias = self.dealias
+        return Kx, Ky, Ksq, Delta, C_MODEL, dealias
 
     def update_state(self, Psi_hat, Omega_hat, U_hat, V_hat):
         self.Psi_hat, self.Omega_hat = Psi_hat, Omega_hat
@@ -113,7 +115,7 @@ class SGSModel:
 
 
     def smag_method(self):#, Psi_hat, Cs, Delta):
-        Kx, Ky, Ksq, Delta, Cs = self.__expand_self__()
+        Kx, Ky, Ksq, Delta, Cs, _ = self.__expand_self__()
         Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat
 
         PiOmega_hat = 0.0
@@ -125,7 +127,7 @@ class SGSModel:
 
 
     def leith_method(self):#, Omega_hat, Kx, Ky, Cl, Delta):
-        Kx, Ky, Ksq, Delta, Cl = self.__expand_self__()
+        Kx, Ky, Ksq, Delta, Cl, _ = self.__expand_self__()
         Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat
 
         PiOmega_hat = 0.0
@@ -137,7 +139,7 @@ class SGSModel:
 
 
     def dsmag_method(self):#, Psi_hat, Omega_hat, Kx, Ky, Ksq, Delta):
-        Kx, Ky, Ksq, Delta, _ = self.__expand_self__()
+        Kx, Ky, Ksq, Delta, _, _ = self.__expand_self__()
         Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat
 
         PiOmega_hat = 0.0
@@ -153,7 +155,7 @@ class SGSModel:
         '''
         Smagorinsky model with local Cs
         '''
-        Kx, Ky, Ksq, Delta, _ = self.__expand_self__()
+        Kx, Ky, Ksq, Delta, _, _ = self.__expand_self__()
         Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat
 
         PiOmega_hat = 0.0
@@ -244,7 +246,7 @@ class SGSModel:
         return PiOmega_hat, eddy_viscosity, Cs
 
     def dleith_method(self):#, Psi_hat, Omega_hat, Kx, Ky, Ksq, Delta):
-        Kx, Ky, Ksq, Delta, _ = self.__expand_self__()
+        Kx, Ky, Ksq, Delta, _, _ = self.__expand_self__()
         Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat
 
         PiOmega_hat = 0.0
@@ -258,7 +260,7 @@ class SGSModel:
         return PiOmega_hat, eddy_viscosity, Cl
 
     def dleithlocal_method(self):#, Psi_hat, Omega_hat, Kx, Ky, Ksq, Delta):
-        Kx, Ky, Ksq, Delta, _ = self.__expand_self__()
+        Kx, Ky, Ksq, Delta, _ , _= self.__expand_self__()
         Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat
 
         PiOmega_hat = 0.0
@@ -338,39 +340,48 @@ class SGSModel:
         return PiOmega_hat, eddy_viscosity, Cl
 
     def PiOmegaGM2_method(self):#, Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
-        Kx, Ky, Ksq, Delta, _ = self.__expand_self__()
+        Kx, Ky, Ksq, Delta, _, dealias = self.__expand_self__()
         Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat
         U_hat, V_hat = self.U_hat, self.V_hat
 
         eddy_viscosity = 0
-        PiOmega = PiOmegaGM2_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-        PiOmega_hat = np.fft.fft2(PiOmega)
+        if dealias:
+            PiOmega_hat = PiOmegaGM2_gaussian_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
+        else: 
+            PiOmega = PiOmegaGM2_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
+            PiOmega_hat = np.fft.fft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
 
         return PiOmega_hat, eddy_viscosity
 
     def PiOmegaGM4_method(self):#, Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
-        Kx, Ky, Ksq, Delta, _ = self.__expand_self__()
+        Kx, Ky, Ksq, Delta, _, dealias = self.__expand_self__()
         Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat
         U_hat, V_hat = self.U_hat, self.V_hat
 
         eddy_viscosity = 0
-        PiOmega = PiOmegaGM4_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-        PiOmega_hat = np.fft.fft2(PiOmega)
+        if dealias:
+            PiOmega_hat = PiOmegaGM4_gaussian_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
+        else:
+            PiOmega = PiOmegaGM4_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
+            PiOmega_hat = np.fft.fft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
 
         return PiOmega_hat, eddy_viscosity
 
     def PiOmegaGM6_method(self):#, Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
-        Kx, Ky, Ksq, Delta, _ = self.__expand_self__()
+        Kx, Ky, Ksq, Delta, _, dealias = self.__expand_self__()
         Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat
         U_hat, V_hat = self.U_hat, self.V_hat
 
         eddy_viscosity = 0
-        PiOmega = PiOmegaGM6_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-        PiOmega_hat = np.fft.fft2(PiOmega)
+        if dealias:
+            PiOmega_hat = PiOmegaGM6_gaussian_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
+        else:
+            PiOmega = PiOmegaGM6_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
+            PiOmega_hat = np.fft.fft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
         return PiOmega_hat, eddy_viscosity
