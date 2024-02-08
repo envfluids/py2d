@@ -1,4 +1,7 @@
 import numpy as np
+import jax.numpy as jnp
+from jax import jit
+
 from py2d.initialize import initialize_wavenumbers_2DFHIT
 
 def filter2D_2DFHIT(U, filterType='gaussian', coarseGrainType='spectral', Delta=None, Ngrid=None, spectral=False):
@@ -165,7 +168,7 @@ def coarse_spectral_filter_square_2DFHIT(a_hat, NCoarse):
     """
 
     # Determine the size of the input array
-    N = np.shape(a_hat)[0]
+    N = a_hat.shape[0]
     
     # Compute the cutoff point in Fourier space
     dkcut= int(NCoarse/2)
@@ -182,6 +185,52 @@ def coarse_spectral_filter_square_2DFHIT(a_hat, NCoarse):
 
     # Shift the zero-frequency component back to the original place and un-normalize the data
     wfiltered_hat = np.fft.ifftshift(wfiltered_hat_shift)*(NCoarse**2)
+
+    # Return the filtered data
+    return wfiltered_hat
+
+# JAX compatible
+def coarse_spectral_filter_square_2DFHIT_jit(a_hat, NCoarse):
+    """
+    Apply a coarse spectral filter to the Fourier-transformed input on a 2D square grid.
+
+    This function filters the Fourier space representation of some input data, effectively removing
+    high-frequency information above a certain threshold determined by the number of effective
+    large eddy simulation (LES) points, `NLES`. The filter is applied on a square grid in Fourier space.
+
+    Parameters
+    ----------
+    a_hat : numpy.ndarray
+        The 2D Fourier-transformed input data, expected to be a square grid.
+    
+    NLES : int
+        The number of effective LES points, determining the cutoff for the spectral filter.
+        Frequencies beyond half of this value will be cut off.
+
+    Returns
+    -------
+    numpy.ndarray
+        The filtered Fourier-transformed data.
+    """
+
+    # Determine the size of the input array
+    N = a_hat.shape[0]
+    
+    # Compute the cutoff point in Fourier space
+    dkcut= int(NCoarse/2)
+    
+    # Define the start and end indices for the slice in Fourier space to keep
+    ids = int(N/2)-dkcut
+    ide = int(N/2)+dkcut
+    
+    # Shift the zero-frequency component to the center, then normalize the Fourier-transformed data
+    a_hat_shift = jnp.fft.fftshift(a_hat)/(N**2)
+
+    # Apply the spectral filter by slicing the 2D array
+    wfiltered_hat_shift = a_hat_shift[ids:ide,ids:ide]
+
+    # Shift the zero-frequency component back to the original place and un-normalize the data
+    wfiltered_hat = jnp.fft.ifftshift(wfiltered_hat_shift)*(NCoarse**2)
 
     # Return the filtered data
     return wfiltered_hat
