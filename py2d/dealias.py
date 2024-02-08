@@ -1,5 +1,6 @@
 import numpy as np
 import jax.numpy as jnp
+from jax import jit
 
 from py2d.filter import coarse_spectral_filter_square_2DFHIT_jit
 
@@ -21,14 +22,37 @@ def multiply_dealias(u, v, dealias=True):
         u_hat_alias = jnp.fft.fft2(u)
         v_hat_alias = jnp.fft.fft2(v)
         # dealising
-        uv_alias = multiply_dealias_spectral2physical(u_hat_alias, v_hat_alias)
+        uv_alias_hat = multiply_dealias_spectral(u_hat_alias, v_hat_alias)
+        uv_alias = jnp.fft.ifft2(uv_alias_hat).real
     else:
         # Direct multiplication in physical space if no dealiasing needed
         uv_alias = u * v
 
     return uv_alias
 
-def multiply_dealias_spectral2physical(u_hat, v_hat):
+@jit
+def multiply_dealias_physical(u, v):
+    """
+    Multiply two fields and dealias the result, Input is in spectral space and returned in physical space.
+
+    Parameters:
+    - u_hat, v_hat: 2D numpy arrays representing the spectral coefficients of the fields.
+
+    Returns:
+    - Product of the two fields, dealiased and converted to physical space.
+    """
+
+    u_hat = jnp.fft.fft2(u)
+    v_hat = jnp.fft.fft2(v)
+
+    uv_dealias_hat = multiply_dealias_spectral(u_hat, v_hat)
+
+    uv_dealias = jnp.fft.ifft2(uv_dealias_hat).real
+    
+    return uv_dealias
+
+@jit
+def multiply_dealias_spectral(u_hat, v_hat):
     """
     Multiply two fields and dealias the result, Input is in spectral space and returned in physical space.
 
@@ -51,10 +75,9 @@ def multiply_dealias_spectral2physical(u_hat, v_hat):
     u_dealias_v_dealias_hat = jnp.fft.fft2(u_dealias * v_dealias)
 
     # Multiply on the dealise grid and coarse grain to alias grid
-    uv_alias_hat = coarse_spectral_filter_square_2DFHIT_jit(u_dealias_v_dealias_hat, Ncoarse)
-    uv_alias = jnp.fft.ifft2(uv_alias_hat).real
+    uv_dealias_hat = coarse_spectral_filter_square_2DFHIT_jit(u_dealias_v_dealias_hat, Ncoarse)
     
-    return uv_alias
+    return uv_dealias_hat
 
 def padding_for_dealias(u, spectral=False, K=3/2):
     """
