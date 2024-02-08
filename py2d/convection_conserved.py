@@ -51,7 +51,6 @@ def convection_conserved(Omega1_hat, U1_hat, V1_hat, Kx, Ky):
     V1 = np.real(np.fft.ifft2(V1_hat))
     Omega1 = np.real(np.fft.ifft2(Omega1_hat))
 
-    # dealiasing
     U1Omega1 = U1*Omega1
     V1Omega1 = V1*Omega1
 
@@ -66,7 +65,6 @@ def convection_conserved(Omega1_hat, U1_hat, V1_hat, Kx, Ky):
     Omega1x = np.real(np.fft.ifft2(Omega1x_hat))
     Omega1y = np.real(np.fft.ifft2(Omega1y_hat))
 
-    # dealiasing
     U1Omega1x = U1*Omega1x
     V1Omega1y = V1*Omega1y
 
