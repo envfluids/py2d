@@ -45,7 +45,7 @@ eddyTurnoverTime_2DFHIT_jit = jit(eddyTurnoverTime_2DFHIT)
 # Start timer
 startTime = timer()
 
-def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoeff, dt, saveData, tSAVE, tTotal, readTrue, ICnum, direct_IC, resumeSim):
+def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoeff, dt, saveData, tSAVE, tTotal, readTrue, ICnum, direct_IC, error_term_hat, resumeSim):
 
     # -------------- RUN Configuration --------------
     # Use random initial condition or read initialization from a file or use
@@ -293,7 +293,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
             PiOmega_hat = 1.5*PiOmega1_hat-0.5*PiOmega0_hat
 
         # 2 Adam bash forth Crank Nicolson
-        RHS = Omega1_hat - dt*(convec_hat) + dt*0.5*(nu+eddyViscosity)*diffu_hat - dt*(Fk_hat+PiOmega_hat) + dt*beta*V1_hat
+        RHS = Omega1_hat - dt*(convec_hat) + dt*0.5*(nu+eddyViscosity)*diffu_hat - dt*(Fk_hat+PiOmega_hat) + dt*beta*V1_hat + dt*error_term_hat
 
         # Older version of RHS: Moein delete later
         # RHS = Omega1_hat + dt*(-1.5*convec1_hat + 0.5*convec0_hat) + dt*0.5*(nu+ve)*diffu_hat + dt*(Fk_hat-PiOmega_hat)
@@ -479,5 +479,6 @@ if __name__ == '__main__':
                        readTrue=False,
                        ICnum=1, # Initial condition number: Choose between 1 to 20
                        direct_IC=None,
+                       error_term_hat=0,
                        resumeSim=False, # tart new simulation (False) or resume simulation (True)
                        )
