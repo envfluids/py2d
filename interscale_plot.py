@@ -22,18 +22,18 @@ except:
     os.system("pip3 install natsort")
     from natsort import natsorted, ns
 #%% Parameters
-METHOD = 'DLEITH' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local,
-# METHOD = 'DSMAG_tau_Local' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local,
+# METHOD = 'DLEITH' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local,
+METHOD = 'DSMAG_tau_Local' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local,
 # METHOD = 'NoSGS'
 
 # case = str(sys.argv[1])
 # percent_data = float(sys.argv[2])
-# CASENO = 1
-# NX = 32
-CASENO = 4
-NX = 128
+CASENO = 1
+NX = 32
 # CASENO = 2
 # NX = 64
+# CASENO = 4
+# NX = 128
 
 NUM_DATA_Classic = 2_00
 NUM_DATA_RL =1#_000

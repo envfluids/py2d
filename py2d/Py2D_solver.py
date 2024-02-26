@@ -444,9 +444,9 @@ if __name__ == '__main__':
     sys.path.append('py2d')
     sys.path.append('.')
     #SGSModel_list = ['NoSGS', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6']
-    # SGSModel_list = ['SMAG','DSMAG','DSMAG_tau_Local','DSMAG_sigma_Local']
+    SGSModel_list = ['SMAG']#,'DSMAG','DSMAG_tau_Local','DSMAG_sigma_Local']
     #SGSModel_list = [ 'LEITH', 'DLEITH', DLEITH_tau_Local', 'DLEITH_sigma_Local']
-    SGSModel_list = [ 'NoSGS','LEITH','DLEITH', 'DLEITH_tau_Local', 'DLEITH_sigma_Local','SMAG','DSMAG','DSMAG_tau_Local','DSMAG_sigma_Local']
+    # SGSModel_list = [ 'NoSGS','LEITH','DLEITH', 'DLEITH_tau_Local', 'DLEITH_sigma_Local','SMAG','DSMAG','DSMAG_tau_Local','DSMAG_sigma_Local']
     for SGSModel_string in SGSModel_list:
         # Script to call the function with the given parameters
         Py2D_solver(Re=20e3, # Reynolds number
@@ -454,7 +454,7 @@ if __name__ == '__main__':
                        fky=4, # Forcing wavenumber in y
                        alpha=0.1, # Rayleigh drag coefficient
                        beta=0, # Coriolis parameter
-                       NX=128, # Number of grid points in x and y '32', '64', '128', '256', '512'
+                       NX=64, # Number of grid points in x and y '32', '64', '128', '256', '512'
                        SGSModel_string=SGSModel_string, # SGS model to use 'NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6'
                        eddyViscosityCoeff=0.17, # Coefficient for eddy viscosity models: SMAG and LEITH
                        dt=5e-4, # Time step

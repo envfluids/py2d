@@ -150,7 +150,7 @@ def coefficient_dynamiclocal_PsiOmega(L, M):
     LM = L * M
     MM = M * M
     LM_pos = 0.5 * (LM + np.abs(LM))
-
+    
     #c_dynamic = np.mean(LM_pos) / np.mean(MM)
     c_dynamic = (LM_pos) / np.mean(MM)
     return c_dynamic

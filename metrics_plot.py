@@ -1,3 +1,28 @@
+import argparse
+import sys
+import os
+# sys.path.append('_model')
+#sys.path.append('_init')
+#from environment import *
+## Parameters
+
+### Parsing arguments
+parser = argparse.ArgumentParser()
+
+# CASENO = 4
+# NX = 128 #[128, 192, 256]
+parser.add_argument('--CASENO', help='', type=int, default=1)
+parser.add_argument('--NX',     help='', type=int, default=128)
+parser.add_argument('--METHOD', help='', type=str, default='SMAG')
+parser.add_argument('--IF_PLOT_LIVE', help='', type=int, default=1)
+# METHOD = 'DLEITH_tau_Local' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local
+# METHOD = 'SMAG' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local, || DSMAG_sigma_Local_LocalS , DSMAG_tau_Local_LocalS/
+# METHOD = 'NoSGS'
+
+
+args = parser.parse_args()
+print(args)
+locals().update(vars(args))
 #%% Import
 import numpy as nnp
 import numpy as np
@@ -6,6 +31,7 @@ from scipy.stats import gaussian_kde
 from sklearn.neighbors import KernelDensity
 from fastkde import fastKDE
 import statsmodels.api as sm
+import re
 
 import h5py
 import sys
@@ -22,14 +48,24 @@ except:
     os.system("pip3 install natsort")
     from natsort import natsorted, ns
 
-#from mypathdictionary import *
+# from mypathdictionary import *
 # from mypathdictionary2 import *
-from mypathdictionary3 import *
+from mypathdictionary3 import mypathdictionaryRL
+# from mypathdictionary3_pc import *
+
 # from mypathdictionary3_tests import *
+#from mypathdictionary3_compare import *
+#from mypathdictionary3_compare_CC import *
+from mypathdictionary3_compare_CC import mypathdictionaryclassic
 
 #%%
 import matplotlib.cbook as cbook
 from matplotlib import cm
+if not IF_PLOT_LIVE:
+    import matplotlib
+    matplotlib.use('Agg')
+    print('Backend plot: Agg')
+
 import matplotlib.pyplot as plt
 DPI = 150
 
@@ -42,21 +78,12 @@ plt.rcParams.update({
 
 })
 # %% Case select
-METHOD = 'DLEITH_tau_Local' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local
-# METHOD = 'DSMAG_tau_Local' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local, || DSMAG_sigma_Local_LocalS , DSMAG_tau_Local_LocalS/
+# METHOD = 'DLEITH_tau_Local' #LEITH, DLEITH , DLEITH_sigma_Local, DLEITH_tau_Local
+# METHOD = 'SMAG' #SMAG, DSMAG , DSMAG_sigma_Local, DSMAG_tau_Local, || DSMAG_sigma_Local_LocalS , DSMAG_tau_Local_LocalS/
 # METHOD = 'NoSGS'
 
-# case = str(sys.argv[1])
-# percent_data = float(sys.argv[2])
-# CASENO = 2
-# NX = 64
-# CASENO = 2
-# NX = 128
-CASENO = 4
-NX = 128
-
 if CASENO == 1:
-    NUM_DATA_Classic = 2_00
+    NUM_DATA_Classic = 2_00#0
 elif CASENO == 2:
     NUM_DATA_Classic = 5_00
 elif CASENO == 4:
@@ -109,7 +136,7 @@ else:
     METHOD_str = METHOD
     METHOD_str_legend = ''
 
-METHOD_str += ', data='+str(NUM_DATA_Classic)
+METHOD_str += '_data='+str(NUM_DATA_Classic)
 
 nx, ny = NX,NX
 Lx,Ly = 2*np.pi,2*np.pi
@@ -133,46 +160,50 @@ directory = DATA_DIR  # replace with your directory path
 # Get a sorted list of all files
 # files = sorted(os.listdir(directory), key=lambda x: int(x.split('.')[0]))
 # files = ['1.mat']#, '2.mat']
-
 filecount = 0
 # Iterate over sorted files
 for file in natsorted(os.listdir(directory), alg=ns.PATH | ns.IGNORECASE):
     # Check if file ends with .mat
-    if file.endswith('.mat') and filecount%1==0:
-        file_path = os.path.join(directory, file)
-        # Load .mat file
-        mat = scipy.io.loadmat(file_path)
-        print(f'{filecount}/{NUM_DATA_Classic}, Loaded: {file_path} \r')
+    if int(re.findall(r'\d+', file)[0])>50:
 
-        Omega = mat['Omega']
-        Psi = Omega2Psi_2DFHIT(Omega, invKsq)
+        if file.endswith('.mat') and filecount%1==0:
 
-    filecount += 1
 
-        # Now 'mat' is a dict with variable names as keys, and loaded matrices as values
-        # You can process these matrices using 'mat' dict
-    if filecount>NUM_DATA_Classic: break
-    energy = energy_2DFHIT(Psi, Omega)
-    enstrophy = enstrophy_2DFHIT(Omega)
-    eddy_turnover_time = 1/np.sqrt(enstrophy)
+            file_path = os.path.join(directory, file)
+            # Load .mat file
+            mat = scipy.io.loadmat(file_path)
+            print(f'{filecount}/{NUM_DATA_Classic}, Loaded: {file_path} \r')
 
-    Psi_hat = np.fft.fft2(Psi)
-    Omega_hat = np.fft.fft2(Omega)
+            Omega = mat['Omega']
+            Psi = Omega2Psi_2DFHIT(Omega, invKsq)
 
-    energy_spectra, wavenumbers = TKE_angled_average_2DFHIT(Psi_hat, Omega_hat, spectral=True)
-    enstrophy_spectra, wavenumbers = enstrophy_angled_average_2DFHIT(Omega_hat, spectral=True)
+        filecount += 1
 
-    # Append to lists
-    energy_list.append(energy)
-    enstrophy_list.append(enstrophy)
-    energy_spectra_list.append(energy_spectra)
-    enstrophy_spectra_list.append(enstrophy_spectra)
-    eddy_turnover_time_list.append(eddy_turnover_time)
+            # Now 'mat' is a dict with variable names as keys, and loaded matrices as values
+            # You can process these matrices using 'mat' dict
+        if filecount>NUM_DATA_Classic: break
+        energy = energy_2DFHIT(Psi, Omega)
+        enstrophy = enstrophy_2DFHIT(Omega)
+        eddy_turnover_time = 1/np.sqrt(enstrophy)
 
-    omega_flattened = Omega.flatten()
-    indices = np.random.choice(omega_flattened.shape[0], num_samples, replace=False)
-    sampled_data = omega_flattened[indices]
-    Omega_list.append(sampled_data)
+        Psi_hat = np.fft.fft2(Psi)
+        Omega_hat = np.fft.fft2(Omega)
+
+        energy_spectra, wavenumbers = TKE_angled_average_2DFHIT(Psi_hat, Omega_hat, spectral=True)
+        enstrophy_spectra, wavenumbers = enstrophy_angled_average_2DFHIT(Omega_hat, spectral=True)
+
+        # Append to lists
+        energy_list.append(energy)
+        enstrophy_list.append(enstrophy)
+        energy_spectra_list.append(energy_spectra)
+        enstrophy_spectra_list.append(enstrophy_spectra)
+        eddy_turnover_time_list.append(eddy_turnover_time)
+
+        omega_flattened = Omega.flatten()
+        # omega_flattened = np.hstack((omega_flattened,-omega_flattened)) # Force symmetry
+        indices = np.random.choice(omega_flattened.shape[0], num_samples, replace=False)
+        sampled_data = omega_flattened[indices]
+        Omega_list.append(sampled_data)
 #%%
 # Convert lists to numpy arrays
 energy_arr = nnp.array(energy_list)
@@ -216,6 +247,7 @@ enstrophy_spectra_mean = enstrophy_spectra_arr.mean(axis=0)
 try:
     print('scipy')
     kde = gaussian_kde(Omega_arr, bw_method='scott')
+    kde.set_bandwidth(bw_method=kde.factor * 7.)
     # # Define a range over which to evaluate the density
     bins_scipy = bins
     bw_scott = kde.factor
@@ -233,17 +265,19 @@ energy_spectra_RL_list, enstrophy_spectra_RL_list = [], []
 Omega_list = []
 
 path_RL, NUM_DATA_RL, BANDWIDTH_R = mypathdictionaryRL(CASENO, NX, METHOD)
+NUM_DATA_RL = 5
+BANDWIDTH_R = BANDWIDTH_R*1
 
 if 'LEITH' in METHOD :
     METHOD_RL = 'LEITH_RL'
 elif 'SMAG' in METHOD :
     METHOD_RL = 'SMAG_RL'
-METHOD_RL += ', data='+str(NUM_DATA_RL)
+METHOD_RL += '_data='+str(NUM_DATA_RL)
 
 filecount = 0
 for file in natsorted(os.listdir(path_RL), alg=ns.PATH | ns.IGNORECASE):
     # Check if file ends with .mat
-    if (file.endswith('.mat') and filecount%1==0) and int(re.findall(r'\d+', file)[1])>5_000:
+    if (file.endswith('.mat') and filecount%1==0) and int(re.findall(r'\d+', file)[1])>10_000:
         file_path = os.path.join(path_RL, file)
         print(f'RL → {filecount}/{NUM_DATA_RL}, Loaded: {file_path}')
 
@@ -319,12 +353,11 @@ for icount in [1,2]:
     plt.gca().set_xlim(left=1)
     # plt.legend()
 
-plt.savefig('books_read.png')
+plt.savefig('C'+str(CASENO)+'_N'+str(NX)+'_'+METHOD_RL+'_spectra.png')
 plt.show()
 print(' Error spectra:                               error_tke', 'error_ens')
 print(METHOD_RL   , NX, ':', error_tke_RL, error_ens_RL)
 print(METHOD_str  , NX, ':', error_tke, error_ens)
-
 #%% DNS DATA load .dat
 # pdf_DNS2 = np.loadtxt('pdf_case01_FDNS.dat')
 if CASENO==2:
@@ -338,13 +371,15 @@ YMIN, YMAX = 1e-5, 1e-1
 if CASENO==4:
     YMIN, YMAX = 1e-7, 1e-1
 
-
+# stop_kde
 #%% KDE
 from PDE_KDE import myKDE, mybandwidth_scott
 # BANDWIDTH = mybandwidth_scott(Omega_arr)*1
 # Vecpoints, exp_log_kde, log_kde, kde = myKDE(Omega_arr,BANDWIDTH=BANDWIDTH)
 
 BANDWIDTH = mybandwidth_scott(Omega_arr_RL)
+if CASENO==1:
+    BANDWIDTH = mybandwidth_scott(Omega_arr_RL)*BANDWIDTH_R
 if CASENO==2:
     BANDWIDTH = mybandwidth_scott(Omega_arr_RL)*BANDWIDTH_R
 if CASENO==4:
@@ -447,37 +482,44 @@ error_all_RL = error_pdf_all/pdf_all
 print(METHOD_str,":", error_in_RL, error_out_RL, error_all_RL)
 
 #%% Plot PDFs
+# sigma_omega = 13.01
+sigma_omega = 1
 fig, axs= plt.subplots(1,3, sharex=True, figsize=(16,5))
 
 yhor = np.ones_like(bins)*1e-12
 
-axs[0].fill_between(bins, yhor, pdf_DNS_on_bins, where=(in_band), color='C0', alpha=0.3)
-
-axs[0].semilogy(bins_scipy, pdf_scipy       , '+-r' , label=METHOD_str_legend)
-axs[0].semilogy(bins      , pdf_data_on_bins, '+-g', label=METHOD_RL)
-axs[0].semilogy(bins      , pdf_DNS_on_bins , '.k' , label='DNS')
+axs[0].fill_between(bins/sigma_omega, yhor, pdf_DNS_on_bins, where=(in_band), color='C0', alpha=0.3)
+axs[0].semilogy(bins/sigma_omega      , pdf_DNS_on_bins , color='darkgray' , linewidth=4, label='DNS')
+axs[0].semilogy(bins_scipy/sigma_omega, pdf_scipy       , ':r' , label=METHOD_str_legend)
+axs[0].semilogy(bins/sigma_omega      , pdf_data_on_bins, '+-b', label=METHOD_RL)
 # axs[0].legend(loc='upper left')
 #axs[0][0].legend(bbox_to_anchor=(1.04, 1))
 
-plt.subplot(1,3,1)
+axs[0].annotate(rf'$C{CASENO}, N_x={NX}$', xy=(0.02, 0.93), xycoords='axes fraction',fontsize=18)
+
+plt.subplot(1,3,3)
+plt.title(METHOD)
 
 if CASENO==2:
     plt.ylim([YMIN/10, YMAX*10])
 elif CASENO==4:
     # plt.xlim([-100, 100])
     plt.ylim([YMIN, YMAX])
-plt.xlim([-10, 10])
-# plt.ylim([YMIN/10, YMAX])
-plt.ylim([YMIN, YMAX]) # arXiv
 
+
+axs[0].axis(xmin=-7,xmax=7,
+            ymin=1e-6)
+plt.ylim([YMIN/10, YMAX])
+# axs[0].ylim([1e-6, 1e-1])
+# stop
+##%%
 axs[1].fill_between(bins, yhor, np.abs(pdf_data_on_bins-pdf_DNS_on_bins), where=(in_band), color='C0', alpha=0.3)
 
-axs[1].semilogy(bins,np.abs(pdf_data_on_bins-pdf_DNS_on_bins), '-')
+axs[1].semilogy(bins/sigma_omega,np.abs(pdf_data_on_bins-pdf_DNS_on_bins), '-')
 axs[1].semilogy(bins[in_band],np.abs(pdf_data_on_bins-pdf_DNS_on_bins)[in_band], '.k')
 axs[1].semilogy(bins[out_band],np.abs(pdf_data_on_bins-pdf_DNS_on_bins)[out_band], '.r')
 
-
-
+axs[1].annotate(rf'$BW={BANDWIDTH_R}$', xy=(0.02, 0.93), xycoords='axes fraction',fontsize=18)
 
 plt.subplot(1,3,2)
 plt.title('RL')
@@ -499,21 +541,25 @@ axs[ii].semilogy(bins[in_band],np.abs(pdf_scipy-pdf_DNS_on_bins)[in_band], '+k')
 axs[ii].semilogy(bins[out_band],np.abs(pdf_scipy-pdf_DNS_on_bins)[out_band], '+r')
 
 plt.subplot(1,3,3)
-plt.title(METHOD)
-# plt.xlim([bin_min, bin_max])
 
-if CASENO==2:
+if CASENO==1:
+    plt.ylim([YMIN/1e1, YMAX/1e1])
+elif CASENO==2:
     plt.ylim([YMIN/1e1, YMAX/1e1])
 elif CASENO==4:
     plt.ylim([YMIN/1e2, YMAX])
 
 for icount in [1,2,3]:
     plt.subplot(1,3,icount)
+
 plt.xlim([bin_min, bin_max])
 
+axs[1].sharey(axs[2])
+
+plt.savefig('C'+str(CASENO)+'_N'+str(NX)+'_'+METHOD_RL+'_pdf.png')
 plt.show()
+#stop_plot_pdf
 #%%
-stop
 plt.figure(figsize=(4,10))
 plt.subplot(3,1,1)
 plt.plot(bins,pdf_DNS_on_bins, '.b',label='DNS')
@@ -535,15 +581,17 @@ plt.subplot(3,1,3)
 plt.semilogy(bins,np.abs(pdf_data_on_bins-pdf_DNS_on_bins)/pdf_DNS_on_bins, '-r')
 plt.semilogy(bins,np.abs(pdf_scipy-pdf_DNS_on_bins)/pdf_DNS_on_bins, ':k')
 plt.semilogy(bins,np.abs(pdf_DNS_on_bins-pdf_DNS_on_bins)/pdf_DNS_on_bins, '.b')
+plt.ylim([-1e0, -1e-4])
 
 # plt.ylim([YMIN/1e2, YMAX])
 for icount in range(3):
     plt.subplot(3,1,icount+1)
     plt.tight_layout()
 # stop
-
+#%% Save to file
+mystr = '_OG' #_OG
 filename_save = 'C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD
-filenameRL_save = 'C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD_RL+'_OG'
+filenameRL_save = 'C'+str(CASENO)+'_'+'N'+str(NX)+'_'+METHOD_RL+mystr#'_OG'
 
 np.savetxt(filename_save+'_energy.dat', np.vstack([wavenumbers, energy_spectra_mean]).T, delimiter='\t')
 np.savetxt(filenameRL_save+'_energy.dat', np.vstack([wavenumbers_RL, energy_spectra_RL_mean]).T, delimiter='\t')
@@ -560,8 +608,9 @@ np.savetxt('C'+str(CASENO)+'_enstrophy.dat', np.vstack([wavenumbers_spectra_DNS,
 #$%% SAVE PDF
 np.savetxt(filename_save+'_pdf.dat', np.vstack([bins, pdf_DNS_on_bins, pdf_scipy ]).T, delimiter='\t')
 np.savetxt(filenameRL_save+'_pdf.dat', np.vstack([bins, pdf_DNS_on_bins, pdf_data_on_bins ]).T, delimiter='\t')
-#$%%
+stop_save_to_file
+#%%
 np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_energy.dat', np.vstack([wavenumbers_spectra_DNS, energy_spectra_DNS]).T, delimiter='\t')
 np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_enstrophy.dat', np.vstack([wavenumbers_spectra_DNS, enstrophy_spectra_DNS]).T, delimiter='\t')
 np.savetxt('C'+str(CASENO)+'_'+'N'+str(NX)+'_'+'DNS'+'_pdf.dat', np.vstack([bins, pdf_DNS_on_bins, pdf_DNS_on_bins ]).T, delimiter='\t')
-stop
+#stop_file_save
