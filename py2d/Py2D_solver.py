@@ -19,6 +19,7 @@ import jax.numpy as np
 from scipy.io import loadmat, savemat
 import time as runtime
 from timeit import default_timer as timer
+
 print(jax.default_backend())
 print(jax.devices())
 
@@ -419,6 +420,10 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
             filename_data = SAVE_DIR_DATA + str(last_file_number_data)
             filename_IC = SAVE_DIR_IC + str(last_file_number_IC)
+
+            if last_file_number_data > 2:
+                # Remove the previous file
+                os.remove(SAVE_DIR_IC + str(last_file_number_data - 2) + '.mat')
 
             try:
                 if np.isnan(eddyTurnoverTime).any():
