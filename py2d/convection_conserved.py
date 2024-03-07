@@ -3,7 +3,7 @@ import numpy as nnp
 import jax.numpy as np
 from jax import jit
 
-from py2d.dealias import multiply_dealias_spectral
+from py2d.dealias import multiply_dealias_spectral_jit
 
 @jit
 def convection_conserved_dealias(Omega1_hat, U1_hat, V1_hat, Kx, Ky):
@@ -16,8 +16,8 @@ def convection_conserved_dealias(Omega1_hat, U1_hat, V1_hat, Kx, Ky):
     # Omega1 = np.real(np.fft.ifft2(Omega1_hat))
 
     # dealiasing
-    U1Omega1_hat = multiply_dealias_spectral(U1_hat, Omega1_hat)
-    V1Omega1_hat = multiply_dealias_spectral(V1_hat, Omega1_hat)
+    U1Omega1_hat = multiply_dealias_spectral_jit(U1_hat, Omega1_hat)
+    V1Omega1_hat = multiply_dealias_spectral_jit(V1_hat, Omega1_hat)
 
     conu1 = (1.j) * Kx * U1Omega1_hat
     conv1 = (1.j) * Ky * V1Omega1_hat
@@ -28,8 +28,8 @@ def convection_conserved_dealias(Omega1_hat, U1_hat, V1_hat, Kx, Ky):
     Omega1y_hat = (1.j) * Ky * Omega1_hat
 
     # dealiasing
-    U1Omega1x_hat = multiply_dealias_spectral(U1_hat, Omega1x_hat)
-    V1Omega1y_hat = multiply_dealias_spectral(V1_hat, Omega1y_hat)
+    U1Omega1x_hat = multiply_dealias_spectral_jit(U1_hat, Omega1x_hat)
+    V1Omega1y_hat = multiply_dealias_spectral_jit(V1_hat, Omega1y_hat)
 
     conu1 = U1Omega1x_hat
     conv1 = V1Omega1y_hat
@@ -39,6 +39,7 @@ def convection_conserved_dealias(Omega1_hat, U1_hat, V1_hat, Kx, Ky):
     
     return convec_hat
 
+@jit
 def convection_conserved(Omega1_hat, U1_hat, V1_hat, Kx, Ky):
     
     # Convservative form
