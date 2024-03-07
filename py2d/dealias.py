@@ -145,8 +145,8 @@ def multiply_dealias_spectral_jit(u_hat, v_hat):
     Ncoarse = u_hat.shape[0]
 
     # Dealias each field
-    u_dealias_hat = padding_for_dealias(u_hat, spectral=True)
-    v_dealias_hat = padding_for_dealias(v_hat, spectral=True)
+    u_dealias_hat = padding_for_dealias_spectral_jit(u_hat)
+    v_dealias_hat = padding_for_dealias_spectral_jit(v_hat)
 
     u_dealias = jnp.fft.ifft2(u_dealias_hat).real
     v_dealias = jnp.fft.ifft2(v_dealias_hat).real
@@ -178,7 +178,7 @@ def padding_for_dealias_spectral_jit(u_hat_alias, K=3/2):
     - The u_hat_dealias needs to be conjugate symmetric for the inverse FFT to be real.
     """
     # Determine the original and dealiased grid sizes
-    N_alias = u_hat_dealias.shape[0]
+    N_alias = u_hat_alias.shape[0]
     N_dealias = int(K * N_alias)
 
     # Scale the spectral data to account for the increased grid size
