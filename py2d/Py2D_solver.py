@@ -22,10 +22,10 @@ from jax import jit
 from scipy.io import loadmat, savemat
 
 # Import Custom Module
-from py2d.aposteriori_analysis import eddyTurnoverTime_2DFHIT
-from py2d.convection_conserved import convection_conserved
-from py2d.convert import Omega2Psi_2DFHIT_spectral, Psi2UV_2DFHIT_spectral
-from py2d.datamanager import (
+from .aposteriori_analysis import eddyTurnoverTime_2DFHIT
+from .convection_conserved import convection_conserved
+from .convert import Omega2Psi_2DFHIT_spectral, Psi2UV_2DFHIT_spectral
+from .datamanager import (
     gen_path,
     get_last_file,
     pretty_print_table,
@@ -35,7 +35,7 @@ from py2d.initialize import (
     initialize_perturbation,
     initialize_wavenumbers_2DFHIT,
 )
-from py2d.SGSModel import *
+from .SGSModel import SGSModel
 
 os.chdir("../../py2d/")
 print(jax.default_backend())
