@@ -8,7 +8,6 @@
 
 # Import os module
 import os
-# os.chdir('../../py2d/')
 from pathlib import Path
 
 # Import Python Libraries
@@ -24,10 +23,10 @@ print(jax.default_backend())
 print(jax.devices())
 
 # Import Custom Module
-from py2d.convection_conserved import convection_conserved, convection_conserved_dealias
-from py2d.convert import Omega2Psi_2DFHIT_spectral, Psi2UV_2DFHIT_spectral
-from py2d.aposteriori_analysis import eddyTurnoverTime_2DFHIT
-from py2d.SGSModel import *
+from .convection_conserved import convection_conserved
+from .convert import Omega2Psi_2DFHIT_spectral, Psi2UV_2DFHIT_spectral
+from .aposteriori_analysis import eddyTurnoverTime_2DFHIT
+from .SGSModel import *
 # from py2d.uv2tau_CNN import *
 
 from py2d.initialize import gridgen, initialize_wavenumbers_2DFHIT, initialize_perturbation
