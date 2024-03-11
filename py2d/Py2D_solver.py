@@ -148,8 +148,8 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     # Create directories if they aren't present
     try:
-        os.makedirs(SAVE_DIR_DATA)
-        os.makedirs(SAVE_DIR_IC)
+        os.makedirs(SAVE_DIR_DATA, exist_ok=True)
+        os.makedirs(SAVE_DIR_IC, exist_ok=True)
     except OSError as error:
         print(error)
 
@@ -177,13 +177,13 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
                        ["Eddy Viscosity Coefficient (eddyViscosityCoeff)", eddyViscosityCoeff],
                        ["Saving Directory", SAVE_DIR_DATA]]
 
-    pretty_print_table("Run Configuration", run_config2)
-    pretty_print_table("Geometry and Mesh", geometry_mesh2)
-    pretty_print_table("Geometry and Mesh", table_flow_spec2)
+    # pretty_print_table("Run Configuration", run_config2)
+    # pretty_print_table("Geometry and Mesh", geometry_mesh2)
+    # pretty_print_table("Geometry and Mesh", table_flow_spec2)
 
 
     # -------------- Initialization Section--------------
-    print("-------------- Initialization Section--------------")
+    # print("-------------- Initialization Section--------------")
 
     # -------------- Initialize PiOmega Model --------------
 
@@ -229,10 +229,10 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
         for key, value in variables.items():
             f.write(f'{key}: {value}\n')
 
-    print("Parameters of the flow saved to saved to " + SAVE_DIR + 'parameter.txt')
+    # print("Parameters of the flow saved to saved to " + SAVE_DIR + 'parameter.txt')
 
     # -------------- Main iteration loop --------------
-    print("-------------- Main iteration loop --------------")
+    # print("-------------- Main iteration loop --------------")
     ## 0 meanns previous time step, 1 means current time step
     start_time = runtime.time()
 
@@ -347,12 +347,12 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
                 print(str(e))
                 quit()
 
-            print('Time = {:.6f} -- Eddy Turnover Time = {:.6f} -- C = {:.4f} -- Eddy viscosity = {:.6f} ** Saved {}'.format(time, eddyTurnoverTime, eddyViscosityCoeff, eddyViscosity, filename_data))
+            print('Time = {:.2e} -- Eddy Turnover Time = {:.2e} -- C = {:.2e} -- Eddy viscosity = {:.2e} ** '.format(time, eddyTurnoverTime, eddyViscosityCoeff, eddyViscosity))
 
     # Print elapsed time
-    print('Total Iteration: ', it+1)
+    # print('Total Iteration: ', it+1)
     endTime = timer()
-    print('Total Time Taken: ', endTime-startTime)
+    # print('Total Time Taken: ', endTime-startTime)
 
     Omega = np.real(np.fft.ifft2(Omega1_hat))
     Omega_cpu = nnp.array(Omega)
@@ -380,13 +380,15 @@ def initialize_conditions(NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, direct
         else:
 
             if last_file_number_IC is not None:
-                print(f"Last IC file number: {last_file_number_IC}")
+                # print(f"Last IC file number: {last_file_number_IC}")
+                pass
             else:
                 raise ValueError("No .mat initialization files found to resume the simulation")
             
             # Print last file names (filenames are integers)
             if last_file_number_data is not None:
-                print(f"Last data file number: {last_file_number_data}")
+                # print(f"Last data file number: {last_file_number_data}")
+                pass
             else:
                 print("No .mat files found")
             # Load initial condition to resume simulation
@@ -438,16 +440,16 @@ def initialize_conditions(NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, direct
 
         # Set last File numbers
         if last_file_number_data is None:
-            print(f"Last data file number: {last_file_number_data}")
+            # print(f"Last data file number: {last_file_number_data}")
             last_file_number_data = 0
-            print("Updated last data file number to " + str(last_file_number_data))
+            # print("Updated last data file number to " + str(last_file_number_data))
         else:
             raise ValueError("Data already exists in the results folder for this case, either resume the simulation (resumeSim = True) or delete data to start a new simulation")
 
         if last_file_number_IC is None:
-            print(f"Last data file number: {last_file_number_IC}")
+            # print(f"Last data file number: {last_file_number_IC}")
             last_file_number_IC = 0
-            print("Updated last data file number to " + str(last_file_number_IC))
+            # print("Updated last data file number to " + str(last_file_number_IC))
         else:
             raise ValueError("Data already exists in the results folder for this case, either resume the simulation (resumeSim = True) or delete data to start a new simulation")
         return Omega0_hat, Omega1_hat, Psi0_hat, Psi1_hat, time,last_file_number_IC, last_file_number_data

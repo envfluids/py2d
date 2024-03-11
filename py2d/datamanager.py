@@ -21,8 +21,8 @@ def gen_path(NX, dt, ICnum, Re,
 
     # Create directories if they aren't present
     try:
-        os.makedirs(SAVE_DIR_DATA)
-        os.makedirs(SAVE_DIR_IC)
+        os.makedirs(SAVE_DIR_DATA, exist_ok=True)
+        os.makedirs(SAVE_DIR_IC, exist_ok=True)
     except OSError as error:
         print(error)
         
