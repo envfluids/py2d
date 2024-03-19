@@ -216,9 +216,6 @@ def coarse_spectral_filter_square_2DFHIT_jit(a_hat, NCoarse):
     # Define the start and end indices for the slice in Fourier space to keep
     ids = N//2-dkcut
     ide = N//2+dkcut
-    
-    # Shift the zero-frequency component to the center, then normalize the Fourier-transformed data
-    a_hat_shift = jnp.fft.fftshift(a_hat)/(N**2)
 
     # Apply the spectral filter by slicing the 2D array
     wfiltered_hat_shift = a_hat_shift[ids:ide,ids:ide]

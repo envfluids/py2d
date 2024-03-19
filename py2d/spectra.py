@@ -3,7 +3,7 @@ import numpy as np
 from py2d.initialize import initialize_wavenumbers_2DFHIT
 from py2d.derivative import derivative_2DFHIT
 
-def spectrum_angled_average_2DFHIT(A, spectral = False):
+def spectrum_angled_average_2DFHIT(A, kmax = 'grid', spectral = False):
     '''
     Compute the radially/angle-averaged spectrum of a 2D square matrix.
 
@@ -11,6 +11,10 @@ def spectrum_angled_average_2DFHIT(A, spectral = False):
     ----------
     A : numpy.ndarray
         The input 2D square matrix. If `spectral` is False, `A` is in the physical domain; otherwise, it is in the spectral domain.
+    kmax : str, optional 'grid' or 'diagonal' Default is 'grid'
+        The maximum wavenumber to be considered in the average. Default is Ngrid/2 which will consider all wavenumber of radius less than Ngrid/2.
+        If confused used default.
+        Alternatively, it will consider all wavenumber upto the radius less than the diagonal of the square grid can with i.e. kmax = np.sqrt(2)*Ngrid/2
     spectral : bool, optional
         Whether `A` is in the spectral domain. Default is False.
 
@@ -32,6 +36,8 @@ def spectrum_angled_average_2DFHIT(A, spectral = False):
     np.abs(A_hat) is not the same as np.sqrt(np.conj(A_hat)*A_hat) for complex-valued A_hat.
     np.abs(A_hat) calculates the magnitude (sqrt(a^2 + b^2)) of the complex-valued A_hat, 
     while np.sqrt(np.conj(A_hat)*A_hat) calculates the absolute value (sqrt(a^2 + (ib)^2)) of A_hat where A_hat = a + ib.
+
+
     '''
 
     # Check if input 'A' is a 2D square matrix
@@ -60,7 +66,10 @@ def spectrum_angled_average_2DFHIT(A, spectral = False):
     A_hat = A_hat / nx ** 2
 
     # Calculate the maximum wavenumber to be considered in the average
-    kxMax = round(nx / 2)
+    if kmax == 'grid':
+        kxMax = round(nx / 2)
+    elif kmax == 'diagonal':
+        kxMax = round(np.sqrt(2) * nx / 2)
 
     # Initialize the output array with zeros
     A_angled_average_spectra = np.zeros(kxMax + 1)
@@ -69,7 +78,7 @@ def spectrum_angled_average_2DFHIT(A, spectral = False):
 
     # Compute the angle-averaged spectrum for wavenumbers 1 to kxMax
     for k in range(1, kxMax + 1):
-        tempInd = (Kabs >= (k - 0.5)) & (Kabs < (k + 0.5))
+        tempInd = (Kabs > (k - 0.5)) & (Kabs <= (k + 0.5))
         A_angled_average_spectra[k] = np.sum(A_hat[tempInd])
 
     # Generate the array of wavenumbers corresponding to the computed spectrum
