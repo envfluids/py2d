@@ -233,7 +233,7 @@ def conjugate_symmetrize_padding_jit(a_hat_fft_pad):
     N_dealias = int(a_hat_fft_pad.shape[0])
     a_hat_fft_pad_sym = a_hat_fft_pad.copy()
 
-    # # First Row and Column (using at.set)
+    # First Row and Column (using at.set)
     # a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[0, N_dealias//2+1].set(jnp.conj(a_hat_fft_pad_sym[0, N_dealias//2-1]))
     # a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[N_dealias//2+1, 0].set(jnp.conj(a_hat_fft_pad_sym[N_dealias//2-1, 0]))
 
@@ -245,7 +245,7 @@ def conjugate_symmetrize_padding_jit(a_hat_fft_pad):
     # a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[slice_end, 1:].set(jnp.conj(jnp.flip(a_hat_fft_pad_sym[slice_start, 1:])))
     # a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[1:, slice_end].set(jnp.conj(jnp.flip(a_hat_fft_pad_sym[1:, slice_start])))
 
-    ############ Alternatively equate the data to zero at wavenumber (N//2-1) to (N//2+1) to make it conjugate symmetric
+    # # ############ Alternatively equate the data to zero at wavenumber (N//2-1) to (N//2+1) to make it conjugate symmetric
     a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[N_dealias//2-1,:].set(0)
     a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[N_dealias//2+1,:].set(0)
     a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[:,N_dealias//2-1].set(0)

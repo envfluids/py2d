@@ -196,10 +196,11 @@ def conjugate_symmetrize_coarse(a_hat):
     NCoarse = int(a_hat.shape[0])
     a_hat_sym = a_hat.copy()
 
-    a_hat_sym[NCoarse//2, 0] = a_hat_sym[NCoarse//2, 0].real
-    a_hat_sym[0, NCoarse//2] = a_hat_sym[0, NCoarse//2].real
-    a_hat_sym[NCoarse//2,1:] = (a_hat_sym[NCoarse//2,1:] + np.conj(np.flip(a_hat_sym[NCoarse//2,1:])))/2
-    a_hat_sym[1:,NCoarse//2] = (a_hat_sym[1:,NCoarse//2] + np.conj(np.flip(a_hat_sym[1:,NCoarse//2])))/2
+    # #Ensure Nyquist wavenumber is its own complex conjugate
+    # a_hat_sym[NCoarse//2, 0] = a_hat_sym[NCoarse//2, 0].real
+    # a_hat_sym[0, NCoarse//2] = a_hat_sym[0, NCoarse//2].real
+    # a_hat_sym[NCoarse//2,1:] = (a_hat_sym[NCoarse//2,1:] + np.conj(np.flip(a_hat_sym[NCoarse//2,1:])))/2
+    # a_hat_sym[1:,NCoarse//2] = (a_hat_sym[1:,NCoarse//2] + np.conj(np.flip(a_hat_sym[1:,NCoarse//2])))/2
 
     ##### Remove data at the nyquist frequency to make it conjugate frequency #####
     a_hat_sym[NCoarse//2, :] = 0
@@ -264,13 +265,14 @@ def conjugate_symmetrize_coarse_jit(a_hat_coarse):
     NCoarse = int(a_hat_coarse.shape[0])
     a_hat_coarse_sym = a_hat_coarse.copy()
 
-    a_hat_coarse_sym = a_hat_coarse_sym.at[NCoarse//2, 0].set(jnp.real(a_hat_coarse_sym[NCoarse//2, 0]))
-    a_hat_coarse_sym = a_hat_coarse_sym.at[0, NCoarse//2].set(jnp.real(a_hat_coarse_sym[0, NCoarse//2]))
-    a_hat_coarse_sym = a_hat_coarse_sym.at[NCoarse//2,1:].set((a_hat_coarse_sym[NCoarse//2,1:] + jnp.conj(jnp.flip(a_hat_coarse_sym[NCoarse//2,1:])))/2)
-    a_hat_coarse_sym = a_hat_coarse_sym.at[1:,NCoarse//2].set((a_hat_coarse_sym[1:,NCoarse//2] + jnp.conj(jnp.flip(a_hat_coarse_sym[1:,NCoarse//2])))/2)
+    # #Ensure Nyquist wavenumber is its own complex conjugate
+    # a_hat_coarse_sym = a_hat_coarse_sym.at[NCoarse//2, 0].set(jnp.real(a_hat_coarse_sym[NCoarse//2, 0]))
+    # a_hat_coarse_sym = a_hat_coarse_sym.at[0, NCoarse//2].set(jnp.real(a_hat_coarse_sym[0, NCoarse//2]))
+    # a_hat_coarse_sym = a_hat_coarse_sym.at[NCoarse//2,1:].set((a_hat_coarse_sym[NCoarse//2,1:] + jnp.conj(jnp.flip(a_hat_coarse_sym[NCoarse//2,1:])))/2)
+    # a_hat_coarse_sym = a_hat_coarse_sym.at[1:,NCoarse//2].set((a_hat_coarse_sym[1:,NCoarse//2] + jnp.conj(jnp.flip(a_hat_coarse_sym[1:,NCoarse//2])))/2)
 
     ##### Alternatively remove the data (make it zero) at the Nyquist frequency to make it conjugate symmetric #####
     a_hat_coarse_sym = a_hat_coarse_sym.at[NCoarse//2, :].set(0)
-    a_hat_coarse_sym = a_hat_coarse_sym.at[0, NCoarse//2].set(0)
+    a_hat_coarse_sym = a_hat_coarse_sym.at[:, NCoarse//2].set(0)
     
     return a_hat_coarse_sym
