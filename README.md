@@ -22,7 +22,7 @@ Py2D leverages JAX, a high-performance numerical computing library, allowing for
 
 - python 3.10
   - [jax](https://pypi.org/project/jax/)
-  - [scipy](https://pypi.org/project/scipy/)
+  - [jaxlib](https://pypi.org/project/jaxlib/)
   - [numpy](https://pypi.org/project/numpy/)
 
 ## Installation
@@ -44,20 +44,14 @@ Then install py2d locally on your system
 cd py2d
 pip install -e ./
 ```
-Install basic scientific libraries
-```
-pip install numpy scipy
-```
-### Install JAX 
-JAX can be installed for either CPU-only or GPU-supported environments. Follow the instructions below based on your requirements:
 
-#### For CPU-only usage
-> This installation will allow you to use JAX with CPU support but without GPU acceleration.
-```
-pip install jax
-```
+### A note on JAX 
+JAX can be installed for either CPU-only or GPU-supported environments.
+
+The default installation above will install JAX with CPU support but without GPU acceleration.
+
 #### For GPU support
-[Installing JAX](https://jax.readthedocs.io/en/latest/installation.html)
+For instructions on installing with GPU support see [Installing JAX](https://jax.readthedocs.io/en/latest/installation.html).
 > Note: Note: GPU support requires a compatible NVIDIA GPU and the correct CUDA and CuDNN versions installed on your system. If you're unsure about your CUDA and CuDNN versions, consult the documentation for your GPU and the JAX installation guide for further guidance.
 
 ### If using JAX with Pytorch:
