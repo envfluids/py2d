@@ -24,6 +24,8 @@ classifiers = [
 ]
 dependencies = [
     "numpy",
+    "jax",
+    "jaxlib",
 ]
 
 [project.urls]
