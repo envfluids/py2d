@@ -8,7 +8,7 @@
 
 # Import os module
 import os
-os.chdir('../../py2d/')
+# os.chdir('../../py2d/')
 from pathlib import Path
 
 # Import Python Libraries
@@ -19,11 +19,12 @@ import jax.numpy as np
 from scipy.io import loadmat, savemat
 import time as runtime
 from timeit import default_timer as timer
+
 print(jax.default_backend())
 print(jax.devices())
 
 # Import Custom Module
-from py2d.convection_conserved import convection_conserved
+from py2d.convection_conserved import convection_conserved, convection_conserved_dealias
 from py2d.convert import Omega2Psi_2DFHIT_spectral, Psi2UV_2DFHIT_spectral
 from py2d.aposteriori_analysis import eddyTurnoverTime_2DFHIT
 from py2d.SGSModel import *
@@ -45,7 +46,7 @@ eddyTurnoverTime_2DFHIT_jit = jit(eddyTurnoverTime_2DFHIT)
 # Start timer
 startTime = timer()
 
-def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoeff, dt, saveData, tSAVE, tTotal, readTrue, ICnum, resumeSim):
+def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoeff, dt, dealias, saveData, tSAVE, tTotal, readTrue, ICnum, resumeSim):
 
     # -------------- RUN Configuration --------------
     # Use random initial condition or read initialization from a file or use
@@ -188,7 +189,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # -------------- Initialize PiOmega Model --------------
 
     # PiOmega_eddyViscosity_model = SGSModel()  # Initialize SGS Model
-    PiOmega_eddyViscosity_model=SGSModel(Kx, Ky, Ksq, Delta, method=SGSModel_string, C_MODEL=eddyViscosityCoeff)
+    PiOmega_eddyViscosity_model=SGSModel(Kx, Ky, Ksq, Delta, method=SGSModel_string, C_MODEL=eddyViscosityCoeff, dealias=dealias)
     # PiOmega_eddyViscosity_model.set_method(SGSModel_string) # Set SGS model to calculate PiOmega and Eddy Viscosity
 
     if SGSModel_string == 'CNN':
@@ -323,9 +324,16 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
         if it == 0:
             U0_hat, V0_hat = Psi2UV_2DFHIT_spectral(Psi0_hat, Kx, Ky)
             U1_hat, V1_hat = U0_hat, V0_hat
-            convec0_hat = convection_conserved(Omega0_hat, U0_hat, V0_hat, Kx, Ky)
 
-        convec1_hat = convection_conserved(Omega1_hat, U1_hat, V1_hat, Kx, Ky)
+            if dealias:
+                convec0_hat = convection_conserved_dealias(Omega0_hat, U0_hat, V0_hat, Kx, Ky)
+            else:
+                convec0_hat = convection_conserved(Omega0_hat, U0_hat, V0_hat, Kx, Ky)
+
+        if dealias:
+            convec1_hat = convection_conserved_dealias(Omega1_hat, U1_hat, V1_hat, Kx, Ky)
+        else:
+            convec1_hat = convection_conserved(Omega1_hat, U1_hat, V1_hat, Kx, Ky)
 
         # 2 Adam bash forth
         convec_hat = 1.5*convec1_hat - 0.5*convec0_hat
@@ -413,6 +421,10 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
             filename_data = SAVE_DIR_DATA + str(last_file_number_data)
             filename_IC = SAVE_DIR_IC + str(last_file_number_IC)
 
+            if last_file_number_data > 2:
+                # Remove the previous file
+                os.remove(SAVE_DIR_IC + str(last_file_number_data - 2) + '.mat')
+
             try:
                 if np.isnan(eddyTurnoverTime).any():
                     filename = SAVE_DIR + 'unstable.txt'
@@ -461,6 +473,7 @@ if __name__ == '__main__':
                        eddyViscosityCoeff=0.17, # Coefficient for eddy viscosity models: SMAG and LEITH
                        dt=5e-4, # Time step
                        saveData=True, # Save data
+                       dealias=True, # dealias
                        tSAVE=1.0, # Time interval to save data
                        tTotal=10.0, # Total time of simulation
                        readTrue=False,
