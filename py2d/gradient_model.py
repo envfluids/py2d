@@ -373,7 +373,7 @@ def TauGM4_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, de
     else:
         return Tau11GM4, Tau12GM4, Tau22GM4
     
-@jit
+
 def TauGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     B1 = Delta**4 / 144
@@ -394,7 +394,7 @@ def TauGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     return Tau11GM4, Tau12GM4, Tau22GM4
 
-@jit
+
 def TauGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
 
     B1 = Delta**4 / 144
@@ -451,7 +451,7 @@ def TauGM6_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, de
     else:
         return Tau11GM6, Tau12GM6, Tau22GM6
     
-@jit
+
 def TauGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     C1 = Delta**6 / 3456
@@ -474,7 +474,7 @@ def TauGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     return Tau11GM6, Tau12GM6, Tau22GM6
 
-@jit
+
 def TauGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
 
     C1 = Delta**6 / 3456
@@ -579,7 +579,7 @@ def SigmaGM2_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=
     else:
         return Sigma1GM2, Sigma2GM2
     
-@jit
+
 def SigmaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     # not dealiased
     A1 = Delta**2 / 12
@@ -597,7 +597,7 @@ def SigmaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     return Sigma1GM2, Sigma2GM2
 
-@jit
+
 def SigmaGM2_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     # dealiased
     A1 = Delta**2 / 12
@@ -645,7 +645,7 @@ def SigmaGM4_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=
     else:
         return Sigma1GM4, Sigma2GM4
     
-@jit
+
 def SigmaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     # not dealiased
     B1 = Delta**4 / 144
@@ -669,7 +669,7 @@ def SigmaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     return Sigma1GM4, Sigma2GM4
 
-@jit
+
 def SigmaGM4_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     # not dealiased
     B1 = Delta**4 / 144
@@ -833,66 +833,10 @@ def SigmaGM10_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral
 # TauLeonardGM2 
 def TauLeonardGM2_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
 
-    if spectral:
-        U_hat, V_hat = U, V
-    else:
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+    # TauLeonardGM2 is equal to TauGM2
+    Tau11Leonard, Tau12Leonard, Ta22Leonard = TauGM2_2DFHIT(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
 
-    if filterType=='gaussian' or filterType=='box':
-    # GM2 for gaussian and box is same
-        if dealias:
-            Tau11LeonardGM2_hat, Tau12LeonardGM2_hat, Tau22LeonardGM2_hat = TauLeonardGM2_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
-            Tau11LeonardGM2 = real_ifft2(Tau11LeonardGM2_hat)
-            Tau12LeonardGM2 = real_ifft2(Tau12LeonardGM2_hat)
-            Tau22LeonardGM2 = real_ifft2(Tau22LeonardGM2_hat)
-        else:
-            Tau11LeonardGM2, Tau12LeonardGM2, Tau22LeonardGM2 = TauLeonardGM2_gaussian(U_hat, V_hat, Kx, Ky, Delta)
-
-    if spectral:
-        Tau11LeonardGM2_hat = np.fft.fft2(Tau11LeonardGM2)
-        Tau12LeonardGM2_hat = np.fft.fft2(Tau12LeonardGM2)
-        Tau22LeonardGM2_hat = np.fft.fft2(Tau22LeonardGM2)
-        return Tau11LeonardGM2_hat, Tau12LeonardGM2_hat, Tau22LeonardGM2_hat
-    else:
-        return Tau11LeonardGM2, Tau12LeonardGM2, Tau22LeonardGM2
-    
-@jit
-def TauLeonardGM2_gaussian(U_hat, V_hat, Kx, Ky, Delta):
-
-    A = Delta**2 / 12
-
-    Ux = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky))
-    Uy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky))
-    Vx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky))
-    Vy = -Ux
-
-    TauLeonard11GM2 = A * (Ux**2 + Uy**2)
-    TauLeonard12GM2 = A * (Ux*Vx + Uy*Vy)
-    TauLeonard22GM2 = A * (Vx**2 + Vy**2)
-
-    return TauLeonard11GM2, TauLeonard12GM2, TauLeonard22GM2
-
-@jit
-def TauLeonardGM2_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
-
-    A = Delta**2 / 12
-
-    Ux_hat = derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky)
-    Uy_hat = derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky)
-    Vx_hat = derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky)
-    Vy_hat = -Ux_hat
-
-    UxUx_hat = multiply_dealias_spectral(Ux_hat, Ux_hat)
-    UyUy_hat = multiply_dealias_spectral(Uy_hat, Uy_hat)
-    UxVx_hat = multiply_dealias_spectral(Ux_hat, Vx_hat)
-    UyVy_hat = multiply_dealias_spectral(Uy_hat, Vy_hat)
-
-    TauLeonard11GM2_hat = A * (UxUx_hat + UyUy_hat)
-    TauLeonard12GM2_hat = A * (UxVx_hat + UyVy_hat)
-    TauLeonard22GM2_hat = A * (VxVx_hat + VyVy_hat)
-
-    return TauLeonard11GM2_hat, TauLeonard12GM2_hat, TauLeonard22GM2_hat
+    return Tau11Leonard, Tau12Leonard, Ta22Leonard
 
 # TauLeonardGM4
 def TauLeonardGM4_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
@@ -920,7 +864,7 @@ def TauLeonardGM4_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=Fa
     else:
         return Tau11LeonardGM4, Tau12LeonardGM4, Tau22LeonardGM4
 
-@jit
+
 def TauLeonardGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     B1 = Delta**4 / 144
@@ -945,7 +889,7 @@ def TauLeonardGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta):
     Vxyy = -Uxxy
     Vyyy = -Uxyy
 
-    TauLeonard11GM2, TauLeonard12GM2, TauLeonard22GM2 = TauLeonardGM2_gaussian(U_hat, V_hat, Kx, Ky, Delta)   
+    TauLeonard11GM2, TauLeonard12GM2, TauLeonard22GM2 = TauGM2_gaussian(U_hat, V_hat, Kx, Ky, Delta)   
     
     TauLeonard11GM4 = TauLeonard11GM2 + B1*(Uxy*Uxy + Ux*Uxxx + Uy*Uyyy + Ux*Uxyy + Uy*Uxxy) + B2*(Uxx*Uxx + Uyy*Uyy)
     TauLeonard12GM4 = TauLeonard12GM2 + B1*(Uxy*Vxy)  + B2*(Uxx*Vxx + Uyy*Vyy + Uxxx*Vx + Uyyy*Vy + Ux*Vxxx + Uy*Vyyy
@@ -954,7 +898,7 @@ def TauLeonardGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     return TauLeonard11GM4, TauLeonard12GM4, TauLeonard22GM4
     
-@jit
+
 def TauLeonardGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
 
     B1 = Delta**4 / 144
@@ -1008,7 +952,7 @@ def TauLeonardGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
     UxyyVx_hat = multiply_dealias_spectral(Uxyy_hat, Vx_hat)
     UxxyVy_hat = multiply_dealias_spectral(Uxxy_hat, Vy_hat)
 
-    Tau11LeonardGM2_hat, Tau12LeonardGM2_hat, Tau22LeonardGM2_hat = TauLeonardGM2_gaussian(U_hat, V_hat, Kx, Ky, Delta)
+    Tau11LeonardGM2_hat, Tau12LeonardGM2_hat, Tau22LeonardGM2_hat = TauGM2_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
     Tau11LeonardGM4_hat = Tau11LeonardGM2_hat + B1*(UxyUxy_hat + UxUxxx_hat + UyUyyy_hat + UxUxyy_hat + UyUxxy_hat) + B2*(UxxUxx_hat + UyyUyy_hat)
     Tau12LeonardGM4_hat = Tau12LeonardGM2_hat + B1*(UxyVxy_hat)  + B2*(UxxVxx_hat + UyyVyy_hat + UxVxxx_hat + UyVyyy_hat + UxxxVx_hat + UyyyVy_hat 
@@ -1043,7 +987,7 @@ def TauLeonardGM6_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=Fa
     else:
         return Tau11LeonardGM6, Tau12LeonardGM6, Tau22LeonardGM6
         
-@jit
+
 def TauLeonardGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     C1 = Delta**6 / 1728
@@ -1114,7 +1058,7 @@ def TauLeonardGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
     
     return Tau11LeonardGM6, Tau12LeonardGM6, Tau22LeonardGM6
     
-@jit
+
 def TauLeonardGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
 
     C1 = Delta**6 / 1728
@@ -1285,7 +1229,7 @@ def TauCrossGM4_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=Fals
     else:
         return Tau11CrossGM4, Tau12CrossGM4, Tau22CrossGM4
     
-@jit
+
 def TauCrossGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     B1 = Delta**4 / 144
@@ -1310,7 +1254,7 @@ def TauCrossGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     return Tau11CrossGM4, Tau12CrossGM4, Tau22CrossGM4
 
-@jit
+
 def TauCrossGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
     
     B1 = Delta**4 / 144
@@ -1380,7 +1324,7 @@ def TauCrossGM6_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=Fals
     else:
         return Tau11CrossGM6, Tau12CrossGM6, Tau22CrossGM6
     
-@jit
+
 def TauCrossGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     C1 = Delta**6 / 1728
@@ -1448,7 +1392,7 @@ def TauCrossGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
     
     return Tau11CrossGM6, Tau12CrossGM6, Tau22CrossGM6
 
-@jit
+
 def TauCrossGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
 
     C1 = Delta**6 / 1728
@@ -1623,7 +1567,7 @@ def TauReynoldsGM6_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=F
     else:
         return Tau11ReynoldsGM6, Tau12ReynoldsGM6, Tau22ReynoldsGM6
     
-@jit
+
 def TauReynoldsGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     C3 = Delta**6 / 3456
@@ -1644,7 +1588,7 @@ def TauReynoldsGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     return Tau11ReynoldsGM6, Tau12ReynoldsGM6, Tau22ReynoldsGM6
 
-@jit
+
 def TauReynoldsGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
 
     C3 = Delta**6 / 3456
