@@ -5,8 +5,8 @@
 # Eddy Viscosity SGS Models for 2D Turbulence solver
 
 
-import numpy as nnp
-import jax.numpy as np
+import numpy as np
+import jax.numpy as jnp
 from jax import jit
 
 from py2d.convert import strain_rate_2DFHIT_spectral
@@ -78,7 +78,7 @@ def eddy_viscosity_leith(Cl, Delta, characteristic_Omega):
     '''
     Leith Model (LEITH)
     '''
-    characteristic_Omega_mean = np.mean(characteristic_Omega)
+    characteristic_Omega_mean = jnp.mean(characteristic_Omega)
     ls = Cl * Delta
     eddy_viscosity = ls ** 3 * characteristic_Omega_mean
     return eddy_viscosity
@@ -91,9 +91,9 @@ def characteristic_omega_leith(Omega_hat, Kx, Ky):
     '''
     Omegax_hat = (1.j) * Kx * Omega_hat
     Omegay_hat = (1.j) * Ky * Omega_hat
-    Omegax = np.real(np.fft.ifft2(Omegax_hat))
-    Omegay = np.real(np.fft.ifft2(Omegay_hat))
-    characteristic_Omega = np.sqrt(Omegax ** 2 + Omegay ** 2)
+    Omegax = jnp.real(jnp.fft.ifft2(Omegax_hat))
+    Omegay = jnp.real(jnp.fft.ifft2(Omegay_hat))
+    characteristic_Omega = jnp.sqrt(Omegax ** 2 + Omegay ** 2)
     return characteristic_Omega
 
 @jit
@@ -156,9 +156,9 @@ def coefficient_dynamic_PsiOmega(L, M):
     '''
     LM = L * M
     MM = M * M
-    LM_pos = 0.5 * (LM + np.abs(LM))
+    LM_pos = 0.5 * (LM + jnp.abs(LM))
 
-    c_dynamic = np.mean(LM_pos) / np.mean(MM)
+    c_dynamic = jnp.mean(LM_pos) / jnp.mean(MM)
     return c_dynamic
 
 
@@ -171,10 +171,10 @@ def coefficient_dynamiclocal_PsiOmega(L, M):
     '''
     LM = L * M
     MM = M * M
-    LM_pos = 0.5 * (LM + np.abs(LM))
+    LM_pos = 0.5 * (LM + jnp.abs(LM))
 
     #c_dynamic = np.mean(LM_pos) / np.mean(MM)
-    c_dynamic = (LM_pos) / np.mean(MM)
+    c_dynamic = (LM_pos) / jnp.mean(MM)
     return c_dynamic
 
 @jit
@@ -187,8 +187,8 @@ def initialize_filtered_variables_PsiOmega(Psi_hat, Omega_hat, Ksq, Delta):
     Delta_test = 2 * Delta
     Psif_hat = spectral_filter_square_same_size_2DFHIT(Psi_hat, nx_test)
     Omegaf_hat = spectral_filter_square_same_size_2DFHIT(Omega_hat, nx_test)
-    Omega_lap = np.real(np.fft.ifft2(-Ksq * Omega_hat))
-    Omegaf_lap = np.real(np.fft.ifft2(-Ksq * Omegaf_hat))
+    Omega_lap = jnp.real(jnp.fft.ifft2(-Ksq * Omega_hat))
+    Omegaf_lap = jnp.real(jnp.fft.ifft2(-Ksq * Omegaf_hat))
     return Psif_hat, Omegaf_hat, Omega_lap, Omegaf_lap, Delta_test, nx_test
 
 @jit
@@ -198,8 +198,8 @@ def residual_jacobian_PsiOmega(Psi_hat, Omega_hat, Psif_hat, Omegaf_hat, Kx, Ky,
     Difference between Filtered Jacobian and Jacobian of Filtered flow variables
     '''
     J1 = jacobian_Spectral2Physical(Omega_hat, Psi_hat, Kx, Ky)
-    J1f_hat = spectral_filter_square_same_size_2DFHIT(np.fft.fft2(J1), nx_test)
-    J1f = np.real(np.fft.ifft2(J1f_hat))
+    J1f_hat = spectral_filter_square_same_size_2DFHIT(jnp.fft.fft2(J1), nx_test)
+    J1f = jnp.real(jnp.fft.ifft2(J1f_hat))
     J2f = jacobian_Spectral2Physical(Omegaf_hat, Psif_hat, Kx, Ky)
     L = J1f - J2f
     return L
@@ -211,10 +211,10 @@ def residual_dsmag_PsiOmega(Omega_lap, Omegaf_lap, characteristic_S, Delta, Delt
     Difference between Filtered SMAG and SMAG of Filtered flow variables
     Required for DSMAG
     '''
-    M1_hat = spectral_filter_square_same_size_2DFHIT(np.fft.fft2(characteristic_S * Omega_lap), nx_test)
-    M1 = Delta ** 2 * np.real(np.fft.ifft2(M1_hat))
-    characteristic_Sf_hat = spectral_filter_square_same_size_2DFHIT(np.fft.fft2(characteristic_S), nx_test)
-    characteristic_Sf = np.real(np.fft.ifft2(characteristic_Sf_hat))
+    M1_hat = spectral_filter_square_same_size_2DFHIT(jnp.fft.fft2(characteristic_S * Omega_lap), nx_test)
+    M1 = Delta ** 2 * jnp.real(jnp.fft.ifft2(M1_hat))
+    characteristic_Sf_hat = spectral_filter_square_same_size_2DFHIT(jnp.fft.fft2(characteristic_S), nx_test)
+    characteristic_Sf = jnp.real(jnp.fft.ifft2(characteristic_Sf_hat))
     M2 = Delta_test ** 2 * characteristic_Sf * Omegaf_lap
     M = M1 - M2
     return M
@@ -226,10 +226,10 @@ def residual_dleith_PsiOmega(Omega_lap, Omegaf_lap, characteristic_Omega, Delta,
     Difference between Filtered LEITH and LEITH of Filtered flow variables
     Required for DLEITH
     '''
-    M1_hat = spectral_filter_square_same_size_2DFHIT(np.fft.fft2(characteristic_Omega * Omega_lap), nx_test)
-    M1 = Delta ** 3 * np.real(np.fft.ifft2(M1_hat))
-    characteristic_Omegaf_hat = spectral_filter_square_same_size_2DFHIT(np.fft.fft2(characteristic_Omega), nx_test)
-    characteristic_Omegaf = np.real(np.fft.ifft2(characteristic_Omegaf_hat))
+    M1_hat = spectral_filter_square_same_size_2DFHIT(jnp.fft.fft2(characteristic_Omega * Omega_lap), nx_test)
+    M1 = Delta ** 3 * jnp.real(jnp.fft.ifft2(M1_hat))
+    characteristic_Omegaf_hat = spectral_filter_square_same_size_2DFHIT(jnp.fft.fft2(characteristic_Omega), nx_test)
+    characteristic_Omegaf = jnp.real(jnp.fft.ifft2(characteristic_Omegaf_hat))
     M2 = Delta_test ** 3 * characteristic_Omegaf * Omegaf_lap
     M = M1 - M2
     return M
@@ -259,10 +259,10 @@ def jacobian_Spectral2Physical(a_hat, b_hat, Kx, Ky):
     ay_hat = (1.j)*Ky * a_hat
     bx_hat = (1.j)*Kx * b_hat
     by_hat = (1.j)*Ky * b_hat
-    ax = np.real(np.fft.ifft2(ax_hat))
-    ay = np.real(np.fft.ifft2(ay_hat))
-    bx = np.real(np.fft.ifft2(bx_hat))
-    by = np.real(np.fft.ifft2(by_hat))
+    ax = jnp.real(jnp.fft.ifft2(ax_hat))
+    ay = jnp.real(jnp.fft.ifft2(ay_hat))
+    bx = jnp.real(jnp.fft.ifft2(bx_hat))
+    by = jnp.real(jnp.fft.ifft2(by_hat))
     J = ax * by - ay * bx
     return J
 
@@ -282,15 +282,15 @@ def spectral_filter_square_same_size_2DFHIT(q_hat, N_LES):
     '''
     kc = N_LES / 2
     (nx, ny) = q_hat.shape
-    Lx = 2 * np.pi
-    Ly = 2 * np.pi
+    Lx = 2 * jnp.pi
+    Ly = 2 * jnp.pi
 
-    kx = 2 * np.pi * np.fft.fftfreq(nx, d=Lx/nx)
-    ky = 2 * np.pi * np.fft.fftfreq(ny, d=Lx/nx)
-    Kx, Ky = np.meshgrid(kx, ky, indexing='ij')
-    k = np.sqrt(Kx ** 2 + Ky ** 2)
+    kx = 2 * jnp.pi * jnp.fft.fftfreq(nx, d=Lx/nx)
+    ky = 2 * jnp.pi * jnp.fft.fftfreq(ny, d=Lx/nx)
+    Kx, Ky = jnp.meshgrid(kx, ky, indexing='ij')
+    k = jnp.sqrt(Kx ** 2 + Ky ** 2)
 
-    q_filtered_hat = np.where(k < kc, q_hat, 0)
+    q_filtered_hat = jnp.where(k < kc, q_hat, 0)
     return q_filtered_hat
 
 # @jit

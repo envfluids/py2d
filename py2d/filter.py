@@ -183,6 +183,8 @@ def coarse_spectral_filter_square_2DFHIT(a_hat, NCoarse):
     # Shift the zero-frequency component back to the original place and un-normalize the data
     wfiltered_hat = np.fft.ifftshift(wfiltered_hat_shift)*(NCoarse**2)
 
+    print(type(wfiltered_hat))
+
     # Ensure Nyquist wavenumber is its own complex conjugate
     wfiltered_hat_sym = conjugate_symmetrize_coarse(wfiltered_hat)
 
@@ -203,6 +205,8 @@ def conjugate_symmetrize_coarse(a_hat):
     # a_hat_sym[1:,NCoarse//2] = (a_hat_sym[1:,NCoarse//2] + np.conj(np.flip(a_hat_sym[1:,NCoarse//2])))/2
 
     ##### Remove data at the nyquist frequency to make it conjugate frequency #####
+    print(print(type(a_hat_sym))
+)
     a_hat_sym[NCoarse//2, :] = 0
     a_hat_sym[:,NCoarse//2] = 0
 

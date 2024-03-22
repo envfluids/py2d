@@ -2,9 +2,7 @@
 # Created : Karan Jakhar May 2023
 # ----------------------------------------------------------------------
 
-import numpy as nnp
-import jax.numpy as np
-from jax import jit 
+import numpy as np
 
 from py2d.convert import strain_rate_2DFHIT
 
