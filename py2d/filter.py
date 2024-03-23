@@ -82,12 +82,18 @@ def filter2D_2DFHIT(U, filterType='gaussian', coarseGrainType='spectral', Delta=
     elif filterType == None:
         U_f_hat = U_hat
 
+    else:
+        raise ValueError("Invalid filter type : " + filterType)
+
     # Apply coarse graining
     if coarseGrainType == 'spectral':
         U_f_c_hat = coarse_spectral_filter_square_2DFHIT(U_f_hat, Ngrid[0])
 
     elif coarseGrainType == None:
         U_f_c_hat = U_f_hat
+
+    else:
+        raise ValueError("Invalid coarse grain type : " + coarseGrainType)
 
     # Inverse Fourier transform the result and return the real part
     if not spectral:
@@ -183,8 +189,6 @@ def coarse_spectral_filter_square_2DFHIT(a_hat, NCoarse):
     # Shift the zero-frequency component back to the original place and un-normalize the data
     wfiltered_hat = np.fft.ifftshift(wfiltered_hat_shift)*(NCoarse**2)
 
-    print(type(wfiltered_hat))
-
     # Ensure Nyquist wavenumber is its own complex conjugate
     wfiltered_hat_sym = conjugate_symmetrize_coarse(wfiltered_hat)
 
@@ -204,9 +208,7 @@ def conjugate_symmetrize_coarse(a_hat):
     # a_hat_sym[NCoarse//2,1:] = (a_hat_sym[NCoarse//2,1:] + np.conj(np.flip(a_hat_sym[NCoarse//2,1:])))/2
     # a_hat_sym[1:,NCoarse//2] = (a_hat_sym[1:,NCoarse//2] + np.conj(np.flip(a_hat_sym[1:,NCoarse//2])))/2
 
-    ##### Remove data at the nyquist frequency to make it conjugate frequency #####
-    print(print(type(a_hat_sym))
-)
+    ##### Remove data at the nyquist frequency to make it conjugate frequency #####)
     a_hat_sym[NCoarse//2, :] = 0
     a_hat_sym[:,NCoarse//2] = 0
 
