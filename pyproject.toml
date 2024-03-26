@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Py2D"
-version = "0.0.0"
+version = "0.1"
 description = "Python solver for incompressible 2D Navier-Stokes equations."
 authors = [
   { name="Karan Jakhar", email="karanj@uchicago.edu" },
@@ -33,10 +33,5 @@ dependencies = [
 "Bug Tracker" = "https://github.com/envfluids/py2d/issues"
 
 [tool.setuptools]
+packages = ["py2d"] 
 include-package-data = true
-
-[tool.setuptools.packages.find]
-where = ["."]  # list of folders that contain the packages (["."] by default)
-include = ["py2d", "py2d.*"]  # package names should match these glob patterns (["*"] by default)
-exclude = ["py2d.tests*"]  # exclude packages matching these glob patterns (empty by default)
-namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
