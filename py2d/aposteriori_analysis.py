@@ -48,7 +48,7 @@ def energyDissipationRate(Psi, Re, Kx, Ky, spectral=False):
         S11, S12, S22 = strain_rate_2DFHIT(Psi, Kx, Ky, spectral=False)
 
     # Compute energy dissipation rate
-    energyDissipationRate = 2 * Re * np.mean(S11 ** 2 + 2 * S12 ** 2 + S22 ** 2)
+    energyDissipationRate = (2/Re) * np.mean(S11 ** 2 + 2 * S12 ** 2 + S22 ** 2)
 
     return energyDissipationRate
 
