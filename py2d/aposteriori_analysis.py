@@ -5,6 +5,7 @@
 import numpy as np
 
 from py2d.convert import strain_rate_2DFHIT
+from py2d.derivative import derivative_2DFHIT
 
 def eddyTurnoverTime_2DFHIT(Omega):
     """
@@ -51,4 +52,37 @@ def energyDissipationRate(Psi, Re, Kx, Ky, spectral=False):
     energyDissipationRate = (2/Re) * np.mean(S11 ** 2 + 2 * S12 ** 2 + S22 ** 2)
 
     return energyDissipationRate
+
+
+def enstrophyDissipationRate(Omega, Re, Kx, Ky, spectral=False):
+    """
+    Compute enstrophy dissipation rate for 2D_FHIT using Omega.
+    
+    Args:
+    A (ndarray): 2D array of Omega U.
+    Re (float): Reynolds number.
+    
+    Returns:
+    float: Enstrophy dissipation rate.
+
+    Note:
+    The energy dissipation rate is computed in Eq.11 of [1].
+    [1] Alexakis, A., & Doering, C. R. (2006). 
+    Energy and enstrophy dissipation in steady state 2d turbulence. 
+    Physics letters A, 359(6), 652-657.
+    https://doi.org/10.1016/j.physleta.2006.07.048
+    """
+    
+    # Compute strain rate tensor
+
+    if spectral:
+        Omega = np.fft.ifft2(Omega).real
+
+    Omegax = derivative_2DFHIT(Omega, [1,0], Kx=Kx, Ky=Ky, spectral=False)
+    Omegay = derivative_2DFHIT(Omega, [0,1], Kx=Kx, Ky=Ky, spectral=False)
+
+    # Compute enstrophy dissipation rate
+    enstrophyDissipationRate = (1/Re) * np.mean(Omegax ** 2 + Omegay ** 2)
+
+    return enstrophyDissipationRate
 
