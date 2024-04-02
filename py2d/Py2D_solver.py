@@ -26,7 +26,6 @@ print(jax.devices())
 # Import Custom Module
 from py2d.convection_conserved import convection_conserved, convection_conserved_dealias
 from py2d.convert import Omega2Psi_2DFHIT_spectral, Psi2UV_2DFHIT_spectral
-from py2d.aposteriori_analysis import eddyTurnoverTime_2DFHIT
 from py2d.SGSModel import *
 # from py2d.uv2tau_CNN import *
 
@@ -41,7 +40,6 @@ Omega2Psi_2DFHIT_spectral = jit(Omega2Psi_2DFHIT_spectral)
 Psi2UV_2DFHIT_spectral = jit(Psi2UV_2DFHIT_spectral)
 # prepare_data_cnn_jit = jit(prepare_data_cnn)
 # postproccess_data_cnn_jit = jit(postproccess_data_cnn)
-eddyTurnoverTime_2DFHIT_jit = jit(eddyTurnoverTime_2DFHIT)
 
 # Start timer
 startTime = timer()
@@ -413,7 +411,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
             # Psi = nnp.array(Psi)
             Omega0_hat_cpu = nnp.array(Omega0_hat)
             Omega1_hat_cpu = nnp.array(Omega1_hat)
-            eddyTurnoverTime = eddyTurnoverTime_2DFHIT_jit(Omega)
+            eddyTurnoverTime = 1 / np.sqrt(np.mean(Omega ** 2))
 
             last_file_number_data = last_file_number_data + 1
             last_file_number_IC = last_file_number_IC + 1
@@ -423,7 +421,10 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
             if last_file_number_data > 2:
                 # Remove the previous file
-                os.remove(SAVE_DIR_IC + str(last_file_number_data - 2) + '.mat')
+                try:
+                    os.remove(SAVE_DIR_IC + str(last_file_number_data - 2) + '.mat')
+                except FileNotFoundError:
+                    pass
 
             try:
                 if np.isnan(eddyTurnoverTime).any():
