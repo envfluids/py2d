@@ -73,13 +73,16 @@ def enstrophyDissipationRate(Omega, Re, Kx, Ky, spectral=False):
     https://doi.org/10.1016/j.physleta.2006.07.048
     """
     
-    # Compute strain rate tensor
-
+    # Compute vorticity gradient
     if spectral:
-        Omega = np.fft.ifft2(Omega).real
+        Omega_hat = np.fft.ifft2(Omega).real
+        Omegax_hat = derivative_2DFHIT(Omega_hat, [1,0], Kx=Kx, Ky=Ky, spectral=True)
+        Omegay_hat = derivative_2DFHIT(Omega_hat, [0,1], Kx=Kx, Ky=Ky, spectral=True)
+        Omegax, Omegay = np.fft.ifft2(Omegax_hat).real, np.fft.ifft2(Omegay_hat).real
 
-    Omegax = derivative_2DFHIT(Omega, [1,0], Kx=Kx, Ky=Ky, spectral=False)
-    Omegay = derivative_2DFHIT(Omega, [0,1], Kx=Kx, Ky=Ky, spectral=False)
+    else:
+        Omegax = derivative_2DFHIT(Omega, [1,0], Kx=Kx, Ky=Ky, spectral=False)
+        Omegay = derivative_2DFHIT(Omega, [0,1], Kx=Kx, Ky=Ky, spectral=False)
 
     # Compute enstrophy dissipation rate
     enstrophyDissipationRate = (1/Re) * np.mean(Omegax ** 2 + Omegay ** 2)
