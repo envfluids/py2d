@@ -74,12 +74,12 @@ def spectrum_angled_average_2DFHIT(A, kmax = 'grid', spectral = False):
     # Initialize the output array with zeros
     A_angled_average_spectra = np.zeros(kxMax + 1)
     # The zeroth wavenumber is just the first element of the spectrum
-    A_angled_average_spectra[0] = A_hat[0,0]
+    A_angled_average_spectra[0] = A_hat[0,0].real
 
     # Compute the angle-averaged spectrum for wavenumbers 1 to kxMax
     for k in range(1, kxMax + 1):
         tempInd = (Kabs > (k - 0.5)) & (Kabs <= (k + 0.5))
-        A_angled_average_spectra[k] = np.sum(A_hat[tempInd])
+        A_angled_average_spectra[k] = np.sum(A_hat[tempInd].real)
 
     # Generate the array of wavenumbers corresponding to the computed spectrum
     wavenumbers = np.linspace(0, kxMax, len(A_angled_average_spectra))
