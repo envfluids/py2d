@@ -88,4 +88,3 @@ def enstrophyDissipationRate(Omega, Re, Kx, Ky, spectral=False):
     enstrophyDissipationRate = (1/Re) * np.mean(Omegax ** 2 + Omegay ** 2)
 
     return enstrophyDissipationRate
-
