@@ -123,3 +123,68 @@ def cal_structure_fxn_diff(data, lx_ind, ly_ind):
     data_diff = data[lx_ind:Nx//2 + lx_ind, ly_ind:Ny//2 + ly_ind] - data[:Nx//2, :Ny//2]
 
     return data_diff
+
+def angled_average_2D(A, l_array, kmax = 'grid'):
+    '''Calculates the angle-averaged  2D scalar matrix'''
+
+    # Check if input 'A' is a 2D square matrix
+    if not isinstance(A, np.ndarray) or A.ndim != 2 or A.shape[0] != A.shape[1]:
+        raise ValueError('Input is not a 2D square matrix. Please input a 2D square matrix')
+    # Check if input 'A' contains non-numeric values
+    if not np.issubdtype(A.dtype, np.number):
+        raise ValueError('Input contains non-numeric values')
+
+    lx = l_array[:,:,0]
+    ly = l_array[:,:,1]
+    labs = np.sqrt(lx**2 + ly**2)
+    dlx = lx[1,0] - lx[0,0]
+
+    # Calculate the maximum wavenumber to be considered in the average
+    if kmax == 'grid':
+        l = np.arange(np.min(lx), np.max(lx)+dlx, dlx)
+    elif kmax == 'diagonal':
+        l = np.arange(np.min(labs), np.max(labs), dlx)
+
+    # Initialize the output array with zeros
+    A_angled_average = np.zeros(np.shape(l))
+
+    # Compute the angle-averaged 
+    for l_ind, l_value in enumerate(l):
+        l_tempInd = (labs > (l_value - dlx/2)) & (labs <= (l_value + dlx/2))
+        A_angled_average[l_ind] = np.sum(A[l_tempInd])
+
+    return A_angled_average, l
+
+
+def angled_average_struc_fxn_2D(structure_fx, l_array, kmax='grid'):
+    """Calculating the spectra of the whole structure function or flatness containing structure functions upto orderMax"""
+    
+    orderMax = structure_fx.shape[2]
+
+    angled_average_structure_fxn_list = []
+    for count in range(orderMax):
+        structure_fxn_temp, l_struc_fxn = angled_average_2D(structure_fx[:,:,count], l_array, kmax=kmax)
+        angled_average_structure_fxn_list.append(structure_fxn_temp)
+
+    angled_average_structure_fxn = np.array(angled_average_structure_fxn_list).T
+
+    return angled_average_structure_fxn, l_struc_fxn
+
+
+
+def flatness(structure_fxn_arr):
+    """Calculates the flatness of the structure function. The structure function array should be output of 
+
+    Args:
+        structure_fxn (np.ndarray): The structure function values 
+        orderMax (int, optional): The maximum order of the structure function. Defaults to 8.
+
+    Returns:
+        np.ndarray: The flatness values.
+    """
+
+    flatness_arr = np.zeros(structure_fxn_arr.shape)
+    for order in range(1,structure_fxn_arr.shape[2]+1):
+        flatness_arr[:,:,order-1] = structure_fxn_arr[:,:,order-1] ** order/ (structure_fxn_arr[:,:,1]**(order/2))
+
+    return flatness_arr
