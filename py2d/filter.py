@@ -202,13 +202,30 @@ def conjugate_symmetrize_coarse(a_hat):
     NCoarse = int(a_hat.shape[0])
     a_hat_sym = a_hat.copy()
 
-    # #Ensure Nyquist wavenumber is its own complex conjugate
-    # a_hat_sym[NCoarse//2, 0] = a_hat_sym[NCoarse//2, 0].real
-    # a_hat_sym[0, NCoarse//2] = a_hat_sym[0, NCoarse//2].real
-    # a_hat_sym[NCoarse//2,1:] = (a_hat_sym[NCoarse//2,1:] + np.conj(np.flip(a_hat_sym[NCoarse//2,1:])))/2
-    # a_hat_sym[1:,NCoarse//2] = (a_hat_sym[1:,NCoarse//2] + np.conj(np.flip(a_hat_sym[1:,NCoarse//2])))/2
+    # # 0th Wavenumber is conjugate symmetric
+    # a_hat_sym[0,NCoarse//2+1:] = np.flip(a_hat[0,1:NCoarse//2]).conj()
+    # a_hat_sym[NCoarse//2+1:,0] = np.flip(a_hat[1:NCoarse//2,0]).conj()
 
-    ##### Remove data at the nyquist frequency to make it conjugate frequency #####)
+    # # Nyquist frequency is conjugate symmetric
+    # a_hat_sym[NCoarse//2,NCoarse//2+1:] = np.flip(a_hat[NCoarse//2,1:NCoarse//2]).conj()
+    # a_hat_sym[NCoarse//2+1:,NCoarse//2] = np.flip(a_hat[1:NCoarse//2,NCoarse//2]).conj()
+
+    # # 0th wavenumber 0th wavenumbers has zero imaginary part
+    # a_hat_sym[0,0] = a_hat[0,0].real # (Kx=0, Ky=0)
+
+    # # Nyquist wavenumber of 0th wavenumber has zero imaginary part
+    # a_hat_sym[0,NCoarse//2] = a_hat[0,NCoarse//2].real # (Kx=0, Ky=Ny/2)
+    # a_hat_sym[NCoarse//2,0] = a_hat[NCoarse//2,0].real # (Kx=Nx/2, Ky=0)
+
+    # # Nyquist frequency of Nyquist frequency has zero imaginary part
+    # a_hat_sym[NCoarse//2,NCoarse//2] = a_hat[NCoarse//2,NCoarse//2].real # (Kx=Nx/2, Ky=Ny/2)
+
+##########################
+    # #Ensure Nyquist wavenumber is its own complex conjugate
+    # a_hat_sym[NCoarse//2,1:] = np.real((a_hat[NCoarse//2,1:] + np.conj(np.flip(a_hat[NCoarse//2,1:])))/2)
+    # a_hat_sym[1:,NCoarse//2] = np.real((a_hat[1:,NCoarse//2] + np.conj(np.flip(a_hat[1:,NCoarse//2])))/2)
+
+    # ##### Remove data at the nyquist frequency to make it conjugate frequency #####)
     a_hat_sym[NCoarse//2, :] = 0
     a_hat_sym[:,NCoarse//2] = 0
 
