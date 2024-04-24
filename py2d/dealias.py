@@ -75,10 +75,14 @@ def padding_for_dealias(u, spectral=False, K=3/2):
 
     Note:
     - The u_hat_dealias needs to be conjugate symmetric for the inverse FFT to be real.
+    - Padded dealising grid should be even in size. i.e. Ngrid_alias is multiple of 4
     """
     # Determine the original and dealiased grid sizes
     N_alias = u.shape[0]
     N_dealias = int(K * N_alias)
+
+    if np.mod(N_dealias,2) != 0:
+        raise ValueError("Padded dealising grid should be even in size. Dealiased grid size is ", N_dealias)
 
     if spectral:
         u_hat_alias = u
@@ -99,7 +103,7 @@ def padding_for_dealias(u, spectral=False, K=3/2):
     u_hat_dealias[np.ix_(indvpad, indvpad)] = u_hat_alias_scaled
 
     # Making the padded array conjugate symmetric
-    u_hat_dealias_pad = conjugate_symmetrize_padding(u_hat_dealias.copy())
+    u_hat_dealias_pad = conjugate_symmetrize_padding(u_hat_dealias, K=K)
 
     if spectral:
         return u_hat_dealias_pad
@@ -107,26 +111,45 @@ def padding_for_dealias(u, spectral=False, K=3/2):
         # Return in the appropriate space
         return np.fft.ifft2(u_hat_dealias_pad).real
     
-def conjugate_symmetrize_padding(a_hat_fft_pad):
-    
-    N_dealias = int(a_hat_fft_pad.shape[0])
+def conjugate_symmetrize_padding(a_hat_fft_pad, K):
 
     a_hat_fft_pad_sym = a_hat_fft_pad.copy()
 
-    # # First Making first row and column conjugate symmetric (0th wavenumber data)
-    # a_hat_fft_pad_sym[0,N_dealias//2+1] = np.conj(a_hat_fft_pad_sym[0,N_dealias//2-1])
-    # a_hat_fft_pad_sym[N_dealias//2+1,0] = np.conj(a_hat_fft_pad_sym[N_dealias//2-1,0])
+    # Nyquist wavenumber index after Padding - This is the Nyquist wavenumber of the dealiased grid
+    Ny = int(a_hat_fft_pad.shape[0])//2
 
-    # # Conjugate symmetry of 'N_dealias//2-1 'th' row and column to 'N_dealias//2+1' 'th' row and column
-    # # Uneven padding of zeros creates this error
-    # a_hat_fft_pad_sym[-(N_dealias//2-1),1:] = np.conj(np.flip(a_hat_fft_pad_sym[(N_dealias//2-1),1:]))
-    # a_hat_fft_pad_sym[1:,-(N_dealias//2-1)] = np.conj(np.flip(a_hat_fft_pad_sym[1:,(N_dealias//2-1)]))
+    # Nyquist wavenumber index before Padding - This is the Nyquist wavenumber of the original grid
+    Ny_old = int(Ny*1/K)
 
-    ############ Alternatively equate the data to zero at wavenumber (N//2-1) to (N//2+1) to make it conjugate symmetric
-    a_hat_fft_pad_sym[int(N_dealias/2)-1,:] = 0
-    a_hat_fft_pad_sym[:,int(N_dealias/2)-1] = 0
-    a_hat_fft_pad_sym[int(N_dealias/2)+1,:] = 0
-    a_hat_fft_pad_sym[:,int(N_dealias/2)+1] = 0
+    # ######################## Method #1 ############################ 
+    # # 0th Wavenumber is conjugate symmetric
+    # a_hat_fft_pad_sym[0,Ny+1:] = np.flip(a_hat_fft_pad[0,1:Ny]).conj()
+    # a_hat_fft_pad_sym[Ny+1:,0] = np.flip(a_hat_fft_pad[1:Ny,0]).conj()
+
+    # # Nyquist wavenumber - before padding (Ny_old) is conjugate symmetric
+    # # Padding creates this un-symmetricity
+    # a_hat_fft_pad_sym[Ny+(Ny-Ny_old),1:] = np.flip(a_hat_fft_pad[Ny-(Ny-Ny_old),1:]).conj()
+    # a_hat_fft_pad_sym[1:,Ny+(Ny-Ny_old)] = np.flip(a_hat_fft_pad[1:,Ny-(Ny-Ny_old)]).conj()
+
+    # # 0th wavenumber 0th wavenumbers has zero imaginary part
+    # a_hat_fft_pad_sym[0,0] = a_hat_fft_pad[0,0].real # (Kx=0, Ky=0)
+
+    # # Nyquist wavenumber of 0th wavenumber has zero imaginary part
+    # a_hat_fft_pad_sym[0,Ny//2] = a_hat_fft_pad[0,Ny//2].real # (Kx=0, Ky=Ny)
+    # a_hat_fft_pad_sym[Ny//2,0] = a_hat_fft_pad[Ny//2,0].real # (Kx=Ny, Ky=0)
+
+    # # Nyquist wavenumber of Nyquist wavenumber has zero imaginary part
+    # a_hat_fft_pad_sym[Ny,Ny] = a_hat_fft_pad[Ny,Ny].real # (Kx=Ny, Ky=Ny)
+
+    ####################### Method #2 ############################
+
+    # ############ Alternatively equate the data to zero at Ny_old wavenumber (Kx,Ky) = (Ny-(Ny-Ny_old),Ny+(Ny-Ny_old)) to make it conjugate symmetric
+    a_hat_fft_pad_sym[Ny_old,:] = 0
+    a_hat_fft_pad_sym[:,Ny_old] = 0
+
+    # # This is already zero - don't need to set it again
+    # a_hat_fft_pad_sym[Ny+(Ny-Ny_old),:] = 0
+    # a_hat_fft_pad_sym[:,Ny+(Ny-Ny_old)] = 0
 
     return a_hat_fft_pad_sym
 
@@ -221,17 +244,16 @@ def padding_for_dealias_spectral_jit(a_hat_alias, K=3/2):
     a_hat_dealias = a_hat_dealias.at[N_dealias-int(N_alias/2)+1:N_dealias, 0:int(N_alias/2)+1].set(ubottomleft)
     a_hat_dealias = a_hat_dealias.at[N_dealias-int(N_alias/2)+1:N_dealias, N_dealias-int(N_alias/2)+1:N_dealias].set(ubottomright)
 
+    ######################## Making array conjugate symmetric ############################
     # Making first row,col conjugate symmetric as well as the Nyquist +/- 1 row,col
-    a_hat_dealias_pad = conjugate_symmetrize_padding_jit(a_hat_dealias.copy())
 
-    # Return in the appropriate space
-    return a_hat_dealias_pad
+    a_hat_fft_pad_sym = a_hat_dealias.copy()
 
-@jit
-def conjugate_symmetrize_padding_jit(a_hat_fft_pad):
+    # Nyquist wavenumber index after Padding - This is the Nyquist wavenumber of the dealiased grid
+    Ny = int(a_hat_dealias.shape[0])//2
 
-    N_dealias = int(a_hat_fft_pad.shape[0])
-    a_hat_fft_pad_sym = a_hat_fft_pad.copy()
+    # Nyquist wavenumber index before Padding - This is the Nyquist wavenumber of the original grid
+    Ny_old = int(Ny*1/K)
 
     # First Row and Column (using at.set)
     # a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[0, N_dealias//2+1].set(jnp.conj(a_hat_fft_pad_sym[0, N_dealias//2-1]))
@@ -246,9 +268,13 @@ def conjugate_symmetrize_padding_jit(a_hat_fft_pad):
     # a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[1:, slice_end].set(jnp.conj(jnp.flip(a_hat_fft_pad_sym[1:, slice_start])))
 
     # # ############ Alternatively equate the data to zero at wavenumber (N//2-1) to (N//2+1) to make it conjugate symmetric
-    a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[N_dealias//2-1,:].set(0)
-    a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[N_dealias//2+1,:].set(0)
-    a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[:,N_dealias//2-1].set(0)
-    a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[:,N_dealias//2+1].set(0)
+    a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[Ny_old,:].set(0)
+    a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[:,Ny_old].set(0)
 
+    # # This is already zero - don't need to set it again
+    # a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[Ny+(Ny-Ny_old),:].set(0)
+    # a_hat_fft_pad_sym = a_hat_fft_pad_sym.at[:,Ny+(Ny-Ny_old)].set(0)
+
+    # Return in the appropriate space
     return a_hat_fft_pad_sym
+
