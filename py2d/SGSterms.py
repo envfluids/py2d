@@ -233,7 +233,10 @@ def PiOmega(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=
     Lx, Ly = 2 * np.pi, 2 * np.pi  # Assuming a square domain with periodic boundary conditions
 
     # Determine the LES grid dimensions based on the coarse graining type
-    NX_LES, NY_LES = (NX_DNS, NY_DNS) if coarseGrainType in [None, 'physical'] else N_LES
+    if coarseGrainType in [None, 'physical']:
+        NX_LES, NY_LES = NX_DNS, NY_DNS
+    else:
+        NX_LES, NY_LES = int(N_LES[0]), int(N_LES[1])
     
     # Initialize wavenumbers for spectral domain operations for both DNS and LES grids
     Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
