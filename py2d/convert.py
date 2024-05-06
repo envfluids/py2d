@@ -325,77 +325,7 @@ def strain_rate_2DFHIT(Psi, Kx, Ky, spectral=False):
         S11_hat, S12_hat, S22_hat = strain_rate_2DFHIT_spectral(Psi_hat, Kx, Ky)
         return S11_hat, S12_hat, S22_hat
 
-#  CNN functions
 
-
-# def prepare_data_cnn(Psi1_hat, Kx, Ky, Ksq):
-#     (U_hat, V_hat) = Psi2UV_2DFHIT(Psi1_hat, Kx, Ky, Ksq)
-#     U = np.real(np.fft.ifft2(U_hat))
-#     V = np.real(np.fft.ifft2(V_hat))
-#     input_data = np.stack((U, V), axis=0)
-#     return input_data
-
-
-# def postproccess_data_cnn(Tau11CNN, Tau12CNN, Tau22CNN, Kx, Ky, Ksq):
-#     Tau11CNN_hat = np.fft.fft2(Tau11CNN)
-#     Tau12CNN_hat = np.fft.fft2(Tau12CNN)
-#     Tau22CNN_hat = np.fft.fft2(Tau22CNN)
-#     PiOmega_hat = Tau2PiOmega_2DFHIT(Tau11CNN_hat, Tau12CNN_hat, Tau22CNN_hat, Kx, Ky, Ksq)
-#     print(type(PiOmega_hat))
-#     return PiOmega_hat
-
-def prepare_data_cnn(Psi1_hat, Kx, Ky, Ksq):
-    U_hat, V_hat = Psi2UV_2DFHIT(Psi1_hat, Kx, Ky, Ksq)
-    # I am using a Transpose here which I should not. After fixing CNN, this should be removed
-    U = np.real(np.fft.ifft2(U_hat)) # This should be removed after I fixed CNN code loading data
-    V = np.real(np.fft.ifft2(V_hat))
-    input_data = np.stack((U, V), axis=0)
-    return input_data
-
-def postproccess_data_cnn(Tau11CNN, Tau12CNN, Tau22CNN, Kx, Ky, Ksq):
-    Tau11CNN_hat = np.fft.fft2(Tau11CNN)
-    Tau12CNN_hat = np.fft.fft2(Tau12CNN)
-    Tau22CNN_hat = np.fft.fft2(Tau22CNN)
-    PiOmega_hat = Tau2PiOmega_2DFHIT(Tau11CNN_hat, Tau12CNN_hat, Tau22CNN_hat, Kx, Ky, Ksq)
-    return PiOmega_hat
-
-def postproccess_data_cnn_mcwiliams_ani(Tau1, Tau2, Kx, Ky, Ksq):
-    Tau1_hat = np.fft.fft2(Tau1)
-    Tau2_hat = np.fft.fft2(Tau2)
-    PiOmega_hat = Tau2PiOmega_2DFHIT(Tau1_hat, Tau2_hat, -1*Tau1_hat, Kx, Ky, Ksq)
-    return PiOmega_hat
-
-def postproccess_data_cnn_PiOmega(PiOmega, Kx, Ky, Ksq):
-    PiOmega_hat = np.fft.fft2(PiOmega)
-    return PiOmega_hat
-        
-def preprocess_data_cnn_PsiVor_PiOmega(Psi1_hat, Kx, Ky, Ksq):
-    Omega_hat = Psi2Omega_2DFHIT(Psi1_hat, Kx, Ky, Ksq)
-    Omega = np.real(np.fft.ifft2(Omega_hat)) # This should be removed after I fixed CNN code loading data
-    Psi = np.real(np.fft.ifft2(Psi1_hat))
-    input_data = np.stack((Psi, Omega), axis=0)
-    return input_data
-
-def normalize_data(data):
-    # Calculate mean and standard deviation
-    # Input data : (2, NX, NY)
-    mean = np.mean(data, axis=(1,2), keepdims=True)
-    std = np.std(data, axis=(1,2), keepdims=True)
-    
-    # Normalize data
-    # normalized_data = (data - mean) / (std + np.finfo(np.float32).eps)
-    normalized_data = (data - mean) / (std)
-    
-    return normalized_data
-
-def denormalize_data(data, mean, std):
-    # Denormalize data
-    denormalized_data = data * std + mean
-    
-    return denormalized_data
-
-
-############################################################################################################
 ############################################################################################################
 #  Rewriting the functions to be used JAX code
 
@@ -454,14 +384,16 @@ def Omega2Psi_2DFHIT_physical(Omega, invKsq):
         Stream function (2D array) in physical space.
 
     """
+    Nx, Ny = Omega.shape
+
     # Transform the vorticity from physical space to spectral space using a 2D Fast Fourier Transform.
-    Omega_hat = np.fft.fft2(Omega)
+    Omega_hat = np.fft.rfft2(Omega)
 
     # Compute the stream function in spectral space using the Omega2Psi_2DFHIT_spectral function.
     Psi_hat = Omega2Psi_2DFHIT_spectral(Omega_hat, invKsq)
 
     # Transform the stream function from spectral space back to physical space using an inverse 2D Fast Fourier Transform before returning it.
-    return np.real(np.fft.ifft2(Psi_hat))
+    return np.fft.irfft2(Psi_hat, s=[Nx,Ny])
 
 ############################################################################################################
 
@@ -523,14 +455,16 @@ def Psi2Omega_2DFHIT_physical(Psi, Ksq):
         Vorticity (2D array) in physical space.
 
     """
+    Nx, Ny = Psi.shape
+
     # Transform the stream function from physical space to spectral space using a 2D Fast Fourier Transform.
-    Psi_hat = np.fft.fft2(Psi)
+    Psi_hat = np.fft.rfft2(Psi)
 
     # Compute the vorticity in spectral space using the Psi2Omega_2DFHIT_spectral function.
     Omega_hat = Psi2Omega_2DFHIT_spectral(Psi_hat, Ksq)
 
     # Transform the vorticity from spectral space back to physical space using an inverse 2D Fast Fourier Transform, then take the real part (to remove any residual imaginary parts due to numerical error) before returning it.
-    return np.real(np.fft.ifft2(Omega_hat))
+    return np.real(np.fft.irfft2(Omega_hat, s=[Nx,Ny]))
 
 ############################################################################################################
 
@@ -597,15 +531,16 @@ def Psi2UV_2DFHIT_physical(Psi, Kx, Ky):
         Velocity components U and V (2D arrays) in physical space.
 
     """
+    Nx, Ny = Psi.shape
 
     # Perform a 2D Fast Fourier Transform on the input stream function to transform it into spectral space
-    Psi_hat = np.fft.fft2(Psi)
+    Psi_hat = np.fft.rfft2(Psi)
 
     # Calculate the Fourier coefficients of the velocity components U and V in spectral space using the Psi2UV_2DFHIT_spectral function
     U_hat, V_hat = Psi2UV_2DFHIT_spectral(Psi_hat, Kx, Ky)
 
     # Perform an inverse 2D Fast Fourier Transform on the Fourier coefficients of the velocity components to transform them into physical space
-    return np.real(np.fft.ifft2(U_hat)), np.real(np.fft.ifft2(V_hat))
+    return np.fft.irfft2(U_hat, s=[Nx,Ny]), np.fft.irfft2(V_hat, s=[Nx,Ny])
 
 ############################################################################################################
 
@@ -661,16 +596,18 @@ def Tau2PiOmega_2DFHIT_physical(Tau11, Tau12, Tau22, Kx, Ky):
         PiOmega (2D array) in physical space.
 
     """
+    Nx, Ny = Tau11.shape
+
     # Transform Tau elements to spectral space via 2D Fast Fourier Transform 
-    Tau11_hat = np.fft.fft2(Tau11)
-    Tau12_hat = np.fft.fft2(Tau12)
-    Tau22_hat = np.fft.fft2(Tau22)
+    Tau11_hat = np.fft.rfft2(Tau11)
+    Tau12_hat = np.fft.rfft2(Tau12)
+    Tau22_hat = np.fft.rfft2(Tau22)
 
     # Calculate PiOmega in spectral space using the given mathematical relationships
     PiOmega_hat = Tau2PiOmega_2DFHIT_spectral(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky)
     
     # Transform PiOmega back to physical space using inverse 2D Fast Fourier Transform
-    return np.real(np.fft.ifft2(PiOmega_hat))
+    return np.fft.irfft2(PiOmega_hat, s=[Nx,Ny])
 
 ############################################################################################################
 
@@ -727,16 +664,18 @@ def Tau2PiUV_2DFHIT_physical(Tau11, Tau12, Tau22, Kx, Ky):
     then calculates the spectral PiUV components using Tau2PiUV_2DFHIT_spectral() function,
     and finally transforms the spectral PiUV components back to physical space.
     """
+    Nx, Ny = Tau11.shape
+
     # Transform the physical components of Tau to spectral space
-    Tau11_hat = np.fft.fft2(Tau11)
-    Tau12_hat = np.fft.fft2(Tau12)
-    Tau22_hat = np.fft.fft2(Tau22)
+    Tau11_hat = np.fft.rfft2(Tau11)
+    Tau12_hat = np.fft.rfft2(Tau12)
+    Tau22_hat = np.fft.rfft2(Tau22)
 
     # Compute PiUV1_hat and PiUV2_hat using the spectral space function
     PiUV1_hat, PiUV2_hat = Tau2PiUV_2DFHIT_spectral(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky)
 
     # Transform the spectral components of PiUV back to physical space
-    PiUV1, PiUV2 = np.real(np.fft.ifft2(PiUV1_hat)), np.real(np.fft.ifft2(PiUV2_hat))
+    PiUV1, PiUV2 = np.fft.irfft2(PiUV1_hat, s=[Nx,Ny]), np.fft.irfft2(PiUV2_hat, s=[Nx,Ny])
 
     return PiUV1, PiUV2
 
@@ -779,12 +718,14 @@ def Sigma2PiOmega_physical(Sigma1, Sigma2, Kx, Ky):
     PiOmega : numpy.ndarray
         The physical representation of PiOmega, the divergence of Sigma.
     """
+    Nx, Ny = Sigma1.shape
+
     # Transform Sigma elements to spectral space via 2D Fast Fourier Transform
-    Sigma1_hat, Sigma2_hat = np.fft.fft2(Sigma1), np.fft.fft2(Sigma2)
+    Sigma1_hat, Sigma2_hat = np.fft.rfft2(Sigma1), np.fft.rfft2(Sigma2)
     # Compute PiOmega in spectral space
     PiOmega_hat = Sigma2PiOmega_spectral(Sigma1_hat, Sigma2_hat, Kx, Ky)
     # Convert the result back to physical space
-    PiOmega = np.real(np.fft.ifft2(PiOmega_hat))
+    PiOmega = np.fft.irfft2(PiOmega_hat, s=[Nx,Ny])
     return PiOmega
 
 ############################################################################################################
@@ -826,12 +767,14 @@ def PiUV2PiOmega_physical(PiUV1, PiUV2, Kx, Ky):
     PiOmega : numpy.ndarray
         The physical representation of PiOmega, the divergence of Sigma.
     """
+    Nx, Ny = PiUV1.shape
+
     # Transform Sigma elements to spectral space via 2D Fast Fourier Transform
-    PiVU1_hat, PiUV2_hat = np.fft.fft2(PiUV1), np.fft.fft2(PiUV2)
+    PiVU1_hat, PiUV2_hat = np.fft.rfft2(PiUV1), np.fft.rfft2(PiUV2)
     # Compute PiOmega in spectral space
     PiOmega_hat = PiUV2PiOmega_spectral(PiVU1_hat, PiUV2_hat, Kx, Ky)
     # Convert the result back to physical space
-    PiOmega = np.real(np.fft.ifft2(PiOmega_hat))
+    PiOmega = np.fft.irfft2(PiOmega_hat, s=[Nx,Ny])
     return PiOmega
 
 ############################################################################################################
@@ -899,14 +842,15 @@ def strain_rate_2DFHIT_physical(Psi, Kx, Ky):
     This assumes that continuity equation is valid, i.e., the stream function is divergence-free.
     Here, Ux = -Vy
     """
+    Nx, Ny = Psi.shape
 
     # Transform Psi to spectral space using 2D Fast Fourier Transform
-    Psi_hat = np.fft.fft2(Psi)
+    Psi_hat = np.fft.rfft2(Psi)
 
     # Calculate the Fourier coefficients of the strain rate components using given mathematical relationships
     S11_hat, S12_hat, S22_hat = strain_rate_2DFHIT_spectral(Psi_hat, Kx, Ky)
 
     # Transform the strain rate components back to physical space using inverse 2D Fast Fourier Transform
-    return np.real(np.fft.ifft2(S11_hat)), np.real(np.fft.ifft2(S12_hat)), np.real(np.fft.ifft2(S22_hat))
+    return np.fft.irfft2(S11_hat, s=[Nx,Ny]), np.fft.irfft2(S12_hat, s=[Nx,Ny]), np.fft.irfft2(S22_hat, s=[Nx,Ny])
 
 ############################################################################################################

@@ -81,14 +81,16 @@ def derivative_2DFHIT_physical(T, order, Kx, Ky, ):
         The derivative of the flow field T in the physical domain.
     """
 
+    Nx, Ny = T.shape
+
     # We transform data to spectral domain
-    T_hat = np.fft.fft2(T)
+    T_hat = np.fft.rfft2(T)
 
     # Orders of derivatives in x and y dimensions
     Tderivative_hat = derivative_2DFHIT_spectral(T_hat, order, Kx, Ky)
 
     # Transform the result back into the physical domain
-    Tderivative = np.real(np.fft.ifft2(Tderivative_hat))
+    Tderivative = np.fft.irfft2(Tderivative_hat, s=[Nx, Ny])
 
     
     

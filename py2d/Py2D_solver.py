@@ -27,6 +27,7 @@ print(jax.devices())
 from py2d.convection_conserved import convection_conserved, convection_conserved_dealias
 from py2d.convert import Omega2Psi_2DFHIT_spectral, Psi2UV_2DFHIT_spectral
 from py2d.SGSModel import *
+from py2d.util import regrid, fft2_to_rfft2
 # from py2d.uv2tau_CNN import *
 
 from py2d.initialize import gridgen, initialize_wavenumbers_2DFHIT, initialize_perturbation
@@ -120,10 +121,10 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # Numpy to jax
     X = np.array(X)
     Y = np.array(Y)
-    Kx = np.array(Kx)
-    Ky = np.array(Ky)
-    Ksq = np.array(Ksq)
-    invKsq = np.array(invKsq)
+    Kx = np.array(fft2_to_rfft2(Kx))
+    Ky = np.array(fft2_to_rfft2(Ky))
+    Ksq = np.array(fft2_to_rfft2(Ksq))
+    invKsq = np.array(fft2_to_rfft2(invKsq))
 
     # -------------- Deterministic forcing Calculation --------------
 
@@ -131,7 +132,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     Fk = fky * np.cos(fky * Y) + fkx * np.cos(fkx * X)
 
     # Deterministic forcing in Fourier space
-    Fk_hat = np.fft.fft2(Fk)
+    Fk_hat = np.fft.rfft2(Fk)
 
     # -------------- RUN Configuration --------------
 
@@ -245,7 +246,11 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
             # Construct the full path to the .mat file
             # Go up one directory before going into ICs
-            IC_DIR = 'data/ICs/NX' + str(NX) + '/'
+            if NX % 2  != 0:
+                IC_DIR = 'data/ICs/NX' + str(NX-1) + '/'
+            else:
+                IC_DIR = 'data/ICs/NX' + str(NX) + '/'
+
             IC_filename = str(ICnum) + '.mat'
             file_path = os.path.join(base_path, "..", IC_DIR, IC_filename)
 
@@ -256,7 +261,10 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
             data_Poi = loadmat(file_path)
             Omega1 = data_Poi["Omega"]
-            Omega1_hat = np.fft.fft2(Omega1)
+            if NX % 2  != 0:
+                Omega1 = regrid(Omega1, NX, NX)
+
+            Omega1_hat = np.fft.rfft2(Omega1)
             Omega0_hat = Omega1_hat
             Psi1_hat = Omega2Psi_2DFHIT_spectral(Omega1_hat, invKsq)
             Psi0_hat = Psi1_hat
@@ -318,6 +326,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     start_time = runtime.time()
 
     for it in range(maxit):
+
 
         if it == 0:
             U0_hat, V0_hat = Psi2UV_2DFHIT_spectral(Psi0_hat, Kx, Ky)
@@ -403,8 +412,8 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
         if saveData and np.mod(it+1, (NSAVE)) == 0:
 
-            Omega = np.real(np.fft.ifft2(Omega1_hat))
-            # Psi = np.real(np.fft.ifft2(Psi1_hat))
+            Omega = np.real(np.fft.irfft2(Omega1_hat, s=[NX,NX]))
+            # Psi = np.real(np.fft.irfft2(Psi1_hat, s=[NX,NX]))
 
             # Converting to numpy array
             Omega_cpu = nnp.array(Omega)
@@ -449,7 +458,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     endTime = timer()
     print('Total Time Taken: ', endTime-startTime)
 
-    Omega = np.real(np.fft.ifft2(Omega1_hat))
+    Omega = np.real(np.fft.irfft2(Omega1_hat, s=[NX,NX]))
     Omega_cpu = nnp.array(Omega)
     return Omega_cpu
 
