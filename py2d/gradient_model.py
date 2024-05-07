@@ -2,39 +2,39 @@ import numpy as np
 import jax.numpy as jnp
 from jax import jit
 
-from py2d.derivative import derivative_2DFHIT_spectral
+from py2d.derivative import derivative_spectral
 from py2d.dealias import multiply_dealias_spectral, multiply_dealias_spectral_jit
 
 @jit
-def real_ifft2_jit(val):
-    return jnp.real(jnp.fft.ifft2(val))
+def real_irfft2_jit(val):
+    return jnp.real(jnp.fft.irfft2(val, s=(val.shape[0], val.shape[0])))
 
-def real_ifft2(val):
-    return np.real(np.fft.ifft2(val))
+def real_irfft2(val):
+    return np.real(np.fft.irfft2(val, s=(val.shape[0], val.shape[0])))
 
-derivative_2DFHIT_spectral_jit = jit(derivative_2DFHIT_spectral)
+derivative_spectral_jit = jit(derivative_spectral)
 
 # PiOmegaGM2
-def PiOmegaGM2_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
+def PiOmegaGM2(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
 
     if spectral:
         Omega_hat, U_hat, V_hat = Omega, U, V
     else:
-        Omega_hat = jnp.fft.fft2(Omega)
-        U_hat = jnp.fft.fft2(U)
-        V_hat = jnp.fft.fft2(V)
+        Omega_hat = jnp.fft.rfft2(Omega)
+        U_hat = jnp.fft.rfft2(U)
+        V_hat = jnp.fft.rfft2(V)
 
     if filterType=='gaussian' or filterType=='box':
         # GM2 for gaussian and box is same
         # Two function for dealias and alias are made to avoid if else in the main function and make it jax/jit compatible
         if dealias:
             PiOmegaGM2_hat = PiOmegaGM2_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
-            PiOmegaGM2 = real_ifft2_jit(PiOmegaGM2_hat)
+            PiOmegaGM2 = real_irfft2_jit(PiOmegaGM2_hat)
         else:
             PiOmegaGM2 = PiOmegaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        PiOmegaGM2_hat = jnp.fft.fft2(PiOmegaGM2)
+        PiOmegaGM2_hat = jnp.fft.rfft2(PiOmegaGM2)
         return PiOmegaGM2_hat
     else:
         return PiOmegaGM2
@@ -46,13 +46,13 @@ def PiOmegaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     A = Delta**2 / 12
 
-    Ux = real_ifft2_jit(derivative_2DFHIT_spectral_jit(U_hat, [1, 0], Kx, Ky))
-    Uy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(U_hat, [0, 1], Kx, Ky))
-    Vx = real_ifft2_jit(derivative_2DFHIT_spectral_jit(V_hat, [1, 0], Kx, Ky))
+    Ux = real_irfft2_jit(derivative_spectral_jit(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2_jit(derivative_spectral_jit(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2_jit(derivative_spectral_jit(V_hat, [1, 0], Kx, Ky))
 
-    Omegaxx = real_ifft2_jit(derivative_2DFHIT_spectral_jit(Omega_hat, [2, 0], Kx, Ky))
-    Omegayy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(Omega_hat, [0, 2], Kx, Ky))
-    Omegaxy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(Omega_hat, [1, 1], Kx, Ky))
+    Omegaxx = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [2, 0], Kx, Ky))
+    Omegayy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 2], Kx, Ky))
+    Omegaxy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 1], Kx, Ky))
 
     PiOmegaGM2 = A * (Omegaxy*(Uy + Vx) + Ux*(Omegaxx - Omegayy))
 
@@ -64,13 +64,13 @@ def PiOmegaGM2_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     A = Delta**2 / 12
 
-    Ux_hat = derivative_2DFHIT_spectral_jit(U_hat, [1, 0], Kx, Ky)
-    Uy_hat = derivative_2DFHIT_spectral_jit(U_hat, [0, 1], Kx, Ky)
-    Vx_hat = derivative_2DFHIT_spectral_jit(V_hat, [1, 0], Kx, Ky)
+    Ux_hat = derivative_spectral_jit(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral_jit(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral_jit(V_hat, [1, 0], Kx, Ky)
 
-    Omegaxx_hat = derivative_2DFHIT_spectral_jit(Omega_hat, [2, 0], Kx, Ky)
-    Omegayy_hat = derivative_2DFHIT_spectral_jit(Omega_hat, [0, 2], Kx, Ky)
-    Omegaxy_hat = derivative_2DFHIT_spectral_jit(Omega_hat, [1, 1], Kx, Ky)
+    Omegaxx_hat = derivative_spectral_jit(Omega_hat, [2, 0], Kx, Ky)
+    Omegayy_hat = derivative_spectral_jit(Omega_hat, [0, 2], Kx, Ky)
+    Omegaxy_hat = derivative_spectral_jit(Omega_hat, [1, 1], Kx, Ky)
 
     UyOmegaxy_hat = multiply_dealias_spectral_jit(Uy_hat, Omegaxy_hat)
     VxOmegaxy_hat = multiply_dealias_spectral_jit(Vx_hat, Omegaxy_hat)
@@ -87,19 +87,19 @@ def PiOmegaGM4_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectra
     if spectral:
         Omega_hat, U_hat, V_hat = Omega, U, V
     else:
-        Omega_hat = jnp.fft.fft2(Omega)
-        U_hat = jnp.fft.fft2(U)
-        V_hat = jnp.fft.fft2(V)
+        Omega_hat = jnp.fft.rfft2(Omega)
+        U_hat = jnp.fft.rfft2(U)
+        V_hat = jnp.fft.rfft2(V)
 
     if filterType=='gaussian':
         if dealias:
             PiOmegaGM4_hat = PiOmegaGM4_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
-            PiOmegaGM4 = real_ifft2_jit(PiOmegaGM4_hat)
+            PiOmegaGM4 = real_irfft2_jit(PiOmegaGM4_hat)
         else:
             PiOmegaGM4 = PiOmegaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        PiOmegaGM4_hat = jnp.fft.fft2(PiOmegaGM4)
+        PiOmegaGM4_hat = jnp.fft.rfft2(PiOmegaGM4)
         return PiOmegaGM4_hat
     else:
         return PiOmegaGM4
@@ -112,15 +112,15 @@ def PiOmegaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     PiOmegaGM2 = PiOmegaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
-    Uxx = real_ifft2_jit(derivative_2DFHIT_spectral_jit(U_hat, [2, 0], Kx, Ky))
-    Uxy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(U_hat, [1, 1], Kx, Ky))
-    Uyy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(U_hat, [0, 2], Kx, Ky))
-    Vxx = real_ifft2_jit(derivative_2DFHIT_spectral_jit(V_hat, [2, 0], Kx, Ky))
+    Uxx = real_irfft2_jit(derivative_spectral_jit(U_hat, [2, 0], Kx, Ky))
+    Uxy = real_irfft2_jit(derivative_spectral_jit(U_hat, [1, 1], Kx, Ky))
+    Uyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [0, 2], Kx, Ky))
+    Vxx = real_irfft2_jit(derivative_spectral_jit(V_hat, [2, 0], Kx, Ky))
 
-    Omegaxxx = real_ifft2_jit(derivative_2DFHIT_spectral_jit(Omega_hat, [3, 0], Kx, Ky))
-    Omegaxxy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(Omega_hat, [2, 1], Kx, Ky))
-    Omegaxyy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(Omega_hat, [1, 2], Kx, Ky))
-    Omegayyy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(Omega_hat, [0, 3], Kx, Ky))
+    Omegaxxx = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [3, 0], Kx, Ky))
+    Omegaxxy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [2, 1], Kx, Ky))
+    Omegaxyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 2], Kx, Ky))
+    Omegayyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 3], Kx, Ky))
 
     PiOmegaGM4 = PiOmegaGM2 + B2 * (Omegaxxy * (2*Uxy + Vxx) + 
                                      Uxx * (Omegaxxx - 2*Omegaxyy) - Uxy*Omegayyy + Uyy*Omegaxyy)
@@ -135,15 +135,15 @@ def PiOmegaGM4_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     PiOmegaGM2_hat = PiOmegaGM2_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
-    Uxx_hat = derivative_2DFHIT_spectral_jit(U_hat, [2, 0], Kx, Ky)
-    Uxy_hat = derivative_2DFHIT_spectral_jit(U_hat, [1, 1], Kx, Ky)
-    Uyy_hat = derivative_2DFHIT_spectral_jit(U_hat, [0, 2], Kx, Ky)
-    Vxx_hat = derivative_2DFHIT_spectral_jit(V_hat, [2, 0], Kx, Ky)
+    Uxx_hat = derivative_spectral_jit(U_hat, [2, 0], Kx, Ky)
+    Uxy_hat = derivative_spectral_jit(U_hat, [1, 1], Kx, Ky)
+    Uyy_hat = derivative_spectral_jit(U_hat, [0, 2], Kx, Ky)
+    Vxx_hat = derivative_spectral_jit(V_hat, [2, 0], Kx, Ky)
 
-    Omegaxxx_hat = derivative_2DFHIT_spectral_jit(Omega_hat, [3, 0], Kx, Ky)
-    Omegaxxy_hat = derivative_2DFHIT_spectral_jit(Omega_hat, [2, 1], Kx, Ky)
-    Omegaxyy_hat = derivative_2DFHIT_spectral_jit(Omega_hat, [1, 2], Kx, Ky)
-    Omegayyy_hat = derivative_2DFHIT_spectral_jit(Omega_hat, [0, 3], Kx, Ky)
+    Omegaxxx_hat = derivative_spectral_jit(Omega_hat, [3, 0], Kx, Ky)
+    Omegaxxy_hat = derivative_spectral_jit(Omega_hat, [2, 1], Kx, Ky)
+    Omegaxyy_hat = derivative_spectral_jit(Omega_hat, [1, 2], Kx, Ky)
+    Omegayyy_hat = derivative_spectral_jit(Omega_hat, [0, 3], Kx, Ky)
 
     UxyOmegaxxy_hat = multiply_dealias_spectral_jit(Uxy_hat, Omegaxxy_hat)
     VxxOmegaxxy_hat = multiply_dealias_spectral_jit(Vxx_hat, Omegaxxy_hat)
@@ -163,19 +163,19 @@ def PiOmegaGM6_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectra
     if spectral:
         Omega_hat, U_hat, V_hat = Omega, U, V
     else:
-        Omega_hat = jnp.fft.fft2(Omega)
-        U_hat = jnp.fft.fft2(U)
-        V_hat = jnp.fft.fft2(V)
+        Omega_hat = jnp.fft.rfft2(Omega)
+        U_hat = jnp.fft.rfft2(U)
+        V_hat = jnp.fft.rfft2(V)
 
     if filterType=='gaussian':
         if dealias:
             PiOmegaGM6_hat = PiOmegaGM6_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
-            PiOmegaGM6 = real_ifft2_jit(PiOmegaGM6_hat)
+            PiOmegaGM6 = real_irfft2_jit(PiOmegaGM6_hat)
         else:
             PiOmegaGM6 = PiOmegaGM6_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        PiOmegaGM6_hat = jnp.fft.fft2(PiOmegaGM6)
+        PiOmegaGM6_hat = jnp.fft.rfft2(PiOmegaGM6)
         return PiOmegaGM6_hat
     else:
         return PiOmegaGM6
@@ -188,17 +188,17 @@ def PiOmegaGM6_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     C2 = Delta**6 / 10368
 
-    Uxxx = real_ifft2_jit(derivative_2DFHIT_spectral_jit(U_hat, [3, 0], Kx, Ky))
-    Uxxy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(U_hat, [2, 1], Kx, Ky))
-    Uxyy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(U_hat, [1, 2], Kx, Ky))
-    Uyyy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(U_hat, [0, 3], Kx, Ky))
-    Vxxx = real_ifft2_jit(derivative_2DFHIT_spectral_jit(V_hat, [3, 0], Kx, Ky))
+    Uxxx = real_irfft2_jit(derivative_spectral_jit(U_hat, [3, 0], Kx, Ky))
+    Uxxy = real_irfft2_jit(derivative_spectral_jit(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2_jit(derivative_spectral_jit(V_hat, [3, 0], Kx, Ky))
 
-    Omegaxxxx = real_ifft2_jit(derivative_2DFHIT_spectral_jit(Omega_hat, [4, 0], Kx, Ky))
-    Omegaxxxy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(Omega_hat, [3, 1], Kx, Ky))
-    Omegaxxyy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(Omega_hat, [2, 2], Kx, Ky))
-    Omegaxyyy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(Omega_hat, [1, 3], Kx, Ky))
-    Omegayyyy = real_ifft2_jit(derivative_2DFHIT_spectral_jit(Omega_hat, [0, 4], Kx, Ky))
+    Omegaxxxx = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [4, 0], Kx, Ky))
+    Omegaxxxy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [3, 1], Kx, Ky))
+    Omegaxxyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [2, 2], Kx, Ky))
+    Omegaxyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 3], Kx, Ky))
+    Omegayyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 4], Kx, Ky))
 
     PiOmegaGM6 = PiOmegaGM4 + C2 * (Omegaxxxy*(3*Uxxy + Vxxx) + Omegaxyyy*(Uyyy - 3*Uxxy) + 
                                             3*Omegaxxyy*Uxyy + Uxxx*(Omegaxxxx - 3*Omegaxxyy) - Omegayyyy*Uxyy)
@@ -212,17 +212,17 @@ def PiOmegaGM6_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     C2 = Delta**6 / 10368
 
-    Uxxx_hat = derivative_2DFHIT_spectral_jit(U_hat, [3, 0], Kx, Ky)
-    Uxxy_hat = derivative_2DFHIT_spectral_jit(U_hat, [2, 1], Kx, Ky)
-    Uxyy_hat = derivative_2DFHIT_spectral_jit(U_hat, [1, 2], Kx, Ky)
-    Uyyy_hat = derivative_2DFHIT_spectral_jit(U_hat, [0, 3], Kx, Ky)
-    Vxxx_hat = derivative_2DFHIT_spectral_jit(V_hat, [3, 0], Kx, Ky)
+    Uxxx_hat = derivative_spectral_jit(U_hat, [3, 0], Kx, Ky)
+    Uxxy_hat = derivative_spectral_jit(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral_jit(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral_jit(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral_jit(V_hat, [3, 0], Kx, Ky)
 
-    Omegaxxxx_hat = derivative_2DFHIT_spectral_jit(Omega_hat, [4, 0], Kx, Ky)
-    Omegaxxxy_hat = derivative_2DFHIT_spectral_jit(Omega_hat, [3, 1], Kx, Ky)
-    Omegaxxyy_hat = derivative_2DFHIT_spectral_jit(Omega_hat, [2, 2], Kx, Ky)
-    Omegaxyyy_hat = derivative_2DFHIT_spectral_jit(Omega_hat, [1, 3], Kx, Ky)
-    Omegayyyy_hat = derivative_2DFHIT_spectral_jit(Omega_hat, [0, 4], Kx, Ky)
+    Omegaxxxx_hat = derivative_spectral_jit(Omega_hat, [4, 0], Kx, Ky)
+    Omegaxxxy_hat = derivative_spectral_jit(Omega_hat, [3, 1], Kx, Ky)
+    Omegaxxyy_hat = derivative_spectral_jit(Omega_hat, [2, 2], Kx, Ky)
+    Omegaxyyy_hat = derivative_spectral_jit(Omega_hat, [1, 3], Kx, Ky)
+    Omegayyyy_hat = derivative_spectral_jit(Omega_hat, [0, 4], Kx, Ky)
 
     UxxyOmegaxxxy_hat = multiply_dealias_spectral_jit(Uxxy_hat, Omegaxxxy_hat)
     VxxxOmegaxxxy_hat = multiply_dealias_spectral_jit(Vxxx_hat, Omegaxxxy_hat)
@@ -245,15 +245,15 @@ def PiOmegaGM8_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectra
     if spectral:
         Omega_hat, U_hat, V_hat = Omega, U, V
     else:
-        Omega_hat = np.fft.fft2(Omega)
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        Omega_hat = np.fft.rfft2(Omega)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         PiOmegaGM8 = PiOmegaGM8_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        PiOmegaGM8_hat = np.fft.fft2(PiOmegaGM8)
+        PiOmegaGM8_hat = np.fft.rfft2(PiOmegaGM8)
         return PiOmegaGM8_hat
     else:
         return PiOmegaGM8
@@ -265,15 +265,15 @@ def PiOmegaGM10_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectr
     if spectral:
         Omega_hat, U_hat, V_hat = Omega, U, V
     else:
-        Omega_hat = np.fft.fft2(Omega)
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        Omega_hat = np.fft.rfft2(Omega)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         PiOmegaGM10 = PiOmegaGM10_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        PiOmegaGM10_hat = np.fft.fft2(PiOmegaGM10)
+        PiOmegaGM10_hat = np.fft.rfft2(PiOmegaGM10)
         return PiOmegaGM10_hat
     else:
         return PiOmegaGM10
@@ -287,23 +287,23 @@ def TauGM2_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, de
     if spectral:
         U_hat, V_hat = U, V
     else:
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian' or filterType=='box':
     # GM2 for gaussian and box is same
         if dealias:
             Tau11GM2_hat, Tau12GM2_hat, Tau22GM2_hat = TauGM2_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
-            Tau11GM2 = real_ifft2(Tau11GM2_hat)
-            Tau12GM2 = real_ifft2(Tau12GM2_hat)
-            Tau22GM2 = real_ifft2(Tau22GM2_hat)
+            Tau11GM2 = real_irfft2(Tau11GM2_hat)
+            Tau12GM2 = real_irfft2(Tau12GM2_hat)
+            Tau22GM2 = real_irfft2(Tau22GM2_hat)
         else:
             Tau11GM2, Tau12GM2, Tau22GM2 = TauGM2_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Tau11GM2_hat = np.fft.fft2(Tau11GM2)
-        Tau12GM2_hat = np.fft.fft2(Tau12GM2)
-        Tau22GM2_hat = np.fft.fft2(Tau22GM2)
+        Tau11GM2_hat = np.fft.rfft2(Tau11GM2)
+        Tau12GM2_hat = np.fft.rfft2(Tau12GM2)
+        Tau22GM2_hat = np.fft.rfft2(Tau22GM2)
         return Tau11GM2_hat, Tau12GM2_hat, Tau22GM2_hat
     else:
         return Tau11GM2, Tau12GM2, Tau22GM2
@@ -313,9 +313,9 @@ def TauGM2_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 # Not dealiased
     A = Delta**2 / 12
 
-    Ux = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky))
-    Uy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky))
-    Vx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky))
+    Ux = real_irfft2(derivative_spectral(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2(derivative_spectral(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2(derivative_spectral(V_hat, [1, 0], Kx, Ky))
     Vy = -Ux
 
     Tau11GM2 = A * (Ux**2 + Uy**2)
@@ -329,9 +329,9 @@ def TauGM2_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
 # dealiased
     A = Delta**2 / 12
 
-    Ux_hat = derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky)
-    Uy_hat = derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky)
-    Vx_hat = derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky)
+    Ux_hat = derivative_spectral(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral(V_hat, [1, 0], Kx, Ky)
     Vy_hat = -Ux_hat
 
     UxUx_hat = multiply_dealias_spectral(Ux_hat, Ux_hat)
@@ -353,22 +353,22 @@ def TauGM4_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, de
     if spectral:
         U_hat, V_hat = U, V
     else:
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         if dealias:
             Tau11GM4_hat, Tau12GM4_hat, Tau22GM4_hat = TauGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
-            Tau11GM4 = real_ifft2(Tau11GM4_hat)
-            Tau12GM4 = real_ifft2(Tau12GM4_hat)
-            Tau22GM4 = real_ifft2(Tau22GM4_hat)
+            Tau11GM4 = real_irfft2(Tau11GM4_hat)
+            Tau12GM4 = real_irfft2(Tau12GM4_hat)
+            Tau22GM4 = real_irfft2(Tau22GM4_hat)
         else:
             Tau11GM4, Tau12GM4, Tau22GM4 = TauGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Tau11GM4_hat = np.fft.fft2(Tau11GM4)
-        Tau12GM4_hat = np.fft.fft2(Tau12GM4)
-        Tau22GM4_hat = np.fft.fft2(Tau22GM4)
+        Tau11GM4_hat = np.fft.rfft2(Tau11GM4)
+        Tau12GM4_hat = np.fft.rfft2(Tau12GM4)
+        Tau22GM4_hat = np.fft.rfft2(Tau22GM4)
         return Tau11GM4_hat, Tau12GM4_hat, Tau22GM4_hat
     else:
         return Tau11GM4, Tau12GM4, Tau22GM4
@@ -381,10 +381,10 @@ def TauGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     Tau11GM2, Tau12GM2, Tau22GM2 = TauGM2_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
-    Uxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 0], Kx, Ky))
-    Uxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 1], Kx, Ky))
-    Uyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 2], Kx, Ky))
-    Vxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [2, 0], Kx, Ky))
+    Uxx = real_irfft2(derivative_spectral(U_hat, [2, 0], Kx, Ky))
+    Uxy = real_irfft2(derivative_spectral(U_hat, [1, 1], Kx, Ky))
+    Uyy = real_irfft2(derivative_spectral(U_hat, [0, 2], Kx, Ky))
+    Vxx = real_irfft2(derivative_spectral(V_hat, [2, 0], Kx, Ky))
     Vxy = -Uxx
     Vyy = -Uxy
 
@@ -402,10 +402,10 @@ def TauGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
 
     Tau11GM2_hat, Tau12GM2_hat, Tau22GM2_hat = TauGM2_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
 
-    Uxx_hat = derivative_2DFHIT_spectral(U_hat, [2, 0], Kx, Ky)
-    Uxy_hat = derivative_2DFHIT_spectral(U_hat, [1, 1], Kx, Ky)
-    Uyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 2], Kx, Ky)
-    Vxx_hat = derivative_2DFHIT_spectral(V_hat, [2, 0], Kx, Ky)
+    Uxx_hat = derivative_spectral(U_hat, [2, 0], Kx, Ky)
+    Uxy_hat = derivative_spectral(U_hat, [1, 1], Kx, Ky)
+    Uyy_hat = derivative_spectral(U_hat, [0, 2], Kx, Ky)
+    Vxx_hat = derivative_spectral(V_hat, [2, 0], Kx, Ky)
     Vxy_hat = -Uxx_hat
     Vyy_hat = -Uxy_hat
 
@@ -431,22 +431,22 @@ def TauGM6_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, de
     if spectral:
         U_hat, V_hat = U, V
     else:
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         if dealias:
             Tau11GM6_hat, Tau12GM6_hat, Tau22GM6_hat = TauGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
-            Tau11GM6 = real_ifft2(Tau11GM6_hat)
-            Tau12GM6 = real_ifft2(Tau12GM6_hat)
-            Tau22GM6 = real_ifft2(Tau22GM6_hat)
+            Tau11GM6 = real_irfft2(Tau11GM6_hat)
+            Tau12GM6 = real_irfft2(Tau12GM6_hat)
+            Tau22GM6 = real_irfft2(Tau22GM6_hat)
         else:
             Tau11GM6, Tau12GM6, Tau22GM6 = TauGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Tau11GM6_hat = np.fft.fft2(Tau11GM6)
-        Tau12GM6_hat = np.fft.fft2(Tau12GM6)
-        Tau22GM6_hat = np.fft.fft2(Tau22GM6)
+        Tau11GM6_hat = np.fft.rfft2(Tau11GM6)
+        Tau12GM6_hat = np.fft.rfft2(Tau12GM6)
+        Tau22GM6_hat = np.fft.rfft2(Tau22GM6)
         return Tau11GM6_hat, Tau12GM6_hat, Tau22GM6_hat
     else:
         return Tau11GM6, Tau12GM6, Tau22GM6
@@ -459,11 +459,11 @@ def TauGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
 
     Tau11GM4, Tau12GM4, Tau22GM4 = TauGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
-    Uxxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky))
-    Uxxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky))
-    Uxyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky))
-    Uyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky))
-    Vxxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky))
+    Uxxx = real_irfft2(derivative_spectral(U_hat, [3, 0], Kx, Ky))
+    Uxxy = real_irfft2(derivative_spectral(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2(derivative_spectral(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2(derivative_spectral(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2(derivative_spectral(V_hat, [3, 0], Kx, Ky))
     Vxxy = -Uxxx
     Vxyy = -Uxxy
     Vyyy = -Uxyy
@@ -482,11 +482,11 @@ def TauGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
 
     Tau11GM4_hat, Tau12GM4_hat, Tau22GM4_hat = TauGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
 
-    Uxxx_hat = derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky)
-    Uxxy_hat = derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky)
-    Uxyy_hat = derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky)
-    Uyyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky)
-    Vxxx_hat = derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky)
+    Uxxx_hat = derivative_spectral(U_hat, [3, 0], Kx, Ky)
+    Uxxy_hat = derivative_spectral(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral(V_hat, [3, 0], Kx, Ky)
     Vxxy_hat = -Uxxx_hat
     Vxyy_hat = -Uxxy_hat
     Vyyy_hat = -Uxyy_hat
@@ -516,16 +516,16 @@ def TauGM8_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False):
     if spectral:
         U_hat, V_hat = U, V
     else:
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         Tau11GM8, Tau12GM8, Tau22GM8 = TauGM8_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Tau11GM8_hat = np.fft.fft2(Tau11GM8)
-        Tau12GM8_hat = np.fft.fft2(Tau12GM8)
-        Tau22GM8_hat = np.fft.fft2(Tau22GM8)
+        Tau11GM8_hat = np.fft.rfft2(Tau11GM8)
+        Tau12GM8_hat = np.fft.rfft2(Tau12GM8)
+        Tau22GM8_hat = np.fft.rfft2(Tau22GM8)
         return Tau11GM8_hat, Tau12GM8_hat, Tau22GM8_hat
     else:
         return Tau11GM8, Tau12GM8, Tau22GM8
@@ -536,16 +536,16 @@ def TauGM10_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False):
     if spectral:
         U_hat, V_hat = U, V
     else:
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         Tau11GM10, Tau12GM10, Tau22GM10 = TauGM10_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Tau11GM10_hat = np.fft.fft2(Tau11GM10)
-        Tau12GM10_hat = np.fft.fft2(Tau12GM10)
-        Tau22GM10_hat = np.fft.fft2(Tau22GM10)
+        Tau11GM10_hat = np.fft.rfft2(Tau11GM10)
+        Tau12GM10_hat = np.fft.rfft2(Tau12GM10)
+        Tau22GM10_hat = np.fft.rfft2(Tau22GM10)
         return Tau11GM10_hat, Tau12GM10_hat, Tau22GM10_hat
     else:
         return Tau11GM10, Tau12GM10, Tau22GM10
@@ -559,22 +559,22 @@ def SigmaGM2_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=
     if spectral:
         Omega_hat, U_hat, V_hat = Omega, U, V
     else:
-        Omega_hat = np.fft.fft2(Omega)
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        Omega_hat = np.fft.rfft2(Omega)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian' or filterType=='box':
         # GM2 for gaussian and box is same
         if dealias:
             Sigma1GM2_hat, Sigma2GM2_hat = SigmaGM2_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
-            Sigma1GM2 = real_ifft2(Sigma1GM2_hat)
-            Sigma2GM2 = real_ifft2(Sigma2GM2_hat)
+            Sigma1GM2 = real_irfft2(Sigma1GM2_hat)
+            Sigma2GM2 = real_irfft2(Sigma2GM2_hat)
         else:
             Sigma1GM2, Sigma2GM2 = SigmaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Sigma1GM2_hat = np.fft.fft2(Sigma1GM2)
-        Sigma2GM2_hat = np.fft.fft2(Sigma2GM2)
+        Sigma1GM2_hat = np.fft.rfft2(Sigma1GM2)
+        Sigma2GM2_hat = np.fft.rfft2(Sigma2GM2)
         return Sigma1GM2_hat, Sigma2GM2_hat
     else:
         return Sigma1GM2, Sigma2GM2
@@ -584,13 +584,13 @@ def SigmaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     # not dealiased
     A1 = Delta**2 / 12
 
-    Ux = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky))
-    Uy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky))
-    Vx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky))
+    Ux = real_irfft2(derivative_spectral(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2(derivative_spectral(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2(derivative_spectral(V_hat, [1, 0], Kx, Ky))
     Vy = -Ux
 
-    Omegax = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [1, 0], Kx, Ky))
-    Omegay = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [0, 1], Kx, Ky))
+    Omegax = real_irfft2(derivative_spectral(Omega_hat, [1, 0], Kx, Ky))
+    Omegay = real_irfft2(derivative_spectral(Omega_hat, [0, 1], Kx, Ky))
 
     Sigma1GM2 = A1 * (Ux*Omegax + Uy*Omegay)
     Sigma2GM2 = A1 * (Vx*Omegax + Vy*Omegay)
@@ -602,13 +602,13 @@ def SigmaGM2_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     # dealiased
     A1 = Delta**2 / 12
 
-    Ux_hat = derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky)
-    Uy_hat = derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky)
-    Vx_hat = derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky)
+    Ux_hat = derivative_spectral(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral(V_hat, [1, 0], Kx, Ky)
     Vy_hat = -Ux_hat
 
-    Omegax_hat = derivative_2DFHIT_spectral(Omega_hat, [1, 0], Kx, Ky)
-    Omegay_hat = derivative_2DFHIT_spectral(Omega_hat, [0, 1], Kx, Ky)
+    Omegax_hat = derivative_spectral(Omega_hat, [1, 0], Kx, Ky)
+    Omegay_hat = derivative_spectral(Omega_hat, [0, 1], Kx, Ky)
 
     UxOmegax_hat = multiply_dealias_spectral(Ux_hat, Omegax_hat)
     UyOmegay_hat = multiply_dealias_spectral(Uy_hat, Omegay_hat)
@@ -626,21 +626,21 @@ def SigmaGM4_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=
     if spectral:
         Omega_hat, U_hat, V_hat = Omega, U, V
     else:
-        Omega_hat = np.fft.fft2(Omega)
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        Omega_hat = np.fft.rfft2(Omega)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         if dealias:
             Sigma1GM4_hat, Sigma2GM4_hat = SigmaGM4_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
-            Sigma1GM4 = real_ifft2(Sigma1GM4_hat)
-            Sigma2GM4 = real_ifft2(Sigma2GM4_hat)
+            Sigma1GM4 = real_irfft2(Sigma1GM4_hat)
+            Sigma2GM4 = real_irfft2(Sigma2GM4_hat)
         else:
             Sigma1GM4, Sigma2GM4 = SigmaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Sigma1GM4_hat = np.fft.fft2(Sigma1GM4)
-        Sigma2GM4_hat = np.fft.fft2(Sigma2GM4)
+        Sigma1GM4_hat = np.fft.rfft2(Sigma1GM4)
+        Sigma2GM4_hat = np.fft.rfft2(Sigma2GM4)
         return Sigma1GM4_hat, Sigma2GM4_hat
     else:
         return Sigma1GM4, Sigma2GM4
@@ -651,16 +651,16 @@ def SigmaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     B1 = Delta**4 / 144
     B2 = Delta**4 / 288
 
-    Uxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 0], Kx, Ky))
-    Uxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 1], Kx, Ky))
-    Uyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 2], Kx, Ky))
-    Vxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [2, 0], Kx, Ky))
+    Uxx = real_irfft2(derivative_spectral(U_hat, [2, 0], Kx, Ky))
+    Uxy = real_irfft2(derivative_spectral(U_hat, [1, 1], Kx, Ky))
+    Uyy = real_irfft2(derivative_spectral(U_hat, [0, 2], Kx, Ky))
+    Vxx = real_irfft2(derivative_spectral(V_hat, [2, 0], Kx, Ky))
     Vxy = -Uxx
     Vyy = -Uxy
 
-    Omegaxx = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [2, 0], Kx, Ky))
-    Omegaxy = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [1, 1], Kx, Ky))
-    Omegayy = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [0, 2], Kx, Ky))
+    Omegaxx = real_irfft2(derivative_spectral(Omega_hat, [2, 0], Kx, Ky))
+    Omegaxy = real_irfft2(derivative_spectral(Omega_hat, [1, 1], Kx, Ky))
+    Omegayy = real_irfft2(derivative_spectral(Omega_hat, [0, 2], Kx, Ky))
 
     Sigma1GM2, Sigma2GM2 = SigmaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
@@ -675,16 +675,16 @@ def SigmaGM4_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     B1 = Delta**4 / 144
     B2 = Delta**4 / 288
 
-    Uxx_hat = derivative_2DFHIT_spectral(U_hat, [2, 0], Kx, Ky)
-    Uxy_hat = derivative_2DFHIT_spectral(U_hat, [1, 1], Kx, Ky)
-    Uyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 2], Kx, Ky)
-    Vxx_hat = derivative_2DFHIT_spectral(V_hat, [2, 0], Kx, Ky)
+    Uxx_hat = derivative_spectral(U_hat, [2, 0], Kx, Ky)
+    Uxy_hat = derivative_spectral(U_hat, [1, 1], Kx, Ky)
+    Uyy_hat = derivative_spectral(U_hat, [0, 2], Kx, Ky)
+    Vxx_hat = derivative_spectral(V_hat, [2, 0], Kx, Ky)
     Vxy_hat = -Uxx_hat
     Vyy_hat = -Uxy_hat
 
-    Omegaxx_hat = derivative_2DFHIT_spectral(Omega_hat, [2, 0], Kx, Ky)
-    Omegaxy_hat = derivative_2DFHIT_spectral(Omega_hat, [1, 1], Kx, Ky)
-    Omegayy_hat = derivative_2DFHIT_spectral(Omega_hat, [0, 2], Kx, Ky)
+    Omegaxx_hat = derivative_spectral(Omega_hat, [2, 0], Kx, Ky)
+    Omegaxy_hat = derivative_spectral(Omega_hat, [1, 1], Kx, Ky)
+    Omegayy_hat = derivative_spectral(Omega_hat, [0, 2], Kx, Ky)
 
     Sigma1GM2_hat, Sigma2GM2_hat = SigmaGM2_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
@@ -706,21 +706,21 @@ def SigmaGM6_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=
     if spectral:
         Omega_hat, U_hat, V_hat = Omega, U, V
     else:
-        Omega_hat = np.fft.fft2(Omega)
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        Omega_hat = np.fft.rfft2(Omega)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         if dealias:
             Sigma1GM6_hat, Sigma2GM6_hat = SigmaGM6_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
-            Sigma1GM6 = real_ifft2(Sigma1GM6_hat)
-            Sigma2GM6 = real_ifft2(Sigma2GM6_hat)
+            Sigma1GM6 = real_irfft2(Sigma1GM6_hat)
+            Sigma2GM6 = real_irfft2(Sigma2GM6_hat)
         else:
             Sigma1GM6, Sigma2GM6 = SigmaGM6_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Sigma1GM6_hat = np.fft.fft2(Sigma1GM6)
-        Sigma2GM6_hat = np.fft.fft2(Sigma2GM6)
+        Sigma1GM6_hat = np.fft.rfft2(Sigma1GM6)
+        Sigma2GM6_hat = np.fft.rfft2(Sigma2GM6)
         return Sigma1GM6_hat, Sigma2GM6_hat
     else:
         return Sigma1GM6, Sigma2GM6
@@ -730,19 +730,19 @@ def SigmaGM6_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     C1 = Delta**6 / 3456
     C2 = Delta**6 / 10368
 
-    Uxxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky))
-    Uxxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky))
-    Uxyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky))
-    Uyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky))
-    Vxxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky))
+    Uxxx = real_irfft2(derivative_spectral(U_hat, [3, 0], Kx, Ky))
+    Uxxy = real_irfft2(derivative_spectral(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2(derivative_spectral(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2(derivative_spectral(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2(derivative_spectral(V_hat, [3, 0], Kx, Ky))
     Vxxy = -Uxxx
     Vxyy = -Uxxy
     Vyyy = -Uxyy
 
-    Omegaxxx = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [3, 0], Kx, Ky))
-    Omegaxxy = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [2, 1], Kx, Ky))
-    Omegaxyy = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [1, 2], Kx, Ky))
-    Omegayyy = real_ifft2(derivative_2DFHIT_spectral(Omega_hat, [0, 3], Kx, Ky))
+    Omegaxxx = real_irfft2(derivative_spectral(Omega_hat, [3, 0], Kx, Ky))
+    Omegaxxy = real_irfft2(derivative_spectral(Omega_hat, [2, 1], Kx, Ky))
+    Omegaxyy = real_irfft2(derivative_spectral(Omega_hat, [1, 2], Kx, Ky))
+    Omegayyy = real_irfft2(derivative_spectral(Omega_hat, [0, 3], Kx, Ky))
 
     Sigma1GM4, Sigma2GM4 = SigmaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
@@ -756,19 +756,19 @@ def SigmaGM6_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     C1 = Delta**6 / 3456
     C2 = Delta**6 / 10368
 
-    Uxxx_hat = derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky)
-    Uxxy_hat = derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky)
-    Uxyy_hat = derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky)
-    Uyyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky)
-    Vxxx_hat = derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky)
+    Uxxx_hat = derivative_spectral(U_hat, [3, 0], Kx, Ky)
+    Uxxy_hat = derivative_spectral(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral(V_hat, [3, 0], Kx, Ky)
     Vxxy_hat = -Uxxx_hat
     Vxyy_hat = -Uxxy_hat
     Vyyy_hat = -Uxyy_hat
 
-    Omegaxxx_hat = derivative_2DFHIT_spectral(Omega_hat, [3, 0], Kx, Ky)
-    Omegaxxy_hat = derivative_2DFHIT_spectral(Omega_hat, [2, 1], Kx, Ky)
-    Omegaxyy_hat = derivative_2DFHIT_spectral(Omega_hat, [1, 2], Kx, Ky)
-    Omegayyy_hat = derivative_2DFHIT_spectral(Omega_hat, [0, 3], Kx, Ky)
+    Omegaxxx_hat = derivative_spectral(Omega_hat, [3, 0], Kx, Ky)
+    Omegaxxy_hat = derivative_spectral(Omega_hat, [2, 1], Kx, Ky)
+    Omegaxyy_hat = derivative_spectral(Omega_hat, [1, 2], Kx, Ky)
+    Omegayyy_hat = derivative_spectral(Omega_hat, [0, 3], Kx, Ky)
 
     UxxyOmegaxxy_hat = multiply_dealias_spectral(Uxxy_hat, Omegaxxy_hat)
     UxyyOmegaxyy_hat = multiply_dealias_spectral(Uxyy_hat, Omegaxyy_hat)
@@ -792,16 +792,16 @@ def SigmaGM8_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=
     if spectral:
         Omega_hat, U_hat, V_hat = Omega, U, V
     else:
-        Omega_hat = np.fft.fft2(Omega)
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        Omega_hat = np.fft.rfft2(Omega)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         Sigma1GM8, Sigma2GM8 = SigmaGM8_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Sigma1GM8_hat = np.fft.fft2(Sigma1GM8)
-        Sigma2GM8_hat = np.fft.fft2(Sigma2GM8)
+        Sigma1GM8_hat = np.fft.rfft2(Sigma1GM8)
+        Sigma2GM8_hat = np.fft.rfft2(Sigma2GM8)
         return Sigma1GM8_hat, Sigma2GM8_hat
     else:
         return Sigma1GM8, Sigma2GM8
@@ -812,16 +812,16 @@ def SigmaGM10_2DFHIT(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral
     if spectral:
         Omega_hat, U_hat, V_hat = Omega, U, V
     else:
-        Omega_hat = np.fft.fft2(Omega)
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        Omega_hat = np.fft.rfft2(Omega)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         Sigma1GM10, Sigma2GM10 = SigmaGM10_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Sigma1GM10_hat = np.fft.fft2(Sigma1GM10)
-        Sigma2GM10_hat = np.fft.fft2(Sigma2GM10)
+        Sigma1GM10_hat = np.fft.rfft2(Sigma1GM10)
+        Sigma2GM10_hat = np.fft.rfft2(Sigma2GM10)
         return Sigma1GM10_hat, Sigma2GM10_hat
     else:
         return Sigma1GM10, Sigma2GM10
@@ -844,22 +844,22 @@ def TauLeonardGM4_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=Fa
     if spectral:
         U_hat, V_hat = U, V
     else:
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         if dealias:
             Tau11LeonardGM4_hat, Tau12LeonardGM4_hat, Tau22LeonardGM4_hat = TauLeonardGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
-            Tau11LeonardGM4 = real_ifft2(Tau11LeonardGM4_hat)
-            Tau12LeonardGM4 = real_ifft2(Tau12LeonardGM4_hat)
-            Tau22LeonardGM4 = real_ifft2(Tau22LeonardGM4_hat)
+            Tau11LeonardGM4 = real_irfft2(Tau11LeonardGM4_hat)
+            Tau12LeonardGM4 = real_irfft2(Tau12LeonardGM4_hat)
+            Tau22LeonardGM4 = real_irfft2(Tau22LeonardGM4_hat)
         else:
             Tau11LeonardGM4, Tau12LeonardGM4, Tau22LeonardGM4 = TauLeonardGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Tau11LeonardGM4_hat = np.fft.fft2(Tau11LeonardGM4)
-        Tau12LeonardGM4_hat = np.fft.fft2(Tau12LeonardGM4)
-        Tau22LeonardGM4_hat = np.fft.fft2(Tau22LeonardGM4)
+        Tau11LeonardGM4_hat = np.fft.rfft2(Tau11LeonardGM4)
+        Tau12LeonardGM4_hat = np.fft.rfft2(Tau12LeonardGM4)
+        Tau22LeonardGM4_hat = np.fft.rfft2(Tau22LeonardGM4)
         return Tau11LeonardGM4_hat, Tau12LeonardGM4_hat, Tau22LeonardGM4_hat
     else:
         return Tau11LeonardGM4, Tau12LeonardGM4, Tau22LeonardGM4
@@ -870,21 +870,21 @@ def TauLeonardGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta):
     B1 = Delta**4 / 144
     B2 = Delta**4 / 288
 
-    Ux = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky))
-    Uy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky))
-    Vx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky))
+    Ux = real_irfft2(derivative_spectral(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2(derivative_spectral(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2(derivative_spectral(V_hat, [1, 0], Kx, Ky))
     Vy = -Ux
-    Uxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 0], Kx, Ky))
-    Uxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 1], Kx, Ky))
-    Uyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 2], Kx, Ky))
-    Vxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [2, 0], Kx, Ky))
+    Uxx = real_irfft2(derivative_spectral(U_hat, [2, 0], Kx, Ky))
+    Uxy = real_irfft2(derivative_spectral(U_hat, [1, 1], Kx, Ky))
+    Uyy = real_irfft2(derivative_spectral(U_hat, [0, 2], Kx, Ky))
+    Vxx = real_irfft2(derivative_spectral(V_hat, [2, 0], Kx, Ky))
     Vxy = -Uxx
     Vyy = -Uxy
-    Uxxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky))
-    Uxxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky))
-    Uxyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky))
-    Uyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky))
-    Vxxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky))
+    Uxxx = real_irfft2(derivative_spectral(U_hat, [3, 0], Kx, Ky))
+    Uxxy = real_irfft2(derivative_spectral(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2(derivative_spectral(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2(derivative_spectral(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2(derivative_spectral(V_hat, [3, 0], Kx, Ky))
     Vxxy = -Uxxx
     Vxyy = -Uxxy
     Vyyy = -Uxyy
@@ -905,21 +905,21 @@ def TauLeonardGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
     B2 = Delta**4 / 288
 
 
-    Ux_hat = derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky)
-    Uy_hat = derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky)
-    Vx_hat = derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky)
+    Ux_hat = derivative_spectral(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral(V_hat, [1, 0], Kx, Ky)
     Vy_hat = -Ux_hat
-    Uxx_hat = derivative_2DFHIT_spectral(U_hat, [2, 0], Kx, Ky)
-    Uxy_hat = derivative_2DFHIT_spectral(U_hat, [1, 1], Kx, Ky)
-    Uyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 2], Kx, Ky)
-    Vxx_hat = derivative_2DFHIT_spectral(V_hat, [2, 0], Kx, Ky)
+    Uxx_hat = derivative_spectral(U_hat, [2, 0], Kx, Ky)
+    Uxy_hat = derivative_spectral(U_hat, [1, 1], Kx, Ky)
+    Uyy_hat = derivative_spectral(U_hat, [0, 2], Kx, Ky)
+    Vxx_hat = derivative_spectral(V_hat, [2, 0], Kx, Ky)
     Vxy_hat = -Uxx_hat
     Vyy_hat = -Uxy_hat
-    Uxxx_hat = derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky)
-    Uxxy_hat = derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky)
-    Uxyy_hat = derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky)
-    Uyyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky)
-    Vxxx_hat = derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky)
+    Uxxx_hat = derivative_spectral(U_hat, [3, 0], Kx, Ky)
+    Uxxy_hat = derivative_spectral(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral(V_hat, [3, 0], Kx, Ky)
     Vxxy_hat = -Uxxx_hat
     Vxyy_hat = -Uxxy_hat
     Vyyy_hat = -Uxyy_hat
@@ -967,22 +967,22 @@ def TauLeonardGM6_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=Fa
     if spectral:
         U_hat, V_hat = U, V
     else:
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         if dealias:
             Tau11LeonardGM6_hat, Tau12LeonardGM6_hat, Tau22LeonardGM6_hat = TauLeonardGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
-            Tau11LeonardGM6 = real_ifft2(Tau11LeonardGM6_hat)
-            Tau12LeonardGM6 = real_ifft2(Tau12LeonardGM6_hat)
-            Tau22LeonardGM6 = real_ifft2(Tau22LeonardGM6_hat)
+            Tau11LeonardGM6 = real_irfft2(Tau11LeonardGM6_hat)
+            Tau12LeonardGM6 = real_irfft2(Tau12LeonardGM6_hat)
+            Tau22LeonardGM6 = real_irfft2(Tau22LeonardGM6_hat)
         else:
             Tau11LeonardGM6, Tau12LeonardGM6, Tau22LeonardGM6 = TauLeonardGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Tau11LeonardGM6_hat = np.fft.fft2(Tau11LeonardGM6)
-        Tau12LeonardGM6_hat = np.fft.fft2(Tau12LeonardGM6)
-        Tau22LeonardGM6_hat = np.fft.fft2(Tau22LeonardGM6)
+        Tau11LeonardGM6_hat = np.fft.rfft2(Tau11LeonardGM6)
+        Tau12LeonardGM6_hat = np.fft.rfft2(Tau12LeonardGM6)
+        Tau22LeonardGM6_hat = np.fft.rfft2(Tau22LeonardGM6)
         return Tau11LeonardGM6_hat, Tau12LeonardGM6_hat, Tau22LeonardGM6_hat
     else:
         return Tau11LeonardGM6, Tau12LeonardGM6, Tau22LeonardGM6
@@ -998,41 +998,41 @@ def TauLeonardGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
     C6 = Delta**6 / 13824
     C7 = Delta**6 / 20736
 
-    Ux = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky))
-    Uy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky))
-    Vx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky))
+    Ux = real_irfft2(derivative_spectral(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2(derivative_spectral(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2(derivative_spectral(V_hat, [1, 0], Kx, Ky))
     Vy = -Ux
-    Uxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 0], Kx, Ky))
-    Uxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 1], Kx, Ky))
-    Uyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 2], Kx, Ky))
-    Vxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [2, 0], Kx, Ky))
+    Uxx = real_irfft2(derivative_spectral(U_hat, [2, 0], Kx, Ky))
+    Uxy = real_irfft2(derivative_spectral(U_hat, [1, 1], Kx, Ky))
+    Uyy = real_irfft2(derivative_spectral(U_hat, [0, 2], Kx, Ky))
+    Vxx = real_irfft2(derivative_spectral(V_hat, [2, 0], Kx, Ky))
     Vxy = -Uxx
     Vyy = -Uxy
-    Uxxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky))
-    Uxxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky))
-    Uxyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky))
-    Uyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky))
-    Vxxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky))
+    Uxxx = real_irfft2(derivative_spectral(U_hat, [3, 0], Kx, Ky))
+    Uxxy = real_irfft2(derivative_spectral(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2(derivative_spectral(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2(derivative_spectral(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2(derivative_spectral(V_hat, [3, 0], Kx, Ky))
     Vxxy = -Uxxx
     Vxyy = -Uxxy
     Vyyy = -Uxyy
-    Uxxxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [4, 0], Kx, Ky))
-    Uxxxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [3, 1], Kx, Ky))
-    Uxxyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 2], Kx, Ky))
-    Uxyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 3], Kx, Ky))
-    Uyyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 4], Kx, Ky))
-    Vxxxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [4, 0], Kx, Ky))
+    Uxxxx = real_irfft2(derivative_spectral(U_hat, [4, 0], Kx, Ky))
+    Uxxxy = real_irfft2(derivative_spectral(U_hat, [3, 1], Kx, Ky))
+    Uxxyy = real_irfft2(derivative_spectral(U_hat, [2, 2], Kx, Ky))
+    Uxyyy = real_irfft2(derivative_spectral(U_hat, [1, 3], Kx, Ky))
+    Uyyyy = real_irfft2(derivative_spectral(U_hat, [0, 4], Kx, Ky))
+    Vxxxx = real_irfft2(derivative_spectral(V_hat, [4, 0], Kx, Ky))
     Vxxxy = -Uxxxx
     Vxxyy = -Uxxxy
     Vxyyy = -Uxxyy
     Vyyyy = -Uxyyy
-    Uxxxxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [5, 0], Kx, Ky))
-    Uxxxxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [4, 1], Kx, Ky))
-    Uxxxyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [3, 2], Kx, Ky))
-    Uxxyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 3], Kx, Ky))
-    Uxyyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 4], Kx, Ky))
-    Uyyyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 5], Kx, Ky))
-    Vxxxxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [5, 0], Kx, Ky))
+    Uxxxxx = real_irfft2(derivative_spectral(U_hat, [5, 0], Kx, Ky))
+    Uxxxxy = real_irfft2(derivative_spectral(U_hat, [4, 1], Kx, Ky))
+    Uxxxyy = real_irfft2(derivative_spectral(U_hat, [3, 2], Kx, Ky))
+    Uxxyyy = real_irfft2(derivative_spectral(U_hat, [2, 3], Kx, Ky))
+    Uxyyyy = real_irfft2(derivative_spectral(U_hat, [1, 4], Kx, Ky))
+    Uyyyyy = real_irfft2(derivative_spectral(U_hat, [0, 5], Kx, Ky))
+    Vxxxxx = real_irfft2(derivative_spectral(V_hat, [5, 0], Kx, Ky))
     Vxxxxy = -Uxxxxx
     Vxxxyy = -Uxxxxx
     Vxxyyy = -Uxxxyy
@@ -1069,41 +1069,41 @@ def TauLeonardGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
     C6 = Delta**6 / 13824
     C7 = Delta**6 / 20736
 
-    Ux_hat = derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky)
-    Uy_hat = derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky)
-    Vx_hat = derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky)
+    Ux_hat = derivative_spectral(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral(V_hat, [1, 0], Kx, Ky)
     Vy_hat = -Ux_hat
-    Uxx_hat = derivative_2DFHIT_spectral(U_hat, [2, 0], Kx, Ky)
-    Uxy_hat = derivative_2DFHIT_spectral(U_hat, [1, 1], Kx, Ky)
-    Uyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 2], Kx, Ky)
-    Vxx_hat = derivative_2DFHIT_spectral(V_hat, [2, 0], Kx, Ky)
+    Uxx_hat = derivative_spectral(U_hat, [2, 0], Kx, Ky)
+    Uxy_hat = derivative_spectral(U_hat, [1, 1], Kx, Ky)
+    Uyy_hat = derivative_spectral(U_hat, [0, 2], Kx, Ky)
+    Vxx_hat = derivative_spectral(V_hat, [2, 0], Kx, Ky)
     Vxy_hat = -Uxx_hat
     Vyy_hat = -Uxy_hat
-    Uxxx_hat = derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky)
-    Uxxy_hat = derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky)
-    Uxyy_hat = derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky)
-    Uyyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky)
-    Vxxx_hat = derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky)
+    Uxxx_hat = derivative_spectral(U_hat, [3, 0], Kx, Ky)
+    Uxxy_hat = derivative_spectral(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral(V_hat, [3, 0], Kx, Ky)
     Vxxy_hat = -Uxxx_hat
     Vxyy_hat = -Uxxy_hat
     Vyyy_hat = -Uxyy_hat
-    Uxxxx_hat = derivative_2DFHIT_spectral(U_hat, [4, 0], Kx, Ky)
-    Uxxxy_hat = derivative_2DFHIT_spectral(U_hat, [3, 1], Kx, Ky)
-    Uxxyy_hat = derivative_2DFHIT_spectral(U_hat, [2, 2], Kx, Ky)
-    Uxyyy_hat = derivative_2DFHIT_spectral(U_hat, [1, 3], Kx, Ky)
-    Uyyyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 4], Kx, Ky)
-    Vxxxx_hat = derivative_2DFHIT_spectral(V_hat, [4, 0], Kx, Ky)
+    Uxxxx_hat = derivative_spectral(U_hat, [4, 0], Kx, Ky)
+    Uxxxy_hat = derivative_spectral(U_hat, [3, 1], Kx, Ky)
+    Uxxyy_hat = derivative_spectral(U_hat, [2, 2], Kx, Ky)
+    Uxyyy_hat = derivative_spectral(U_hat, [1, 3], Kx, Ky)
+    Uyyyy_hat = derivative_spectral(U_hat, [0, 4], Kx, Ky)
+    Vxxxx_hat = derivative_spectral(V_hat, [4, 0], Kx, Ky)
     Vxxxy_hat = -Uxxxx_hat
     Vxxyy_hat = -Uxxxy_hat
     Vxyyy_hat = -Uxxyy_hat
     Vyyyy_hat = -Uxyyy_hat
-    Uxxxxx_hat = derivative_2DFHIT_spectral(U_hat, [5, 0], Kx, Ky)
-    Uxxxxy_hat = derivative_2DFHIT_spectral(U_hat, [4, 1], Kx, Ky)
-    Uxxxyy_hat = derivative_2DFHIT_spectral(U_hat, [3, 2], Kx, Ky)
-    Uxxyyy_hat = derivative_2DFHIT_spectral(U_hat, [2, 3], Kx, Ky)
-    Uxyyyy_hat = derivative_2DFHIT_spectral(U_hat, [1, 4], Kx, Ky)
-    Uyyyyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 5], Kx, Ky)
-    Vxxxxx_hat = derivative_2DFHIT_spectral(V_hat, [5, 0], Kx, Ky)
+    Uxxxxx_hat = derivative_spectral(U_hat, [5, 0], Kx, Ky)
+    Uxxxxy_hat = derivative_spectral(U_hat, [4, 1], Kx, Ky)
+    Uxxxyy_hat = derivative_spectral(U_hat, [3, 2], Kx, Ky)
+    Uxxyyy_hat = derivative_spectral(U_hat, [2, 3], Kx, Ky)
+    Uxyyyy_hat = derivative_spectral(U_hat, [1, 4], Kx, Ky)
+    Uyyyyy_hat = derivative_spectral(U_hat, [0, 5], Kx, Ky)
+    Vxxxxx_hat = derivative_spectral(V_hat, [5, 0], Kx, Ky)
     Vxxxxy_hat = -Uxxxxx_hat
     Vxxxyy_hat = -Uxxxxx_hat
     Vxxyyy_hat = -Uxxxyy_hat
@@ -1209,22 +1209,22 @@ def TauCrossGM4_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=Fals
     if spectral:
         U_hat, V_hat = U, V
     else:
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         if dealias:
             Tau11CrossGM4_hat, Tau12CrossGM4_hat, Tau22CrossGM4_hat = TauCrossGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
-            Tau11CrossGM4 = real_ifft2(Tau11CrossGM4_hat)
-            Tau12CrossGM4 = real_ifft2(Tau12CrossGM4_hat)
-            Tau22CrossGM4 = real_ifft2(Tau22CrossGM4_hat)
+            Tau11CrossGM4 = real_irfft2(Tau11CrossGM4_hat)
+            Tau12CrossGM4 = real_irfft2(Tau12CrossGM4_hat)
+            Tau22CrossGM4 = real_irfft2(Tau22CrossGM4_hat)
         else:
             Tau11CrossGM4, Tau12CrossGM4, Tau22CrossGM4 = TauCrossGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Tau11CrossGM4_hat = np.fft.fft2(Tau11CrossGM4)
-        Tau12CrossGM4_hat = np.fft.fft2(Tau12CrossGM4)
-        Tau22CrossGM4_hat = np.fft.fft2(Tau22CrossGM4)
+        Tau11CrossGM4_hat = np.fft.rfft2(Tau11CrossGM4)
+        Tau12CrossGM4_hat = np.fft.rfft2(Tau12CrossGM4)
+        Tau22CrossGM4_hat = np.fft.rfft2(Tau22CrossGM4)
         return Tau11CrossGM4_hat, Tau12CrossGM4_hat, Tau22CrossGM4_hat
     else:
         return Tau11CrossGM4, Tau12CrossGM4, Tau22CrossGM4
@@ -1235,15 +1235,15 @@ def TauCrossGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta):
     B1 = Delta**4 / 144
     B2 = Delta**4 / 144
 
-    Ux = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky))
-    Uy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky))
-    Vx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky))
+    Ux = real_irfft2(derivative_spectral(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2(derivative_spectral(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2(derivative_spectral(V_hat, [1, 0], Kx, Ky))
     Vy = -Ux
-    Uxxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky))
-    Uxxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky))
-    Uxyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky))
-    Uyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky))
-    Vxxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky))
+    Uxxx = real_irfft2(derivative_spectral(U_hat, [3, 0], Kx, Ky))
+    Uxxy = real_irfft2(derivative_spectral(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2(derivative_spectral(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2(derivative_spectral(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2(derivative_spectral(V_hat, [3, 0], Kx, Ky))
     Vxxy = -Uxxx
     Vxyy = -Uxxy
     Vyyy = -Uxyy
@@ -1260,15 +1260,15 @@ def TauCrossGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
     B1 = Delta**4 / 144
     B2 = Delta**4 / 144
 
-    Ux_hat = derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky)
-    Uy_hat = derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky)
-    Vx_hat = derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky)
+    Ux_hat = derivative_spectral(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral(V_hat, [1, 0], Kx, Ky)
     Vy_hat = -Ux_hat
-    Uxxx_hat = derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky)
-    Uxxy_hat = derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky)
-    Uxyy_hat = derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky)
-    Uyyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky)
-    Vxxx_hat = derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky)
+    Uxxx_hat = derivative_spectral(U_hat, [3, 0], Kx, Ky)
+    Uxxy_hat = derivative_spectral(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral(V_hat, [3, 0], Kx, Ky)
     Vxxy_hat = -Uxxx_hat
     Vxyy_hat = -Uxxy_hat
     Vyyy_hat = -Uxyy_hat
@@ -1304,22 +1304,22 @@ def TauCrossGM6_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=Fals
     if spectral:
         U_hat, V_hat = U, V
     else:
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         if dealias:
             Tau11CrossGM6_hat, Tau12CrossGM6_hat, Tau22CrossGM6_hat = TauCrossGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
-            Tau11CrossGM6 = real_ifft2(Tau11CrossGM6_hat)
-            Tau12CrossGM6 = real_ifft2(Tau12CrossGM6_hat)
-            Tau22CrossGM6 = real_ifft2(Tau22CrossGM6_hat)
+            Tau11CrossGM6 = real_irfft2(Tau11CrossGM6_hat)
+            Tau12CrossGM6 = real_irfft2(Tau12CrossGM6_hat)
+            Tau22CrossGM6 = real_irfft2(Tau22CrossGM6_hat)
         else:
             Tau11CrossGM6, Tau12CrossGM6, Tau22CrossGM6 = TauCrossGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Tau11CrossGM6_hat = np.fft.fft2(Tau11CrossGM6)
-        Tau12CrossGM6_hat = np.fft.fft2(Tau12CrossGM6)
-        Tau22CrossGM6_hat = np.fft.fft2(Tau22CrossGM6)
+        Tau11CrossGM6_hat = np.fft.rfft2(Tau11CrossGM6)
+        Tau12CrossGM6_hat = np.fft.rfft2(Tau12CrossGM6)
+        Tau22CrossGM6_hat = np.fft.rfft2(Tau22CrossGM6)
         return Tau11CrossGM6_hat, Tau12CrossGM6_hat, Tau22CrossGM6_hat
     else:
         return Tau11CrossGM6, Tau12CrossGM6, Tau22CrossGM6
@@ -1335,41 +1335,41 @@ def TauCrossGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
     C6 = Delta**6 / 13824
     C7 = Delta**6 / 20736
 
-    Ux = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky))
-    Uy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky))
-    Vx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky))
+    Ux = real_irfft2(derivative_spectral(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2(derivative_spectral(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2(derivative_spectral(V_hat, [1, 0], Kx, Ky))
     Vy = -Ux
-    Uxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 0], Kx, Ky))
-    Uxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 1], Kx, Ky))
-    Uyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 2], Kx, Ky))
-    Vxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [2, 0], Kx, Ky))
+    Uxx = real_irfft2(derivative_spectral(U_hat, [2, 0], Kx, Ky))
+    Uxy = real_irfft2(derivative_spectral(U_hat, [1, 1], Kx, Ky))
+    Uyy = real_irfft2(derivative_spectral(U_hat, [0, 2], Kx, Ky))
+    Vxx = real_irfft2(derivative_spectral(V_hat, [2, 0], Kx, Ky))
     Vxy = -Uxx
     Vyy = -Uxy
-    Uxxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky))
-    Uxxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky))
-    Uxyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky))
-    Uyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky))
-    Vxxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky))
+    Uxxx = real_irfft2(derivative_spectral(U_hat, [3, 0], Kx, Ky))
+    Uxxy = real_irfft2(derivative_spectral(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2(derivative_spectral(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2(derivative_spectral(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2(derivative_spectral(V_hat, [3, 0], Kx, Ky))
     Vxxy = -Uxxx
     Vxyy = -Uxxy
     Vyyy = -Uxyy
-    Uxxxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [4, 0], Kx, Ky))
-    Uxxxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [3, 1], Kx, Ky))
-    Uxxyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 2], Kx, Ky))
-    Uxyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 3], Kx, Ky))
-    Uyyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 4], Kx, Ky))
-    Vxxxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [4, 0], Kx, Ky))
+    Uxxxx = real_irfft2(derivative_spectral(U_hat, [4, 0], Kx, Ky))
+    Uxxxy = real_irfft2(derivative_spectral(U_hat, [3, 1], Kx, Ky))
+    Uxxyy = real_irfft2(derivative_spectral(U_hat, [2, 2], Kx, Ky))
+    Uxyyy = real_irfft2(derivative_spectral(U_hat, [1, 3], Kx, Ky))
+    Uyyyy = real_irfft2(derivative_spectral(U_hat, [0, 4], Kx, Ky))
+    Vxxxx = real_irfft2(derivative_spectral(V_hat, [4, 0], Kx, Ky))
     Vxxxy = -Uxxxx
     Vxxyy = -Uxxxy
     Vxyyy = -Uxxyy
     Vyyyy = -Uxyyy
-    Uxxxxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [5, 0], Kx, Ky))
-    Uxxxxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [4, 1], Kx, Ky))
-    Uxxxyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [3, 2], Kx, Ky))
-    Uxxyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 3], Kx, Ky))
-    Uxyyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 4], Kx, Ky))
-    Uyyyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 5], Kx, Ky))
-    Vxxxxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [5, 0], Kx, Ky))
+    Uxxxxx = real_irfft2(derivative_spectral(U_hat, [5, 0], Kx, Ky))
+    Uxxxxy = real_irfft2(derivative_spectral(U_hat, [4, 1], Kx, Ky))
+    Uxxxyy = real_irfft2(derivative_spectral(U_hat, [3, 2], Kx, Ky))
+    Uxxyyy = real_irfft2(derivative_spectral(U_hat, [2, 3], Kx, Ky))
+    Uxyyyy = real_irfft2(derivative_spectral(U_hat, [1, 4], Kx, Ky))
+    Uyyyyy = real_irfft2(derivative_spectral(U_hat, [0, 5], Kx, Ky))
+    Vxxxxx = real_irfft2(derivative_spectral(V_hat, [5, 0], Kx, Ky))
     Vxxxxy = -Uxxxxx
     Vxxxyy = -Uxxxxx
     Vxxyyy = -Uxxxyy
@@ -1403,41 +1403,41 @@ def TauCrossGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
     C6 = Delta**6 / 13824
     C7 = Delta**6 / 20736
 
-    Ux_hat = derivative_2DFHIT_spectral(U_hat, [1, 0], Kx, Ky)
-    Uy_hat = derivative_2DFHIT_spectral(U_hat, [0, 1], Kx, Ky)
-    Vx_hat = derivative_2DFHIT_spectral(V_hat, [1, 0], Kx, Ky)
+    Ux_hat = derivative_spectral(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral(V_hat, [1, 0], Kx, Ky)
     Vy_hat = -Ux_hat
-    Uxx_hat = derivative_2DFHIT_spectral(U_hat, [2, 0], Kx, Ky)
-    Uxy_hat = derivative_2DFHIT_spectral(U_hat, [1, 1], Kx, Ky)
-    Uyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 2], Kx, Ky)
-    Vxx_hat = derivative_2DFHIT_spectral(V_hat, [2, 0], Kx, Ky)
+    Uxx_hat = derivative_spectral(U_hat, [2, 0], Kx, Ky)
+    Uxy_hat = derivative_spectral(U_hat, [1, 1], Kx, Ky)
+    Uyy_hat = derivative_spectral(U_hat, [0, 2], Kx, Ky)
+    Vxx_hat = derivative_spectral(V_hat, [2, 0], Kx, Ky)
     Vxy_hat = -Uxx_hat
     Vyy_hat = -Uxy_hat
-    Uxxx_hat = derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky)
-    Uxxy_hat = derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky)
-    Uxyy_hat = derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky)
-    Uyyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky)
-    Vxxx_hat = derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky)
+    Uxxx_hat = derivative_spectral(U_hat, [3, 0], Kx, Ky)
+    Uxxy_hat = derivative_spectral(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral(V_hat, [3, 0], Kx, Ky)
     Vxxy_hat = -Uxxx_hat
     Vxyy_hat = -Uxxy_hat
     Vyyy_hat = -Uxyy_hat
-    Uxxxx_hat = derivative_2DFHIT_spectral(U_hat, [4, 0], Kx, Ky)
-    Uxxxy_hat = derivative_2DFHIT_spectral(U_hat, [3, 1], Kx, Ky)
-    Uxxyy_hat = derivative_2DFHIT_spectral(U_hat, [2, 2], Kx, Ky)
-    Uxyyy_hat = derivative_2DFHIT_spectral(U_hat, [1, 3], Kx, Ky)
-    Uyyyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 4], Kx, Ky)
-    Vxxxx_hat = derivative_2DFHIT_spectral(V_hat, [4, 0], Kx, Ky)
+    Uxxxx_hat = derivative_spectral(U_hat, [4, 0], Kx, Ky)
+    Uxxxy_hat = derivative_spectral(U_hat, [3, 1], Kx, Ky)
+    Uxxyy_hat = derivative_spectral(U_hat, [2, 2], Kx, Ky)
+    Uxyyy_hat = derivative_spectral(U_hat, [1, 3], Kx, Ky)
+    Uyyyy_hat = derivative_spectral(U_hat, [0, 4], Kx, Ky)
+    Vxxxx_hat = derivative_spectral(V_hat, [4, 0], Kx, Ky)
     Vxxxy_hat = -Uxxxx_hat
     Vxxyy_hat = -Uxxxy_hat
     Vxyyy_hat = -Uxxyy_hat
     Vyyyy_hat = -Uxyyy_hat
-    Uxxxxx_hat = derivative_2DFHIT_spectral(U_hat, [5, 0], Kx, Ky)
-    Uxxxxy_hat = derivative_2DFHIT_spectral(U_hat, [4, 1], Kx, Ky)
-    Uxxxyy_hat = derivative_2DFHIT_spectral(U_hat, [3, 2], Kx, Ky)
-    Uxxyyy_hat = derivative_2DFHIT_spectral(U_hat, [2, 3], Kx, Ky)
-    Uxyyyy_hat = derivative_2DFHIT_spectral(U_hat, [1, 4], Kx, Ky)
-    Uyyyyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 5], Kx, Ky)
-    Vxxxxx_hat = derivative_2DFHIT_spectral(V_hat, [5, 0], Kx, Ky)
+    Uxxxxx_hat = derivative_spectral(U_hat, [5, 0], Kx, Ky)
+    Uxxxxy_hat = derivative_spectral(U_hat, [4, 1], Kx, Ky)
+    Uxxxyy_hat = derivative_spectral(U_hat, [3, 2], Kx, Ky)
+    Uxxyyy_hat = derivative_spectral(U_hat, [2, 3], Kx, Ky)
+    Uxyyyy_hat = derivative_spectral(U_hat, [1, 4], Kx, Ky)
+    Uyyyyy_hat = derivative_spectral(U_hat, [0, 5], Kx, Ky)
+    Vxxxxx_hat = derivative_spectral(V_hat, [5, 0], Kx, Ky)
     Vxxxxy_hat = -Uxxxxx_hat
     Vxxxyy_hat = -Uxxxxx_hat
     Vxxyyy_hat = -Uxxxyy_hat
@@ -1547,22 +1547,22 @@ def TauReynoldsGM6_2DFHIT(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=F
     if spectral:
         U_hat, V_hat = U, V
     else:
-        U_hat = np.fft.fft2(U)
-        V_hat = np.fft.fft2(V)
+        U_hat = np.fft.rfft2(U)
+        V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
         if dealias:
             Tau11ReynoldsGM6_hat, Tau12ReynoldsGM6_hat, Tau22ReynoldsGM6_hat = TauReynoldsGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
-            Tau11ReynoldsGM6 = real_ifft2(Tau11ReynoldsGM6_hat)
-            Tau12ReynoldsGM6 = real_ifft2(Tau12ReynoldsGM6_hat)
-            Tau22ReynoldsGM6 = real_ifft2(Tau22ReynoldsGM6_hat)
+            Tau11ReynoldsGM6 = real_irfft2(Tau11ReynoldsGM6_hat)
+            Tau12ReynoldsGM6 = real_irfft2(Tau12ReynoldsGM6_hat)
+            Tau22ReynoldsGM6 = real_irfft2(Tau22ReynoldsGM6_hat)
         else:
             Tau11ReynoldsGM6, Tau12ReynoldsGM6, Tau22ReynoldsGM6 = TauReynoldsGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
-        Tau11ReynoldsGM6_hat = np.fft.fft2(Tau11ReynoldsGM6)
-        Tau12ReynoldsGM6_hat = np.fft.fft2(Tau12ReynoldsGM6)
-        Tau22ReynoldsGM6_hat = np.fft.fft2(Tau22ReynoldsGM6)
+        Tau11ReynoldsGM6_hat = np.fft.rfft2(Tau11ReynoldsGM6)
+        Tau12ReynoldsGM6_hat = np.fft.rfft2(Tau12ReynoldsGM6)
+        Tau22ReynoldsGM6_hat = np.fft.rfft2(Tau22ReynoldsGM6)
         return Tau11ReynoldsGM6_hat, Tau12ReynoldsGM6_hat, Tau22ReynoldsGM6_hat
     else:
         return Tau11ReynoldsGM6, Tau12ReynoldsGM6, Tau22ReynoldsGM6
@@ -1573,11 +1573,11 @@ def TauReynoldsGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta):
     C3 = Delta**6 / 3456
     C4 = Delta**6 / 6912
 
-    Uxxx = real_ifft2(derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky))
-    Uxxy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky))
-    Uxyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky))
-    Uyyy = real_ifft2(derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky))
-    Vxxx = real_ifft2(derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky))
+    Uxxx = real_irfft2(derivative_spectral(U_hat, [3, 0], Kx, Ky))
+    Uxxy = real_irfft2(derivative_spectral(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2(derivative_spectral(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2(derivative_spectral(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2(derivative_spectral(V_hat, [3, 0], Kx, Ky))
     Vxxy = -Uxxx
     Vxyy = -Uxxy
     Vyyy = -Uxyy
@@ -1594,11 +1594,11 @@ def TauReynoldsGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
     C3 = Delta**6 / 3456
     C4 = Delta**6 / 6912
 
-    Uxxx_hat = derivative_2DFHIT_spectral(U_hat, [3, 0], Kx, Ky)
-    Uxxy_hat = derivative_2DFHIT_spectral(U_hat, [2, 1], Kx, Ky)
-    Uxyy_hat = derivative_2DFHIT_spectral(U_hat, [1, 2], Kx, Ky)
-    Uyyy_hat = derivative_2DFHIT_spectral(U_hat, [0, 3], Kx, Ky)
-    Vxxx_hat = derivative_2DFHIT_spectral(V_hat, [3, 0], Kx, Ky)
+    Uxxx_hat = derivative_spectral(U_hat, [3, 0], Kx, Ky)
+    Uxxy_hat = derivative_spectral(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral(V_hat, [3, 0], Kx, Ky)
     Vxxy_hat = -Uxxx_hat
     Vxyy_hat = -Uxxy_hat
     Vyyy_hat = -Uxyy_hat

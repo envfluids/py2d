@@ -8,7 +8,7 @@ from py2d.gradient_model import PiOmegaGM2_gaussian, PiOmegaGM2_gaussian_dealias
 
 # from py2d.uv2tau_CNN import evaluate_model, init_model
 from py2d.eddy_viscosity_models import Tau_eddy_viscosity
-from py2d.convert import Tau2PiOmega_2DFHIT
+from py2d.convert import Tau2PiOmega
 
 class SGSModel:
 
@@ -184,7 +184,7 @@ class SGSModel:
             Tau12_hat = np.fft.fft2(Tau12)
             Tau22_hat = np.fft.fft2(Tau22)
 
-            PiOmega_hat = Tau2PiOmega_2DFHIT(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky, spectral=True)
+            PiOmega_hat = Tau2PiOmega(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky, spectral=True)
 
         #--------- DEBUG MODE ------------------------------------------------
         # import matplotlib.pyplot as plt
@@ -349,7 +349,7 @@ class SGSModel:
             PiOmega_hat = PiOmegaGM2_gaussian_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else: 
             PiOmega = PiOmegaGM2_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-            PiOmega_hat = np.fft.fft2(PiOmega)
+            PiOmega_hat = np.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
 
@@ -365,7 +365,7 @@ class SGSModel:
             PiOmega_hat = PiOmegaGM4_gaussian_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else:
             PiOmega = PiOmegaGM4_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-            PiOmega_hat = np.fft.fft2(PiOmega)
+            PiOmega_hat = np.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
 
@@ -381,7 +381,7 @@ class SGSModel:
             PiOmega_hat = PiOmegaGM6_gaussian_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else:
             PiOmega = PiOmegaGM6_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-            PiOmega_hat = np.fft.fft2(PiOmega)
+            PiOmega_hat = np.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
         return PiOmega_hat, eddy_viscosity
