@@ -1,9 +1,9 @@
 import numpy as np
 
-from py2d.initialize import initialize_wavenumbers_2DFHIT
-from py2d.derivative import derivative_2DFHIT
+from py2d.initialize import initialize_wavenumbers_fft2
+from py2d.derivative import derivative
 
-def spectrum_angled_average_2DFHIT(A, kmax = 'grid', spectral = False):
+def spectrum_angled_average(A, kmax = 'grid', spectral = False):
     '''
     Compute the radially/angle-averaged spectrum of a 2D square matrix.
 
@@ -41,8 +41,8 @@ def spectrum_angled_average_2DFHIT(A, kmax = 'grid', spectral = False):
     '''
 
     # Check if input 'A' is a 2D square matrix
-    if not isinstance(A, np.ndarray) or A.ndim != 2 or A.shape[0] != A.shape[1]:
-        raise ValueError('Input is not a 2D square matrix. Please input a 2D square matrix')
+    if not isinstance(A, np.ndarray) or A.ndim != 2 :
+        raise ValueError('Input is not a 2D  matrix. Please input a 2D matrix')
     # Check if 'spectral' is a boolean value
     if not isinstance(spectral, bool):
         raise ValueError('Invalid input for spectral. It should be a boolean value')
@@ -55,7 +55,7 @@ def spectrum_angled_average_2DFHIT(A, kmax = 'grid', spectral = False):
     # Set the size of the domain
     Lx, Ly = 2 * np.pi, 2 * np.pi
 
-    _, _, Kabs, _, _ = initialize_wavenumbers_2DFHIT(nx, ny, Lx, Ly, INDEXING='ij')
+    _, _, Kabs, _, _ = initialize_wavenumbers_fft2(nx, ny, Lx, Ly, INDEXING='ij')
 
     # Compute the 2D FFT of 'A' if it is in the physical domain
     if not spectral:
@@ -87,7 +87,7 @@ def spectrum_angled_average_2DFHIT(A, kmax = 'grid', spectral = False):
     return A_angled_average_spectra, wavenumbers
 
 
-def TKE_angled_average_2DFHIT(Psi, Omega, spectral=False):
+def TKE_angled_average(Psi, Omega, spectral=False):
     '''
     Calculate the energy spectrum and its angled average.
 
@@ -123,13 +123,13 @@ def TKE_angled_average_2DFHIT(Psi, Omega, spectral=False):
     E_hat = 0.5 * (np.conj(Psi_hat) * Omega_hat) / NX ** 2
 
     # Perform an angle-averaged spectrum calculation on the computed kinetic energy.
-    TKE_angled_average, kkx = spectrum_angled_average_2DFHIT(E_hat, spectral=True)
+    TKE_angled_average, kkx = spectrum_angled_average(E_hat, spectral=True)
 
     # Return the angle-averaged kinetic energy spectrum and the corresponding wavenumbers.
     return TKE_angled_average, kkx
 
 
-def enstrophy_angled_average_2DFHIT(Omega, spectral=False):
+def enstrophy_angled_average(Omega, spectral=False):
     '''
     Calculate the enstrophy spectrum and its angled average.
 
@@ -161,12 +161,12 @@ def enstrophy_angled_average_2DFHIT(Omega, spectral=False):
     Z_hat = 0.5 * (np.conj(Omega_hat) * Omega_hat) / NX ** 2
 
     # Perform an angle-averaged spectrum calculation on the computed enstrophy.
-    Z_angled_average_spectra, kkx = spectrum_angled_average_2DFHIT(Z_hat, spectral=True)
+    Z_angled_average_spectra, kkx = spectrum_angled_average(Z_hat, spectral=True)
 
     # Return the angle-averaged enstrophy spectrum and the corresponding wavenumbers.
     return Z_angled_average_spectra, kkx
 
-def energyTransfer_spectra_2DFHIT(Kx, Ky, U=None, V=None, Tau11=None, Tau12=None, Tau22=None, Psi=None, PiOmega=None, method='Tau', spectral=False):
+def energyTransfer_spectra(Kx, Ky, U=None, V=None, Tau11=None, Tau12=None, Tau22=None, Psi=None, PiOmega=None, method='Tau', spectral=False):
     '''
     Compute the energy transfer spectra using 2D Forced Homogeneous Isotropic Turbulence (2D-FHIT)
     PTau > 0: dissipation
@@ -213,9 +213,9 @@ def energyTransfer_spectra_2DFHIT(Kx, Ky, U=None, V=None, Tau11=None, Tau12=None
             raise ValueError("U, V, Tau11, Tau12, Tau22 must be provided to calculate energy transfer using 'Tau' method")
 
         # Calculate the derivatives of U with respect to x and y, and the derivative of V with respect to x.
-        Ux = derivative_2DFHIT(U, [1, 0], Kx=Kx, Ky=Ky, spectral=spectral)
-        Uy = derivative_2DFHIT(U, [0, 1], Kx=Kx,Ky=Ky, spectral=spectral)
-        Vx = derivative_2DFHIT(V, [1, 0], Kx=Kx, Ky=Ky, spectral=spectral)
+        Ux = derivative(U, [1, 0], Kx=Kx, Ky=Ky, spectral=spectral)
+        Uy = derivative(U, [0, 1], Kx=Kx,Ky=Ky, spectral=spectral)
+        Vx = derivative(V, [1, 0], Kx=Kx, Ky=Ky, spectral=spectral)
 
         # If the data is in physical space, convert it to spectral space using 2D FFT. 
         if spectral == False:
@@ -263,13 +263,13 @@ def energyTransfer_spectra_2DFHIT(Kx, Ky, U=None, V=None, Tau11=None, Tau12=None
         raise ValueError("Invalid method. Choose either 'Tau' or 'PiOmega'")
 
     # Perform an angle-averaged spectrum calculation on the computed energy transfer function.
-    spectra, wavenumber = spectrum_angled_average_2DFHIT(Ptau_hat, spectral=True)
+    spectra, wavenumber = spectrum_angled_average(Ptau_hat, spectral=True)
 
     # Return the real part of the computed spectrum along with the corresponding wavenumbers.
     return np.real(spectra), wavenumber
 
 
-def enstrophyTransfer_spectra_2DFHIT(Kx, Ky, Omega=None, Sigma1=None, Sigma2=None, PiOmega=None, method='Sigma', spectral=False):
+def enstrophyTransfer_spectra(Kx, Ky, Omega=None, Sigma1=None, Sigma2=None, PiOmega=None, method='Sigma', spectral=False):
     '''
     Compute the enstrophy transfer spectra using 2D Forced Homogeneous Isotropic Turbulence (2D-FHIT)
     PZ > 0: dissipation
@@ -313,8 +313,8 @@ def enstrophyTransfer_spectra_2DFHIT(Kx, Ky, Omega=None, Sigma1=None, Sigma2=Non
             raise ValueError("Omega, Sigma1, Sigma2 must be provided to calculate enstrophy transfer using 'Sigma' method")
 
         # Calculating the derivatives of Omega in x and y direction.
-        Omegax = derivative_2DFHIT(Omega, [1, 0], Kx=Kx, Ky=Ky, spectral=spectral)
-        Omegay = derivative_2DFHIT(Omega, [0, 1], Kx=Kx, Ky=Ky, spectral=spectral)
+        Omegax = derivative(Omega, [1, 0], Kx=Kx, Ky=Ky, spectral=spectral)
+        Omegay = derivative(Omega, [0, 1], Kx=Kx, Ky=Ky, spectral=spectral)
 
         # If the input is in the physical space, we need to convert it to spectral space using 2D FFT.
         if not spectral:
@@ -352,7 +352,7 @@ def enstrophyTransfer_spectra_2DFHIT(Kx, Ky, Omega=None, Sigma1=None, Sigma2=Non
         raise ValueError("Invalid method. Choose either 'Sigma' or 'PiOmega'")
 
     # Performing an angle-averaged spectrum calculation on the computed enstrophy transfer function.
-    spectra, wavenumber = spectrum_angled_average_2DFHIT(Pz_hat, spectral=True)
+    spectra, wavenumber = spectrum_angled_average(Pz_hat, spectral=True)
 
     # Returning the real part of the computed spectrum along with the corresponding wavenumbers.
     return np.real(spectra), wavenumber
