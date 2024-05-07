@@ -379,6 +379,35 @@ def coarse_spectral_filter_square(a_hat, NCoarse):
     
 #     return a_hat_coarse_sym
 
+@jit
+def spectral_filter_square_same_size_jit(q_hat, kc):
+    '''
+    A sharp spectral filter for 2D flow variables. The function takes a 2D square matrix at high resolution 
+    The function applies a square sharp-spectral (cut-off filter) to the input data in the frequency domain.
+
+    Parameters:
+    q (numpy.ndarray): The input 2D square matrix.
+    kc (int): The cutoff wavenumber.
+
+    Returns:
+    numpy.ndarray: The filtered data. The data is in the frequency domain. 
+    '''
+    NX_DNS = q_hat.shape[0]
+    Lx, Ly = 2 * jnp.pi, 2 * jnp.pi
+
+    # Create an array of the discrete Fourier Transform sample frequencies in x,y-direction
+    kx = 2 * jnp.pi * jnp.fft.fftfreq(NX_DNS, d=Lx/NX_DNS)
+    ky = 2 * jnp.pi * jnp.fft.fftfreq(NX_DNS, d=Ly/NX_DNS)
+
+    # Return coordinate grids (2D arrays) for the x and y wavenumbers
+    (Kx_DNS, Ky_DNS) = jnp.meshgrid(kx, ky, indexing='ij')
+
+    Kx_DNS_abs = jnp.abs(fft2_to_rfft2(Kx_DNS))
+    Ky_DNS_abs = jnp.abs(fft2_to_rfft2(Ky_DNS))
+
+    q_filtered_hat = jnp.where((Kx_DNS_abs < kc) & (Ky_DNS_abs < kc), q_hat, 0)
+    return q_filtered_hat
+
 def coarse_spectral_filter_square_jit(a_hat, NCoarse):
     """
     Apply a coarse spectral filter to the Fourier-transformed input on a 2D square grid.
