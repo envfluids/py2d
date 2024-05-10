@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools >= 61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Py2D"
+version = "0.1"
+description = "Python solver for incompressible 2D Navier-Stokes equations."
+authors = [
+  { name="Karan Jakhar", email="karanj@uchicago.edu" },
+]
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 3 - Alpha",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+    "jax",
+    "jaxlib",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/envfluids/py2d"
+"Bug Tracker" = "https://github.com/envfluids/py2d/issues"
+
+[tool.setuptools]
+packages = ["py2d"] 
+include-package-data = true

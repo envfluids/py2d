@@ -8,7 +8,6 @@
 
 # Import os module
 import os
-# os.chdir('../../py2d/')
 from pathlib import Path
 
 # Import Python Libraries
@@ -28,6 +27,7 @@ from py2d.convection_conserved import convection_conserved, convection_conserved
 from py2d.convert import Omega2Psi_spectral, Psi2UV_spectral
 from py2d.SGSModel import *
 from py2d.util import regrid
+
 # from py2d.uv2tau_CNN import *
 
 from py2d.initialize import gridgen, initialize_wavenumbers_rfft2, initialize_perturbation
