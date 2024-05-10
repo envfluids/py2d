@@ -1,8 +1,8 @@
-from py2d.derivative import derivative_2DFHIT
+from py2d.derivative import derivative
 import numpy as np
 from py2d.dealias import multiply_dealias
 
-def energy_2DFHIT(Psi, Omega, spectral = False, dealias = False):
+def energy(Psi, Omega, spectral = False, dealias = False):
     '''Calculates energy as the mean of 0.5 * Psi * Omega.
 
     Args:
@@ -13,9 +13,11 @@ def energy_2DFHIT(Psi, Omega, spectral = False, dealias = False):
     Returns:
         float: The calculated energy.
     '''
+    N = Psi.shape[0]
+
     if spectral:
-        Psi = np.fft.ifft2(Psi).real
-        Omega = np.fft.ifft2(Omega).real
+        Psi = np.fft.irfft2(Psi, s=[N, N])
+        Omega = np.fft.irfft2(Omega, s=[N, N])
 
     PsiOmega = multiply_dealias(Psi, Omega, dealias=dealias)
         
@@ -23,7 +25,7 @@ def energy_2DFHIT(Psi, Omega, spectral = False, dealias = False):
     return energy
 
 
-def enstrophy_2DFHIT(Omega, spectral = False, dealias=False):
+def enstrophy(Omega, spectral = False, dealias=False):
     '''Calculates enstrophy as the mean of 0.5 * Omega * Omega.
 
     Args:
@@ -33,8 +35,10 @@ def enstrophy_2DFHIT(Omega, spectral = False, dealias=False):
     Returns:
         float: The calculated enstrophy.
     '''
+    N = Omega.shape[0]
+
     if spectral:
-        Omega = np.fft.ifft2(Omega).real
+        Omega = np.fft.irfft2(Omega, s=[N, N])
 
     OmegaOmega = multiply_dealias(Omega, Omega, dealias=dealias)
         
@@ -42,7 +46,7 @@ def enstrophy_2DFHIT(Omega, spectral = False, dealias=False):
     return enstrophy
 
 
-def energyTransfer_2DFHIT(U, V, Tau11, Tau12, Tau22, Kx, Ky, dealias = False):
+def energyTransfer(U, V, Tau11, Tau12, Tau22, Kx, Ky, dealias = False):
     """
     Energy transfer of 2D_FHIT using SGS stress
     Input is single snapshot (N x N matrix)
@@ -59,9 +63,9 @@ def energyTransfer_2DFHIT(U, V, Tau11, Tau12, Tau22, Kx, Ky, dealias = False):
     Considering Tau is usually composed fo multiplying 2 fields.
     """
 
-    Ux = derivative_2DFHIT(U, [1,0], Kx=Kx, Ky=Ky, spectral=False)
-    Uy = derivative_2DFHIT(U, [0,1], Kx=Kx, Ky=Ky, spectral=False)
-    Vx = derivative_2DFHIT(V, [1,0], Kx=Kx, Ky=Ky, spectral=False)
+    Ux = derivative(U, [1,0], Kx=Kx, Ky=Ky, spectral=False)
+    Uy = derivative(U, [0,1], Kx=Kx, Ky=Ky, spectral=False)
+    Vx = derivative(V, [1,0], Kx=Kx, Ky=Ky, spectral=False)
 
     Tau11Ux = multiply_dealias(Tau11, Ux, dealias=dealias)
     Tau22Ux = multiply_dealias(Tau22, Ux, dealias=dealias)
@@ -72,7 +76,7 @@ def energyTransfer_2DFHIT(U, V, Tau11, Tau12, Tau22, Kx, Ky, dealias = False):
 
     return PTau
 
-def enstrophyTransfer_2D_FHIT(Omega, Sigma1, Sigma2, Kx, Ky, dealias = False):
+def enstrophyTransfer(Omega, Sigma1, Sigma2, Kx, Ky, dealias = False):
     """
     Enstrophy transfer of 2D_FHIT using SGS vorticity stress
 
@@ -88,8 +92,8 @@ def enstrophyTransfer_2D_FHIT(Omega, Sigma1, Sigma2, Kx, Ky, dealias = False):
     Considering Sigma is usually composed fo multiplying 2 fields.
     """
 
-    Omegax = derivative_2DFHIT(Omega, [1,0], Kx=Kx, Ky=Ky, spectral=False)
-    Omegay = derivative_2DFHIT(Omega, [0,1], Kx=Kx, Ky=Ky, spectral=False)
+    Omegax = derivative(Omega, [1,0], Kx=Kx, Ky=Ky, spectral=False)
+    Omegay = derivative(Omega, [0,1], Kx=Kx, Ky=Ky, spectral=False)
 
     Sigma1Omegax = multiply_dealias(Sigma1, Omegax, dealias=dealias)
     Sigma2Omegay = multiply_dealias(Sigma2, Omegay, dealias=dealias)

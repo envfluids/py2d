@@ -98,7 +98,7 @@ def filter2D(U, filterType='gaussian', coarseGrainType='spectral', Delta=None, N
 
     # Inverse Fourier transform the result and return the real part
     if not spectral:
-        return np.fft.irfft2(U_f_c_hat)
+        return np.fft.irfft2(U_f_c_hat, s=(U_f_c_hat.shape[0], U_f_c_hat.shape[0]))
     else:
         return U_f_c_hat
 
@@ -200,28 +200,30 @@ def coarse_spectral_filter_square(a_hat, NCoarse):
 
     if NCoarse % 2 == 0:
 
-        # ** Method#1: Making the array conjugate symmetric
+        # # # ** Method#1: Making the array conjugate symmetric
         u_hat_coarse[kn_coarse,0] = np.real(u_hat_coarse[kn_coarse,0])
         u_hat_coarse[0,kn_coarse] = np.real(u_hat_coarse[0,kn_coarse])
         u_hat_coarse[1:,kn_coarse] = 0.5*(u_hat_coarse[1:,kn_coarse] + np.conj(np.flip(u_hat_coarse[1:,kn_coarse])))
 
-        # ** Method #2: Making the Nyquist wavenumber 0
+        # # # ** Method #2: Making the Nyquist wavenumber 0
         # u_hat_coarse[kn_coarse,:] = 0
         # u_hat_coarse[:,kn_coarse] = 0
+        pass
 
     else: # Odd grid size
 
         # ** Method#1: Making the array conjugate symmetric
-        # u_hat_coarse[0,kn_coarse] = np.real(u_hat_coarse[0,kn_coarse])
+        u_hat_coarse[0,kn_coarse] = np.real(u_hat_coarse[0,kn_coarse])
 
-        # ** Method #2: Making the Nyquist wavenumber 0
-        u_hat_coarse[kn_coarse,:] = 0
-        u_hat_coarse[kn_coarse+1,:] = 0
-        u_hat_coarse[:,kn_coarse] = 0
+        # # ** Method #2: Making the Nyquist wavenumber 0
+        # u_hat_coarse[kn_coarse,:] = 0
+        # u_hat_coarse[kn_coarse+1,:] = 0
+        # u_hat_coarse[:,kn_coarse] = 0
+
 
     # ** Method#3:  take irfft and back:  works for both odd and even grid sizes: Does same thing as Method#1
-    # u = np.fft.irfft2(u_hat_coarse, s=[NCoarse,NCoarse])
-    # u_hat_coarse = np.fft.rfft2(u)
+    u = np.fft.irfft2(u_hat_coarse, s=[NCoarse,NCoarse])
+    u_hat_coarse = np.fft.rfft2(u)
 
     return u_hat_coarse
 
@@ -428,8 +430,8 @@ def coarse_spectral_filter_square_jit(a_hat, NCoarse):
     """
 
     # Check if shapes are compatible
-    if jnp.mod(a_hat.shape[0], 2) != jnp.mod(NCoarse, 2):
-        raise ValueError("Both original grid and coarse grid should be even or odd")
+    # if jnp.mod(a_hat.shape[0], 2) != jnp.mod(NCoarse, 2):
+    #     raise ValueError("Both original grid and coarse grid should be even or odd")
 
     N = a_hat.shape[0]
     kn_fine = N // 2
@@ -443,25 +445,25 @@ def coarse_spectral_filter_square_jit(a_hat, NCoarse):
 
     # Enforce conjugate symmetry
     if NCoarse % 2 == 0:
-        # Method #1: Making the array conjugate symmetric
+        # # Method #1: Making the array conjugate symmetric
         u_hat_coarse = u_hat_coarse.at[kn_coarse, 0].set(jnp.real(u_hat_coarse[kn_coarse, 0]))
         u_hat_coarse = u_hat_coarse.at[0, kn_coarse].set(jnp.real(u_hat_coarse[0, kn_coarse]))
         u_hat_coarse = u_hat_coarse.at[1:, kn_coarse].set(
             0.5 * (u_hat_coarse[1:, kn_coarse] + jnp.conj(jnp.flip(u_hat_coarse[1:, kn_coarse])))
         )
 
-        # Method #2: Making the Nyquist wavenumber 0
+        # # Method #2: Making the Nyquist wavenumber 0
         # u_hat_coarse = u_hat_coarse.at[kn_coarse,:].set(0)
         # u_hat_coarse = u_hat_coarse.at[:,kn_coarse].set(0)
 
     else:  # Odd grid size
         # Method #1: Making the array conjugate symmetric
-        # u_hat_coarse = u_hat_coarse.at[0,kn_coarse].set(jnp.real(u_hat_coarse[0,kn_coarse]))
+        u_hat_coarse = u_hat_coarse.at[0,kn_coarse].set(jnp.real(u_hat_coarse[0,kn_coarse]))
 
-        # Method #2: Making the Nyquist wavenumber 0
-        u_hat_coarse = u_hat_coarse.at[kn_coarse, :].set(0.0)  
-        u_hat_coarse = u_hat_coarse.at[kn_coarse + 1, :].set(0.0)  
-        u_hat_coarse = u_hat_coarse.at[:, kn_coarse].set(0.0)
+        # # # Method #2: Making the Nyquist wavenumber 0
+        # u_hat_coarse = u_hat_coarse.at[kn_coarse, :].set(0.0)  
+        # u_hat_coarse = u_hat_coarse.at[kn_coarse + 1, :].set(0.0)  
+        # u_hat_coarse = u_hat_coarse.at[:, kn_coarse].set(0.0)
 
     # # Method #3:  take irfft and back:  works for both odd and even grid sizes 
     # u = jnp.fft.irfft2(u_hat_coarse, s=[NCoarse,NCoarse])
