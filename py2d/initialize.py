@@ -1,4 +1,5 @@
 import numpy as np
+from py2d.util import fft2_to_rfft2
       
 def initialize_perturbation(NX, Kx, Ky):
     # -------------- Initialization using pertubration --------------
@@ -25,9 +26,7 @@ def initialize_perturbation(NX, Kx, Ky):
     return w1_hat, psi_hat, psiPrevious_hat, psiCurrent_hat
     
     
-#def initialize_resume(NX, Kx, Ky):
-
-def initialize_wavenumbers_2DFHIT(nx, ny, Lx, Ly, INDEXING='ij'):
+def initialize_wavenumbers_fft2(nx, ny, Lx, Ly, INDEXING='ij'):
     '''
     Initialize the wavenumbers for 2D Forced Homogeneous Isotropic Turbulence (2D-FHIT).
     
@@ -90,6 +89,12 @@ def initialize_wavenumbers_2DFHIT(nx, ny, Lx, Ly, INDEXING='ij'):
     # Return the wavenumbers in the x and y directions, their absolute values, 
     # their squared magnitudes and inverse of the squared magnitudes
     return Kx, Ky, Kabs, Ksq, invKsq
+
+def initialize_wavenumbers_rfft2(nx, ny, Lx, Ly, INDEXING='ij'):
+
+    Kx, Ky, Kabs, Ksq, invKsq = initialize_wavenumbers_fft2(nx, ny, Lx, Ly, INDEXING=INDEXING)
+
+    return fft2_to_rfft2(Kx), fft2_to_rfft2(Ky), fft2_to_rfft2(Kabs), fft2_to_rfft2(Ksq), fft2_to_rfft2(invKsq)
 
 
 def gridgen(Lx, Ly, Nx, Ny, INDEXING='ij'):

@@ -1,9 +1,9 @@
 import numpy as np
 
-from py2d.convert import Omega2Psi_2DFHIT, Psi2UV_2DFHIT
-from py2d.derivative import derivative_2DFHIT
-from py2d.initialize import initialize_wavenumbers_2DFHIT, gridgen
-from py2d.filter import filter2D_2DFHIT
+from py2d.convert import Omega2Psi, Psi2UV
+from py2d.derivative import derivative
+from py2d.initialize import initialize_wavenumbers_rfft2
+from py2d.filter import filter2D
 from py2d.dealias import multiply_dealias
 
 
@@ -30,17 +30,17 @@ def Tau(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=None
     Lx, Ly = 2 * np.pi, 2 * np.pi
 
     # Initialize wavenumbers for spectral operations based on the DNS grid dimensions
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
 
     # Compute the stream function from the vorticity field using the inverse Laplacian in spectral space
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
     
     # Derive the velocity components from the stream function by taking its spatial derivatives
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Apply the specified filter to the velocity fields to obtain their coarse-grained representations
-    Uf_c = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vf_c = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Uf_c = filter2D(U_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vf_c = filter2D(V_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     # Compute the product of the filtered velocity fields
     Uf_c_Uf_c = multiply_dealias(Uf_c, Uf_c, dealias=dealias)
@@ -53,9 +53,9 @@ def Tau(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=None
     UV = multiply_dealias(U_DNS, V_DNS, dealias=dealias)
 
     # Filter the products of the velocity fields to simulate the effect of the resolved scales on the SGS stresses
-    UU_f_c = filter2D_2DFHIT(UU, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VV_f_c = filter2D_2DFHIT(VV, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    UV_f_c = filter2D_2DFHIT(UV, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UU_f_c = filter2D(UU, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VV_f_c = filter2D(VV, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UV_f_c = filter2D(UV, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     # Calculate the SGS stress components by subtracting the product of the filtered velocities from the filtered product
     Tau11 = UU_f_c - Uf_c_Uf_c
@@ -91,26 +91,26 @@ def Sigma(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=No
     Lx, Ly = 2 * np.pi, 2 * np.pi
 
     # Initialize the wavenumbers for spectral operations based on the DNS grid dimensions
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
 
     # Derive the stream function from the vorticity using the inverse Laplacian in the spectral domain
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
     
     # Calculate the velocity components from the stream function by taking spatial derivatives
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Apply the specified filter to the velocity fields to obtain their coarse-grained representations
-    Uf_c = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vf_c = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Omegaf_c = filter2D_2DFHIT(Omega_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Uf_c = filter2D(U_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vf_c = filter2D(V_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Omegaf_c = filter2D(Omega_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     # Compute the product of the unfiltered velocity fields with the unfiltered vorticity field
     UOmega = multiply_dealias(U_DNS, Omega_DNS, dealias=dealias)
     VOmega = multiply_dealias(V_DNS, Omega_DNS, dealias=dealias)
 
     # Filter the products of the velocity fields with the vorticity field
-    UOmega_f_c = filter2D_2DFHIT(UOmega, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VOmega_f_c = filter2D_2DFHIT(VOmega, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UOmega_f_c = filter2D(UOmega, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VOmega_f_c = filter2D(VOmega, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     # Compute the product of the filtered velocity fields with the filtered vorticity field
     Uf_c_Omegaf_c = multiply_dealias(Uf_c, Omegaf_c, dealias=dealias)
@@ -152,12 +152,12 @@ def PiUV(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=Non
     NX_LES, NY_LES = (NX_DNS, NY_DNS) if coarseGrainType in [None, 'physical'] else (N_LES[0], N_LES[1])
 
     # Initialize the wavenumbers for spectral operations for both DNS and LES grids
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
-    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_2DFHIT(NX_LES, NY_LES, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_rfft2(NX_LES, NY_LES, Lx, Ly, INDEXING='ij')
 
     # Convert the vorticity field to a stream function, then to velocity components
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Compute the product of the DNS velocity components
     UU = multiply_dealias(U_DNS, U_DNS, dealias=dealias)
@@ -165,20 +165,20 @@ def PiUV(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=Non
     UV = multiply_dealias(U_DNS, V_DNS, dealias=dealias)
 
     # Calculate the spatial derivatives of the velocity component products
-    UUx = derivative_2DFHIT(UU, [1,0], Kx_DNS, Ky_DNS)
-    UVy = derivative_2DFHIT(UV, [0,1], Kx_DNS, Ky_DNS)
-    UVx = derivative_2DFHIT(UV, [1,0], Kx_DNS, Ky_DNS)
-    VVy = derivative_2DFHIT(VV, [0,1], Kx_DNS, Ky_DNS)
+    UUx = derivative(UU, [1,0], Kx_DNS, Ky_DNS)
+    UVy = derivative(UV, [0,1], Kx_DNS, Ky_DNS)
+    UVx = derivative(UV, [1,0], Kx_DNS, Ky_DNS)
+    VVy = derivative(VV, [0,1], Kx_DNS, Ky_DNS)
 
     # Filter the derivatives to obtain their coarse-grained representations
-    UUx_f_c = filter2D_2DFHIT(UUx, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    UVy_f_c = filter2D_2DFHIT(UVy, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    UVx_f_c = filter2D_2DFHIT(UVx, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VVy_f_c = filter2D_2DFHIT(VVy, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UUx_f_c = filter2D(UUx, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UVy_f_c = filter2D(UVy, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UVx_f_c = filter2D(UVx, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VVy_f_c = filter2D(VVy, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     # Filter the DNS velocity components themselves
-    Uf_c = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vf_c = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Uf_c = filter2D(U_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vf_c = filter2D(V_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     # Compute the product of the filtered velocity components
     Uf_c_Uf_c = multiply_dealias(Uf_c, Uf_c, dealias=dealias)
@@ -186,10 +186,10 @@ def PiUV(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=Non
     Uf_c_Vf_c = multiply_dealias(Uf_c, Vf_c, dealias=dealias)
 
     # Calculate the spatial derivatives of the product of the filtered velocity components
-    Uf_Uf_x = derivative_2DFHIT(Uf_c_Uf_c, [1,0], Kx_LES, Ky_LES)
-    Uf_Vf_y = derivative_2DFHIT(Uf_c_Vf_c, [0,1], Kx_LES, Ky_LES)
-    Uf_Vf_x = derivative_2DFHIT(Uf_c_Vf_c, [1,0], Kx_LES, Ky_LES)
-    Vf_Vf_y = derivative_2DFHIT(Vf_c_Vf_c, [0,1], Kx_LES, Ky_LES)
+    Uf_Uf_x = derivative(Uf_c_Uf_c, [1,0], Kx_LES, Ky_LES)
+    Uf_Vf_y = derivative(Uf_c_Vf_c, [0,1], Kx_LES, Ky_LES)
+    Uf_Vf_x = derivative(Uf_c_Vf_c, [1,0], Kx_LES, Ky_LES)
+    Vf_Vf_y = derivative(Vf_c_Vf_c, [0,1], Kx_LES, Ky_LES)
 
     # Compute the PiUV components by subtracting the filtered derivatives of the product of the DNS velocity components
     # from the derivatives of the product of the filtered velocity components
@@ -233,38 +233,41 @@ def PiOmega(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta=
     Lx, Ly = 2 * np.pi, 2 * np.pi  # Assuming a square domain with periodic boundary conditions
 
     # Determine the LES grid dimensions based on the coarse graining type
-    NX_LES, NY_LES = (NX_DNS, NY_DNS) if coarseGrainType in [None, 'physical'] else N_LES
+    if coarseGrainType in [None, 'physical']:
+        NX_LES, NY_LES = NX_DNS, NY_DNS
+    else:
+        NX_LES, NY_LES = int(N_LES[0]), int(N_LES[1])
     
     # Initialize wavenumbers for spectral domain operations for both DNS and LES grids
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
-    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_2DFHIT(NX_LES, NY_LES, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_rfft2(NX_LES, NY_LES, Lx, Ly, INDEXING='ij')
 
     # Convert the vorticity field to a stream function, then derive velocity components
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Compute the product of velocity components with vorticity and their spatial derivatives
     UOmega = multiply_dealias(U_DNS, Omega_DNS, dealias=dealias)
     VOmega = multiply_dealias(V_DNS, Omega_DNS, dealias=dealias)
 
-    UOmegax = derivative_2DFHIT(UOmega, [1,0], Kx_DNS, Ky_DNS)
-    VOmegay = derivative_2DFHIT(VOmega, [0,1], Kx_DNS, Ky_DNS)
+    UOmegax = derivative(UOmega, [1,0], Kx_DNS, Ky_DNS)
+    VOmegay = derivative(VOmega, [0,1], Kx_DNS, Ky_DNS)
     
     # Apply the filter to the computed spatial derivatives
-    UOmegax_f_c = filter2D_2DFHIT(UOmegax, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VOmegay_f_c = filter2D_2DFHIT(VOmegay, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UOmegax_f_c = filter2D(UOmegax, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VOmegay_f_c = filter2D(VOmegay, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     # Filter the DNS velocity and vorticity fields to obtain their coarse-grained representations
-    Uf_c = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vf_c = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Omegaf_c = filter2D_2DFHIT(Omega_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Uf_c = filter2D(U_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vf_c = filter2D(V_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Omegaf_c = filter2D(Omega_DNS, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     # Compute the product of the filtered velocity components with the filtered vorticity and their spatial derivatives
     Uf_c_Omegaf_c = multiply_dealias(Uf_c, Omegaf_c, dealias=dealias)
     Vf_c_Omegaf_c = multiply_dealias(Vf_c, Omegaf_c, dealias=dealias)
 
-    Uf_c_Omegaf_c_x = derivative_2DFHIT(Uf_c_Omegaf_c, [1,0], Kx_LES, Ky_LES)
-    Vf_c_Omegaf_c_y = derivative_2DFHIT(Vf_c_Omegaf_c, [0,1], Kx_LES, Ky_LES)
+    Uf_c_Omegaf_c_x = derivative(Uf_c_Omegaf_c, [1,0], Kx_LES, Ky_LES)
+    Vf_c_Omegaf_c_y = derivative(Vf_c_Omegaf_c, [0,1], Kx_LES, Ky_LES)
     
     # Compute PiOmega by calculating the divergence of the filtered convective terms and subtracting it from the divergence of the non-filtered convective terms
     PiOmega = UOmegax_f_c + VOmegay_f_c - (Uf_c_Omegaf_c_x + Vf_c_Omegaf_c_y)
@@ -303,21 +306,21 @@ def TauLeonard(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Del
     Lx, Ly = 2 * np.pi, 2 * np.pi  # Assuming a domain size, could be parameters
 
     # Initialize wavenumbers for Fourier space operations
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
 
     # Convert vorticity field to stream function field
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
     
     # Convert stream function to velocity fields
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Filter the velocity fields
-    Uf = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Vf = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Uf = filter2D(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Vf = filter2D(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
 
     # Apply coarse graining to the filtered velocity fields
-    Uf_f_c = filter2D_2DFHIT(Uf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vf_f_c = filter2D_2DFHIT(Vf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Uf_f_c = filter2D(Uf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vf_f_c = filter2D(Vf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     # Compute the product of the filtered velocities and apply dealiasing if enabled
     Uf_f_c_Uf_f_c = multiply_dealias(Uf_f_c, Uf_f_c, dealias=dealias)
@@ -330,9 +333,9 @@ def TauLeonard(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Del
     UfVf = multiply_dealias(Uf, Vf, dealias=dealias)
 
     # Filter the products of the velocities
-    UfUf_f_c = filter2D_2DFHIT(UfUf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VfVf_f_c = filter2D_2DFHIT(VfVf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    UfVf_f_c = filter2D_2DFHIT(UfVf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UfUf_f_c = filter2D(UfUf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VfVf_f_c = filter2D(VfVf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UfVf_f_c = filter2D(UfVf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     # Calculate the Leonard stress components by subtracting the filtered product of the filtered velocities from the filtered product of the velocities
     Tau11Leonard = UfUf_f_c - Uf_f_c_Uf_f_c
@@ -370,17 +373,17 @@ def TauCross(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta
     Lx, Ly = 2 * np.pi, 2 * np.pi  # Domain size, could be parameters
 
     # Initialize wavenumbers for Fourier space operations
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
 
     # Convert vorticity field to stream function field
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
     
     # Convert stream function to velocity fields
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Filter the velocity fields to obtain large-scale components
-    Uf = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Vf = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Uf = filter2D(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Vf = filter2D(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
 
     # Calculate small-scale components by subtracting filtered velocities from original velocities
     Ud = U_DNS - Uf
@@ -393,16 +396,16 @@ def TauCross(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Delta
     VfUd = multiply_dealias(Vf, Ud, dealias=dealias)
 
     # Filter the interactions
-    UfUd_f_c = filter2D_2DFHIT(UfUd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VfVd_f_c = filter2D_2DFHIT(VfVd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    UfVd_f_c = filter2D_2DFHIT(UfVd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VfUd_f_c = filter2D_2DFHIT(VfUd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UfUd_f_c = filter2D(UfUd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VfVd_f_c = filter2D(VfVd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UfVd_f_c = filter2D(UfVd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VfUd_f_c = filter2D(VfUd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     # Filter the large-scale and small-scale components individually
-    Uf_f_c = filter2D_2DFHIT(Uf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vf_f_c = filter2D_2DFHIT(Vf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Ud_f_c = filter2D_2DFHIT(Ud, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vd_f_c = filter2D_2DFHIT(Vd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Uf_f_c = filter2D(Uf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vf_f_c = filter2D(Vf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Ud_f_c = filter2D(Ud, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vd_f_c = filter2D(Vd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     Uf_f_c_Ud_f_c = multiply_dealias(Uf_f_c, Ud_f_c, dealias=dealias)
     Vf_f_c_Vd_f_c = multiply_dealias(Vf_f_c, Vd_f_c, dealias=dealias)
@@ -444,17 +447,17 @@ def TauReynolds(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', De
     Lx, Ly = 2 * np.pi, 2 * np.pi  # Assuming a domain size, could be parameters
 
     # Initialize wavenumbers for Fourier space operations
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
 
     # Convert vorticity field to stream function field
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
 
     # Convert stream function to velocity fields
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Filter the velocity fields
-    Uf = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Vf = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Uf = filter2D(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Vf = filter2D(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
 
     Ud = U_DNS - Uf
     Vd = V_DNS - Vf
@@ -463,12 +466,12 @@ def TauReynolds(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', De
     VdVd = multiply_dealias(Vd, Vd, dealias=dealias)
     UdVd = multiply_dealias(Ud, Vd, dealias=dealias)
 
-    UdUd_f_c = filter2D_2DFHIT(UdUd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VdVd_f_c = filter2D_2DFHIT(VdVd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    UdVd_f_c = filter2D_2DFHIT(UdVd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UdUd_f_c = filter2D(UdUd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VdVd_f_c = filter2D(VdVd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UdVd_f_c = filter2D(UdVd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
-    Udf_c = filter2D_2DFHIT(Ud, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vdf_c = filter2D_2DFHIT(Vd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Udf_c = filter2D(Ud, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vdf_c = filter2D(Vd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     Udf_c_Udf_c = multiply_dealias(Udf_c, Udf_c, dealias=dealias)
     Vdf_c_Vdf_c = multiply_dealias(Vdf_c, Vdf_c, dealias=dealias)
@@ -509,28 +512,28 @@ def SigmaLeonard(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', D
     Lx, Ly = 2 * np.pi, 2 * np.pi  # Assuming a square domain
 
     # Initialize wavenumbers for Fourier space operations based on the DNS grid dimensions
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
 
     # Convert the vorticity field to a stream function, then derive the velocity components
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Filter the velocity and vorticity fields to obtain their coarse-grained representations
-    Uf = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Vf = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Omegaf = filter2D_2DFHIT(Omega_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Uf = filter2D(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Vf = filter2D(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Omegaf = filter2D(Omega_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
 
     # Compute the product of the filtered velocity fields with the filtered vorticity
     UfOmegaf = multiply_dealias(Uf, Omegaf, dealias=dealias)
     VfOmegaf = multiply_dealias(Vf, Omegaf, dealias=dealias)
 
     # Apply a secondary filter to the products of the filtered velocity fields and vorticity
-    UfOmegaf_f_c = filter2D_2DFHIT(UfOmegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VfOmegaf_f_c = filter2D_2DFHIT(VfOmegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UfOmegaf_f_c = filter2D(UfOmegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VfOmegaf_f_c = filter2D(VfOmegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
-    Uf_f_c = filter2D_2DFHIT(Uf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vf_f_c = filter2D_2DFHIT(Vf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Omegaf_f_c = filter2D_2DFHIT(Omegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Uf_f_c = filter2D(Uf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vf_f_c = filter2D(Vf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Omegaf_f_c = filter2D(Omegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     Uf_f_c_Omegad_f_c = multiply_dealias(Uf_f_c, Omegaf_f_c, dealias=dealias)
     Vf_f_c_Omegad_f_c = multiply_dealias(Vf_f_c, Omegaf_f_c, dealias=dealias)
@@ -571,41 +574,41 @@ def SigmaCross(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', Del
     Lx, Ly = 2 * np.pi, 2 * np.pi  # Domain size, could be parameters
 
     # Initialize wavenumbers for Fourier space operations
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
 
     # Convert vorticity field to stream function field
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
     
     # Calculate the velocity components from the stream function by taking spatial derivatives
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Filter the velocity fields
-    Uf = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Vf = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Omegaf = filter2D_2DFHIT(Omega_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Uf = filter2D(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Vf = filter2D(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Omegaf = filter2D(Omega_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
 
     Ud = U_DNS - Uf
     Vd = V_DNS - Vf
     Omegad = Omega_DNS - Omegaf
 
     # Apply the specified filter to the velocity fields to obtain their coarse-grained representations
-    Uf_f_c = filter2D_2DFHIT(Uf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vf_f_c = filter2D_2DFHIT(Vf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Omegaf_f_c = filter2D_2DFHIT(Omegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Uf_f_c = filter2D(Uf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vf_f_c = filter2D(Vf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Omegaf_f_c = filter2D(Omegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
-    Ud_f_c = filter2D_2DFHIT(Ud, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vd_f_c = filter2D_2DFHIT(Vd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Omegad_f_c = filter2D_2DFHIT(Omegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Ud_f_c = filter2D(Ud, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vd_f_c = filter2D(Vd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Omegad_f_c = filter2D(Omegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     UfOmegad = multiply_dealias(Uf, Omegad, dealias=dealias)
     VfOmegad = multiply_dealias(Vf, Omegad, dealias=dealias)
     UdOmegaf = multiply_dealias(Ud, Omegaf, dealias=dealias)
     VdOmegaf = multiply_dealias(Vd, Omegaf, dealias=dealias)
 
-    UfOmegad_f_c = filter2D_2DFHIT(UfOmegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VfOmegad_f_c = filter2D_2DFHIT(VfOmegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    UdOmegaf_f_c = filter2D_2DFHIT(UdOmegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VdOmegaf_f_c = filter2D_2DFHIT(VdOmegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UfOmegad_f_c = filter2D(UfOmegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VfOmegad_f_c = filter2D(VfOmegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UdOmegaf_f_c = filter2D(UdOmegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VdOmegaf_f_c = filter2D(VdOmegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     Uf_f_c_Omegad_f_c = multiply_dealias(Uf_f_c, Omegad_f_c, dealias=dealias)
     Vf_f_c_Omegad_f_c = multiply_dealias(Vf_f_c, Omegad_f_c, dealias=dealias)
@@ -644,26 +647,26 @@ def SigmaReynolds(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', 
     Lx, Ly = 2 * np.pi, 2 * np.pi  # Assuming a domain size, could be parameters
 
     # Initialize wavenumbers for Fourier space operations
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
 
     # Convert vorticity field to stream function field
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
     
     # Calculate the velocity components from the stream function by taking spatial derivatives
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Filter the velocity fields
-    Uf = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Vf = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Omegaf = filter2D_2DFHIT(Omega_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Uf = filter2D(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Vf = filter2D(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Omegaf = filter2D(Omega_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
 
     Ud = U_DNS - Uf
     Vd = V_DNS - Vf
     Omegad = Omega_DNS - Omegaf
 
-    Ud_f_c = filter2D_2DFHIT(Ud, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vd_f_c = filter2D_2DFHIT(Vd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Omegad_f_c = filter2D_2DFHIT(Omegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Ud_f_c = filter2D(Ud, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vd_f_c = filter2D(Vd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Omegad_f_c = filter2D(Omegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     Ud_f_c_Omegad_f_c = multiply_dealias(Ud_f_c, Omegad_f_c, dealias=dealias)
     Vd_f_c_Omegad_f_c = multiply_dealias(Vd_f_c, Omegad_f_c, dealias=dealias)
@@ -671,8 +674,8 @@ def SigmaReynolds(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', 
     UdOmegad = multiply_dealias(Ud, Omegad, dealias=dealias)
     VdOmegad = multiply_dealias(Vd, Omegad, dealias=dealias)
 
-    UdOmegad_f_c = filter2D_2DFHIT(UdOmegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VdOmegad_f_c = filter2D_2DFHIT(VdOmegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UdOmegad_f_c = filter2D(UdOmegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VdOmegad_f_c = filter2D(VdOmegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     Sigma1Reynolds = UdOmegad_f_c - Ud_f_c_Omegad_f_c
     Sigma2Reynolds = VdOmegad_f_c - Vd_f_c_Omegad_f_c
@@ -709,38 +712,38 @@ def PiOmegaLeonard(Omega_DNS, filterType='gaussian', coarseGrainType='spectral',
     NX_LES, NY_LES = (NX_DNS, NY_DNS) if coarseGrainType in [None, 'physical'] else N_LES
 
     # Initialize wavenumbers for Fourier space operations based on the DNS grid dimensions
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
-    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_2DFHIT(NX_LES, NY_LES, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_rfft2(NX_LES, NY_LES, Lx, Ly, INDEXING='ij')
 
     # Convert the vorticity field to a stream function, then derive the velocity components
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Filter the velocity and vorticity fields to obtain their coarse-grained representations
-    Uf = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Vf = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Omegaf = filter2D_2DFHIT(Omega_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Uf = filter2D(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Vf = filter2D(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Omegaf = filter2D(Omega_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
 
     # Compute the product of the filtered velocity fields with the filtered vorticity
     UfOmegaf = multiply_dealias(Uf, Omegaf, dealias=dealias)
     VfOmegaf = multiply_dealias(Vf, Omegaf, dealias=dealias)
 
-    UfOmegaf_x = derivative_2DFHIT(UfOmegaf, [1,0], Kx_DNS, Ky_DNS)
-    VfOmegaf_y = derivative_2DFHIT(VfOmegaf, [0,1], Kx_DNS, Ky_DNS)
+    UfOmegaf_x = derivative(UfOmegaf, [1,0], Kx_DNS, Ky_DNS)
+    VfOmegaf_y = derivative(VfOmegaf, [0,1], Kx_DNS, Ky_DNS)
 
     # Apply a secondary filter to the products of the filtered velocity fields and vorticity
-    UfOmegaf_x_f_c = filter2D_2DFHIT(UfOmegaf_x, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VfOmegaf_y_f_c = filter2D_2DFHIT(VfOmegaf_y, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UfOmegaf_x_f_c = filter2D(UfOmegaf_x, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VfOmegaf_y_f_c = filter2D(VfOmegaf_y, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
-    Uf_f_c = filter2D_2DFHIT(Uf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vf_f_c = filter2D_2DFHIT(Vf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Omegaf_f_c = filter2D_2DFHIT(Omegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Uf_f_c = filter2D(Uf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vf_f_c = filter2D(Vf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Omegaf_f_c = filter2D(Omegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     Uf_f_c_Omegaf_f_c = multiply_dealias(Uf_f_c, Omegaf_f_c, dealias=dealias)
     Vf_f_c_Omegaf_f_c = multiply_dealias(Vf_f_c, Omegaf_f_c, dealias=dealias)
 
-    Uf_f_c_Omegaf_f_c_x = derivative_2DFHIT(Uf_f_c_Omegaf_f_c, [1,0], Kx_LES, Ky_LES)
-    Vf_f_c_Omegad_f_c_y = derivative_2DFHIT(Vf_f_c_Omegaf_f_c, [0,1], Kx_LES, Ky_LES)
+    Uf_f_c_Omegaf_f_c_x = derivative(Uf_f_c_Omegaf_f_c, [1,0], Kx_LES, Ky_LES)
+    Vf_f_c_Omegad_f_c_y = derivative(Vf_f_c_Omegaf_f_c, [0,1], Kx_LES, Ky_LES)
 
     # Compute the Leonard stress components by subtracting the product of the secondary filtered velocities from the secondary filtered product of the velocities
     PiOmegaLeonard = UfOmegaf_x_f_c + VfOmegaf_y_f_c - Uf_f_c_Omegaf_f_c_x - Vf_f_c_Omegad_f_c_y
@@ -778,55 +781,55 @@ def PiOmegaCross(Omega_DNS, filterType='gaussian', coarseGrainType='spectral', D
     NX_LES, NY_LES = (NX_DNS, NY_DNS) if coarseGrainType in [None, 'physical'] else N_LES
 
     # Initialize wavenumbers for Fourier space operations based on the DNS grid dimensions
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
-    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_2DFHIT(NX_LES, NY_LES, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_rfft2(NX_LES, NY_LES, Lx, Ly, INDEXING='ij')
 
     # Convert the vorticity field to a stream function, then derive the velocity components
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Filter the velocity and vorticity fields to obtain their coarse-grained representations
-    Uf = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Vf = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Omegaf = filter2D_2DFHIT(Omega_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Uf = filter2D(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Vf = filter2D(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Omegaf = filter2D(Omega_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
 
     Ud = U_DNS - Uf
     Vd = V_DNS - Vf
     Omegad = Omega_DNS - Omegaf
 
     # Apply the specified filter to the velocity fields to obtain their coarse-grained representations
-    Uf_f_c = filter2D_2DFHIT(Uf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vf_f_c = filter2D_2DFHIT(Vf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Omegaf_f_c = filter2D_2DFHIT(Omegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Uf_f_c = filter2D(Uf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vf_f_c = filter2D(Vf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Omegaf_f_c = filter2D(Omegaf, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
-    Ud_f_c = filter2D_2DFHIT(Ud, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vd_f_c = filter2D_2DFHIT(Vd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Omegad_f_c = filter2D_2DFHIT(Omegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Ud_f_c = filter2D(Ud, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vd_f_c = filter2D(Vd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Omegad_f_c = filter2D(Omegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     UfOmegad = multiply_dealias(Uf, Omegad, dealias=dealias)
     VfOmegad = multiply_dealias(Vf, Omegad, dealias=dealias)
     UdOmegaf = multiply_dealias(Ud, Omegaf, dealias=dealias)
     VdOmegaf = multiply_dealias(Vd, Omegaf, dealias=dealias)
 
-    UfOmegad_x = derivative_2DFHIT(UfOmegad, [1,0], Kx_DNS, Ky_DNS)
-    VfOmegad_y = derivative_2DFHIT(VfOmegad, [0,1], Kx_DNS, Ky_DNS)
-    UdOmegaf_x = derivative_2DFHIT(UdOmegaf, [1,0], Kx_DNS, Ky_DNS)
-    VdOmegaf_y = derivative_2DFHIT(VdOmegaf, [0,1], Kx_DNS, Ky_DNS)
+    UfOmegad_x = derivative(UfOmegad, [1,0], Kx_DNS, Ky_DNS)
+    VfOmegad_y = derivative(VfOmegad, [0,1], Kx_DNS, Ky_DNS)
+    UdOmegaf_x = derivative(UdOmegaf, [1,0], Kx_DNS, Ky_DNS)
+    VdOmegaf_y = derivative(VdOmegaf, [0,1], Kx_DNS, Ky_DNS)
 
-    UfOmegad_x_f_c = filter2D_2DFHIT(UfOmegad_x, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VfOmegad_y_f_c = filter2D_2DFHIT(VfOmegad_y, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    UdOmegaf_x_f_c = filter2D_2DFHIT(UdOmegaf_x, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VdOmegaf_y_f_c = filter2D_2DFHIT(VdOmegaf_y, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UfOmegad_x_f_c = filter2D(UfOmegad_x, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VfOmegad_y_f_c = filter2D(VfOmegad_y, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UdOmegaf_x_f_c = filter2D(UdOmegaf_x, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VdOmegaf_y_f_c = filter2D(VdOmegaf_y, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     Uf_f_c_Omegad_f_c = multiply_dealias(Uf_f_c, Omegad_f_c, dealias=dealias)
     Vf_f_c_Omegad_f_c = multiply_dealias(Vf_f_c, Omegad_f_c, dealias=dealias)
     Ud_f_c_Omegaf_f_c = multiply_dealias(Ud_f_c, Omegaf_f_c, dealias=dealias)
     Vd_f_c_Omegaf_f_c = multiply_dealias(Vd_f_c, Omegaf_f_c, dealias=dealias)
 
-    Uf_f_c_Omegad_f_c_x = derivative_2DFHIT(Uf_f_c_Omegad_f_c, [1,0], Kx_LES, Ky_LES)
-    Vf_f_c_Omegad_f_c_y = derivative_2DFHIT(Vf_f_c_Omegad_f_c, [0,1], Kx_LES, Ky_LES)
-    Ud_f_c_Omegaf_f_c_x = derivative_2DFHIT(Ud_f_c_Omegaf_f_c, [1,0], Kx_LES, Ky_LES)
-    Vd_f_c_Omegaf_f_c_y = derivative_2DFHIT(Vd_f_c_Omegaf_f_c, [0,1], Kx_LES, Ky_LES)
+    Uf_f_c_Omegad_f_c_x = derivative(Uf_f_c_Omegad_f_c, [1,0], Kx_LES, Ky_LES)
+    Vf_f_c_Omegad_f_c_y = derivative(Vf_f_c_Omegad_f_c, [0,1], Kx_LES, Ky_LES)
+    Ud_f_c_Omegaf_f_c_x = derivative(Ud_f_c_Omegaf_f_c, [1,0], Kx_LES, Ky_LES)
+    Vd_f_c_Omegaf_f_c_y = derivative(Vd_f_c_Omegaf_f_c, [0,1], Kx_LES, Ky_LES)
 
     PiOmegaCross = UfOmegad_x_f_c + UdOmegaf_x_f_c + VfOmegad_y_f_c + VdOmegaf_y_f_c - Uf_f_c_Omegad_f_c_x - Ud_f_c_Omegaf_f_c_x - Vf_f_c_Omegad_f_c_y - Vd_f_c_Omegaf_f_c_y
     
@@ -862,40 +865,40 @@ def PiOmegaReynolds(Omega_DNS, filterType='gaussian', coarseGrainType='spectral'
     NX_LES, NY_LES = (NX_DNS, NY_DNS) if coarseGrainType in [None, 'physical'] else N_LES
     
     # Initialize wavenumbers for spectral domain operations for both DNS and LES grids
-    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_2DFHIT(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
-    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_2DFHIT(NX_LES, NY_LES, Lx, Ly, INDEXING='ij')
+    Kx_DNS, Ky_DNS, _, _, invKsq_DNS = initialize_wavenumbers_rfft2(NX_DNS, NY_DNS, Lx, Ly, INDEXING='ij')
+    Kx_LES, Ky_LES, _, _, invKsq_LES = initialize_wavenumbers_rfft2(NX_LES, NY_LES, Lx, Ly, INDEXING='ij')
 
     # Convert the vorticity field to a stream function, then derive velocity components
-    Psi_DNS = Omega2Psi_2DFHIT(Omega=Omega_DNS, invKsq=invKsq_DNS)
-    U_DNS, V_DNS = Psi2UV_2DFHIT(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
+    Psi_DNS = Omega2Psi(Omega=Omega_DNS, invKsq=invKsq_DNS)
+    U_DNS, V_DNS = Psi2UV(Psi=Psi_DNS, Kx=Kx_DNS, Ky=Ky_DNS)
 
     # Filter the velocity fields
-    Uf = filter2D_2DFHIT(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Vf = filter2D_2DFHIT(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
-    Omegaf = filter2D_2DFHIT(Omega_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Uf = filter2D(U_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Vf = filter2D(V_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
+    Omegaf = filter2D(Omega_DNS, filterType=filterType, coarseGrainType=None, Delta=Delta, Ngrid=N_LES)
 
     Ud = U_DNS - Uf
     Vd = V_DNS - Vf
     Omegad = Omega_DNS - Omegaf
 
-    Ud_f_c = filter2D_2DFHIT(Ud, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Vd_f_c = filter2D_2DFHIT(Vd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    Omegad_f_c = filter2D_2DFHIT(Omegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Ud_f_c = filter2D(Ud, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Vd_f_c = filter2D(Vd, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    Omegad_f_c = filter2D(Omegad, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     Ud_f_c_Omegad_f_c = multiply_dealias(Ud_f_c, Omegad_f_c, dealias=dealias)
     Vd_f_c_Omegad_f_c = multiply_dealias(Vd_f_c, Omegad_f_c, dealias=dealias)
 
-    Ud_f_c_Omegad_f_c_x = derivative_2DFHIT(Ud_f_c_Omegad_f_c, [1,0], Kx_LES, Ky_LES)
-    Vd_f_c_Omegad_f_c_y = derivative_2DFHIT(Vd_f_c_Omegad_f_c, [0,1], Kx_LES, Ky_LES)
+    Ud_f_c_Omegad_f_c_x = derivative(Ud_f_c_Omegad_f_c, [1,0], Kx_LES, Ky_LES)
+    Vd_f_c_Omegad_f_c_y = derivative(Vd_f_c_Omegad_f_c, [0,1], Kx_LES, Ky_LES)
 
     UdOmegad = multiply_dealias(Ud, Omegad, dealias=dealias)
     VdOmegad = multiply_dealias(Vd, Omegad, dealias=dealias)
 
-    UdOmegad_x = derivative_2DFHIT(UdOmegad, [1,0], Kx_DNS, Ky_DNS)
-    VdOmegad_y = derivative_2DFHIT(VdOmegad, [0,1], Kx_DNS, Ky_DNS)
+    UdOmegad_x = derivative(UdOmegad, [1,0], Kx_DNS, Ky_DNS)
+    VdOmegad_y = derivative(VdOmegad, [0,1], Kx_DNS, Ky_DNS)
 
-    UdOmegad_x_f_c = filter2D_2DFHIT(UdOmegad_x, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
-    VdOmegad_y_f_c = filter2D_2DFHIT(VdOmegad_y, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    UdOmegad_x_f_c = filter2D(UdOmegad_x, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
+    VdOmegad_y_f_c = filter2D(VdOmegad_y, filterType=filterType, coarseGrainType=coarseGrainType, Delta=Delta, Ngrid=N_LES)
 
     PiOmegaReynolds = UdOmegad_x_f_c - Ud_f_c_Omegad_f_c_x + VdOmegad_y_f_c - Vd_f_c_Omegad_f_c_y
 

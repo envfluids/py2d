@@ -1,5 +1,5 @@
-import jax.numpy as np
-import numpy as nnp
+import jax.numpy as jnp
+import numpy as np
 
 from py2d.eddy_viscosity_models import eddy_viscosity_smag, characteristic_strain_rate_smag, coefficient_dsmag_PsiOmega
 from py2d.eddy_viscosity_models import eddy_viscosity_leith, characteristic_omega_leith, coefficient_dleith_PsiOmega
@@ -8,7 +8,7 @@ from py2d.gradient_model import PiOmegaGM2_gaussian, PiOmegaGM2_gaussian_dealias
 
 # from py2d.uv2tau_CNN import evaluate_model, init_model
 from py2d.eddy_viscosity_models import Tau_eddy_viscosity
-from py2d.convert import Tau2PiOmega_2DFHIT
+from py2d.convert import Tau2PiOmega
 
 class SGSModel:
 
@@ -145,7 +145,7 @@ class SGSModel:
         PiOmega_hat = 0.0
         characteristic_S = characteristic_strain_rate_smag(Psi_hat, Kx, Ky, Ksq)
         c_dynamic = coefficient_dsmag_PsiOmega(Psi_hat, Omega_hat, characteristic_S, Kx, Ky, Ksq, Delta)
-        Cs = np.sqrt(c_dynamic)
+        Cs = jnp.sqrt(c_dynamic)
         eddy_viscosity = eddy_viscosity_smag(Cs, Delta, characteristic_S)
 
         self.PiOmega_hat, self.eddy_viscosity, self.C_MODEL = PiOmega_hat, eddy_viscosity, Cs
@@ -161,7 +161,7 @@ class SGSModel:
         PiOmega_hat = 0.0
         characteristic_S = characteristic_strain_rate_smag(Psi_hat, Kx, Ky, Ksq)
         c_dynamic = coefficient_dsmaglocal_PsiOmega(Psi_hat, Omega_hat, characteristic_S, Kx, Ky, Ksq, Delta)
-        Cs = np.sqrt(c_dynamic)
+        Cs = jnp.sqrt(c_dynamic)
 
         if "local" in self.charflag:
             eddy_viscosity = eddy_viscosity_smag_local(Cs, Delta, characteristic_S)
@@ -184,7 +184,7 @@ class SGSModel:
             Tau12_hat = np.fft.fft2(Tau12)
             Tau22_hat = np.fft.fft2(Tau22)
 
-            PiOmega_hat = Tau2PiOmega_2DFHIT(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky, spectral=True)
+            PiOmega_hat = Tau2PiOmega(Tau11_hat, Tau12_hat, Tau22_hat, Kx, Ky, spectral=True)
 
         #--------- DEBUG MODE ------------------------------------------------
         # import matplotlib.pyplot as plt
@@ -349,7 +349,7 @@ class SGSModel:
             PiOmega_hat = PiOmegaGM2_gaussian_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else: 
             PiOmega = PiOmegaGM2_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-            PiOmega_hat = np.fft.fft2(PiOmega)
+            PiOmega_hat = np.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
 
@@ -365,7 +365,7 @@ class SGSModel:
             PiOmega_hat = PiOmegaGM4_gaussian_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else:
             PiOmega = PiOmegaGM4_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-            PiOmega_hat = np.fft.fft2(PiOmega)
+            PiOmega_hat = np.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
 
@@ -381,7 +381,7 @@ class SGSModel:
             PiOmega_hat = PiOmegaGM6_gaussian_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else:
             PiOmega = PiOmegaGM6_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-            PiOmega_hat = np.fft.fft2(PiOmega)
+            PiOmega_hat = np.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
         return PiOmega_hat, eddy_viscosity

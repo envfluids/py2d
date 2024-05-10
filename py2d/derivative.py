@@ -1,6 +1,6 @@
 import numpy as np
 
-def derivative_2DFHIT(T, order, Kx, Ky, spectral=False):
+def derivative(T, order, Kx, Ky, spectral=False):
     """
     Calculate spatial derivatives for 2D_FHIT in spectral space.
     Boundary conditions are periodic in x and y spatial dimensions
@@ -24,15 +24,15 @@ def derivative_2DFHIT(T, order, Kx, Ky, spectral=False):
 
     # If the input data is not in the spectral domain, we transform it
     if spectral == False:
-        Tderivative = derivative_2DFHIT_physical(T, order, Kx, Ky)
+        Tderivative = derivative_physical(T, order, Kx, Ky)
         return Tderivative
     else:  # if it is already in the spectral domain, we do nothing
         T_hat = T
-        Tderivative_hat = derivative_2DFHIT_spectral(T_hat, order, Kx, Ky)
+        Tderivative_hat = derivative_spectral(T_hat, order, Kx, Ky)
         return Tderivative_hat
 
     
-def derivative_2DFHIT_spectral(T_hat, order, Kx, Ky):
+def derivative_spectral(T_hat, order, Kx, Ky):
     """
     Calculate spatial derivatives for 2D_FHIT in spectral space.
     Boundary conditions are periodic in x and y spatial dimensions
@@ -61,7 +61,7 @@ def derivative_2DFHIT_spectral(T_hat, order, Kx, Ky):
 
     return Tderivative_hat
 
-def derivative_2DFHIT_physical(T, order, Kx, Ky, ):
+def derivative_physical(T, order, Kx, Ky, ):
     """
     Calculate spatial derivatives for 2D_FHIT in physical space using spectral methods.
     Boundary conditions are periodic in x and y spatial dimensions
@@ -81,14 +81,16 @@ def derivative_2DFHIT_physical(T, order, Kx, Ky, ):
         The derivative of the flow field T in the physical domain.
     """
 
+    Nx, Ny = T.shape
+
     # We transform data to spectral domain
-    T_hat = np.fft.fft2(T)
+    T_hat = np.fft.rfft2(T)
 
     # Orders of derivatives in x and y dimensions
-    Tderivative_hat = derivative_2DFHIT_spectral(T_hat, order, Kx, Ky)
+    Tderivative_hat = derivative_spectral(T_hat, order, Kx, Ky)
 
     # Transform the result back into the physical domain
-    Tderivative = np.real(np.fft.ifft2(Tderivative_hat))
+    Tderivative = np.fft.irfft2(Tderivative_hat, s=[Nx, Ny])
 
     
     
