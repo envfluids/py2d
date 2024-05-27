@@ -230,6 +230,15 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
             Omega1_hat_cpu = data_Poi["Omega1_hat"]
             time = data_Poi["time"]
 
+            # If initial condition is square (fft2 fromat), convert to rfft2 format
+            Omega_shape = Omega0_hat_cpu.shape
+            if Omega_shape[0] == Omega_shape[1]:
+                from py2d.util import fft2_to_rfft2
+                Omega0_hat_cpu = fft2_to_rfft2(Omega0_hat_cpu)
+                Omega1_hat_cpu = fft2_to_rfft2(Omega1_hat_cpu)
+            else:
+                pass
+
             # Convert numpy initialization arrays to jax array
             Omega0_hat = np.array(Omega0_hat_cpu)
             Omega1_hat = np.array(Omega1_hat_cpu)
