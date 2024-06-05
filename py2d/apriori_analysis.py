@@ -1,6 +1,9 @@
-from py2d.derivative import derivative
 import numpy as np
+from py2d.derivative import derivative
+from py2d.convert import Tau2AnisotropicTau, strain_rate
+from py2d.initialize import initialize_wavenumbers_rfft2
 from py2d.dealias import multiply_dealias
+from py2d.util import eig_vec_2D
 
 def energy(Psi, Omega, spectral = False, dealias = False):
     '''Calculates energy as the mean of 0.5 * Psi * Omega.
@@ -102,13 +105,63 @@ def enstrophyTransfer(Omega, Sigma1, Sigma2, Kx, Ky, dealias = False):
 
     return PZ
 
-def corr2(a_var,b_var):
-    # Correlation coefficient of N x N x T array
+def angle_Tau_strainRate(Tau11, Tau12, Tau22, Psi, anisotropic=False, dealias=False):
+    """
+    Calculate the angle between the stress tensor and the strain rate tensor.
 
-    a = a_var - np.mean(a_var)
-    b = b_var - np.mean(b_var)
+    This function takes the components of the stress tensor and the strain rate tensor and computes the angle between them.
 
-    r = (a*b).sum() / np.sqrt((a*a).sum() * (b*b).sum())
+    Parameters:
+    Tau11 (np.ndarray): A 2D array representing the Tau11 component of the stress tensor.
+    Tau12 (np.ndarray): A 2D array representing the Tau12 component of the stress tensor.
+    Tau22 (np.ndarray): A 2D array representing the Tau22 component of the stress tensor.
+    Psi (np.ndarray): A 2D array representing the Psi component of the strain rate tensor.
+    anisotropic (bool): A boolean flag to indicate whether the material is anisotropic.
+
+    Returns:
+    np.ndarray: A 2D array containing the angle between the stress tensor and the strain rate tensor at each point.
+    """
+
+    if anisotropic:
+        Tauu11r = Tau11
+        Tau12r = Tau12
+        Tau22r = Tau22
+    else:
+        Tauu11r, Tau12r, Tau22r = Tau2AnisotropicTau(Tau11, Tau12, Tau22)
+
+    # Calculate the components of the strain rate tensor
+    nx, ny = Tau11.shape
+    Lx, Ly = 2*np.pi, 2*np.pi
+    Kx, Ky, _, _, _ = initialize_wavenumbers_rfft2(nx, ny, Lx, Ly)
+
+    S11, S12, S22 = strain_rate(Psi, Kx, Ky)
+
+    # Calculate the angle between the stress tensor and the strain rate tensor
+    Tau_S = multiply_dealias(Tauu11r, S11, dealias=dealias) + 2*multiply_dealias(
+        Tau12r, S12, dealias=dealias) + multiply_dealias(Tau22r, S22, dealias=dealias)
+    Tau_Tau = multiply_dealias(Tauu11r, Tauu11r, dealias=dealias) + 2*multiply_dealias(
+        Tau12r, Tau12r, dealias=dealias) + multiply_dealias(Tau22r, Tau22r, dealias=dealias)
+    S_S = multiply_dealias(S11, S11, dealias=dealias) + 2*multiply_dealias(
+        S12, S12, dealias=dealias) + multiply_dealias(S22, S22, dealias=dealias)
     
-    return r
+    angle = np.arccos(Tau_S/(np.sqrt(Tau_Tau)*np.sqrt(S_S)))
+
+    # Calculate the angle between eigenvectors
+    S_eigVec1, S_eigVec2, _, _ = eig_vec_2D(S11, S12, S12, S22)
+    Tau_eigVec1, Tau_eigVec2, _, _ = eig_vec_2D(Tauu11r, Tau12r, Tau12r, Tau22r)
+
+    # Dot product between eigenvectors
+    Tau_S_eigVec1 = np.sum(Tau_eigVec1*S_eigVec1, axis=1)
+    Tau_S_eigVec2 = np.sum(Tau_eigVec2*S_eigVec2, axis=1)
+
+    Tau_Tau_eigVec1 = np.sum(Tau_eigVec1*Tau_eigVec1, axis=1)
+    Tau_Tau_eigVec2 = np.sum(Tau_eigVec2*Tau_eigVec2, axis=1)
+
+    S_S_eigVec1 = np.sum(S_eigVec1*S_eigVec1, axis=1)
+    S_S_eigVec2 = np.sum(S_eigVec2*S_eigVec2, axis=1)
+
+    angle_eigVec1 = np.arccos(Tau_S_eigVec1/(np.sqrt(Tau_Tau_eigVec1)*np.sqrt(S_S_eigVec1)))
+    angle_eigVec2 = np.arccos(Tau_S_eigVec2/(np.sqrt(Tau_Tau_eigVec2)*np.sqrt(S_S_eigVec2)))
+
+    return angle, angle_eigVec1, angle_eigVec2
 
