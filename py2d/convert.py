@@ -853,4 +853,36 @@ def strain_rate_physical(Psi, Kx, Ky):
     # Transform the strain rate components back to physical space using inverse 2D Fast Fourier Transform
     return np.fft.irfft2(S11_hat, s=[Nx,Ny]), np.fft.irfft2(S12_hat, s=[Nx,Ny]), np.fft.irfft2(S22_hat, s=[Nx,Ny])
 
+def Tau2AnisotropicTau(Tau11, Tau12, Tau22):
+    """
+    Calculate the anisotropic (symmetric) part of the 2D tensor Tau.
+
+    Parameters:
+    -----------
+    Tau11 : numpy.ndarray
+        Element (2D array) of the 2D symmetric tensor Tau in physical space.
+    Tau12 : numpy.ndarray
+        Element (2D array) of the 2D symmetric tensor Tau in physical space.
+    Tau22 : numpy.ndarray
+        Element (2D array) of the 2D symmetric tensor Tau in physical space.
+
+    Returns:
+    --------
+    AnisotropicTau11, AnisotropicTau12, AnisotropicTau22 : tuple of numpy.ndarray
+        Anisotropic components of the 2D symmetric tensor Tau in physical space.
+
+    Notes:
+    ------
+    The anisotropic part of the 2D symmetric tensor Tau is calculated as:
+    AnisotropicTau11 = Tau11 - 1/2*(Tau11 + Tau22)
+    AnisotropicTau12 = Tau12
+    AnisotropicTau22 = Tau22 - 1/2*(Tau11 + Tau22)
+    """
+    # Calculate the anisotropic part of the 2D symmetric tensor Tau
+    AnisotropicTau11 = 0.5*(Tau11 - Tau22) # Tau11 - 0.5 * (Tau11 + Tau22)
+    AnisotropicTau12 = Tau12
+    AnisotropicTau22 = 0.5*(Tau11 - Tau22) # Tau22 - 0.5 * (Tau11 + Tau22)
+
+    return AnisotropicTau11, AnisotropicTau12, AnisotropicTau22
+
 ############################################################################################################
