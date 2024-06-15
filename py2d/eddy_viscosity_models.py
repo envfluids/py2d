@@ -196,8 +196,8 @@ def initialize_filtered_variables_PsiOmega(Psi_hat, Omega_hat, Ksq, Delta):
     nx = Psi_hat.shape[0]
     nx_test = nx // 2
     Delta_test = 2 * Delta
-    Psif_hat = spectral_filter_square_same_size_jit(Psi_hat, nx_test)
-    Omegaf_hat = spectral_filter_square_same_size_jit(Omega_hat, nx_test)
+    Psif_hat = spectral_filter_square_same_size_jit(Psi_hat, kc=nx_test//2)
+    Omegaf_hat = spectral_filter_square_same_size_jit(Omega_hat, kc=nx_test//2)
     Omega_lap = jnp.fft.irfft2(-Ksq * Omega_hat, s=[nx,nx])
     Omegaf_lap = jnp.fft.irfft2(-Ksq * Omegaf_hat, s=[nx,nx])
     return Psif_hat, Omegaf_hat, Omega_lap, Omegaf_lap, Delta_test, nx_test
@@ -211,7 +211,7 @@ def residual_jacobian_PsiOmega(Psi_hat, Omega_hat, Psif_hat, Omegaf_hat, Kx, Ky,
     N = Psi_hat.shape[0]
 
     J1 = jacobian_Spectral2Physical(Omega_hat, Psi_hat, Kx, Ky)
-    J1f_hat = spectral_filter_square_same_size_jit(jnp.fft.rfft2(J1), nx_test)
+    J1f_hat = spectral_filter_square_same_size_jit(jnp.fft.rfft2(J1), kc=nx_test//2)
     J1f = jnp.fft.irfft2(J1f_hat, s=[N,N])
     J2f = jacobian_Spectral2Physical(Omegaf_hat, Psif_hat, Kx, Ky)
     L = J1f - J2f
@@ -226,9 +226,9 @@ def residual_dsmag_PsiOmega(Omega_lap, Omegaf_lap, characteristic_S, Delta, Delt
     '''
     N = Omega_lap.shape[0]
 
-    M1_hat = spectral_filter_square_same_size_jit(jnp.fft.rfft2(characteristic_S * Omega_lap), nx_test)
+    M1_hat = spectral_filter_square_same_size_jit(jnp.fft.rfft2(characteristic_S * Omega_lap), kc=nx_test//2)
     M1 = Delta ** 2 * jnp.fft.irfft2(M1_hat, s=[N,N])
-    characteristic_Sf_hat = spectral_filter_square_same_size_jit(jnp.fft.rfft2(characteristic_S), nx_test)
+    characteristic_Sf_hat = spectral_filter_square_same_size_jit(jnp.fft.rfft2(characteristic_S), kc=nx_test//2)
     characteristic_Sf = jnp.fft.irfft2(characteristic_Sf_hat, s=[N,N])
     M2 = Delta_test ** 2 * characteristic_Sf * Omegaf_lap
     M = M1 - M2
@@ -243,9 +243,9 @@ def residual_dleith_PsiOmega(Omega_lap, Omegaf_lap, characteristic_Omega, Delta,
     '''
     N = Omega_lap.shape[0]
 
-    M1_hat = spectral_filter_square_same_size_jit(jnp.fft.rfft2(characteristic_Omega * Omega_lap), nx_test)
+    M1_hat = spectral_filter_square_same_size_jit(jnp.fft.rfft2(characteristic_Omega * Omega_lap), kc=nx_test//2)
     M1 = Delta ** 3 * jnp.fft.irfft2(M1_hat, s=[N,N])
-    characteristic_Omegaf_hat = spectral_filter_square_same_size_jit(jnp.fft.rfft2(characteristic_Omega), nx_test)
+    characteristic_Omegaf_hat = spectral_filter_square_same_size_jit(jnp.fft.rfft2(characteristic_Omega), kc=nx_test//2)
     characteristic_Omegaf = jnp.fft.irfft2(characteristic_Omegaf_hat, s=[N,N])
     M2 = Delta_test ** 3 * characteristic_Omegaf * Omegaf_lap
     M = M1 - M2
