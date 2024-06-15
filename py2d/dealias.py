@@ -342,20 +342,20 @@ def padding_for_dealias_spectral_jit(u_hat, K=3/2):
     if N_pad % 2 == 0:
 
         # # Method #1: Direct manipulation
-        u_hat_pad = u_hat_pad.at[N_pad - N_coarse // 2, :].set(jnp.conj(u_hat_pad[N_coarse // 2, :]))
+        # u_hat_pad = u_hat_pad.at[N_pad - N_coarse // 2, :].set(jnp.conj(u_hat_pad[N_coarse // 2, :]))
 
         # # # Method #2: Setting Nyquist wavenumbers to zero 
-        # u_hat_pad = u_hat_pad.at[kn_coarse, :].set(0) 
-        # u_hat_pad = u_hat_pad.at[:, kn_coarse].set(0)
+        u_hat_pad = u_hat_pad.at[kn_coarse, :].set(0) 
+        u_hat_pad = u_hat_pad.at[:, kn_coarse].set(0)
 
     else:  # Odd grid size 
 
         # ** Method#1: Do nothing - its already conjugate symmetric
 
         # # # Method #2: Setting Nyquist wavenumbers to zero 
-        # u_hat_pad = u_hat_pad.at[kn_coarse, :].set(0)  
-        # u_hat_pad = u_hat_pad.at[kn_pad+(kn_pad-kn_coarse)+1, :].set(0)  
-        # u_hat_pad = u_hat_pad.at[:, kn_coarse].set(0) 
+        u_hat_pad = u_hat_pad.at[kn_coarse, :].set(0)  
+        u_hat_pad = u_hat_pad.at[kn_pad+(kn_pad-kn_coarse)+1, :].set(0)  
+        u_hat_pad = u_hat_pad.at[:, kn_coarse].set(0) 
         pass
 
     # # # Method #3: iFFT and FFT roundtrip 
