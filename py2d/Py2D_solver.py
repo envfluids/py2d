@@ -19,8 +19,7 @@ from scipy.io import loadmat, savemat
 import time as runtime
 from timeit import default_timer as timer
 
-print(jax.default_backend())
-print(jax.devices())
+print('JAX is using ', jax.default_backend(), jax.devices())
 
 # Import Custom Module
 from py2d.convection_conserved import convection_conserved, convection_conserved_dealias
@@ -155,7 +154,22 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     # -------------- Print the run configuration --------------
 
-    run_config2 = [["Time Step (dt)", dt], ["Resume Simulation", resumeSim],
+    table_flow_spec2 = [["Reynolds Number (Re)", Re],
+                       ["Deterministic Forcing Wavenumber (fkx)", fkx],
+                       ["Deterministic Forcing Wavenumber (fky)", fky],
+                       ["Linear Drag Coefficient (alpha)", alpha],
+                       ["Beta plan coefficient (beta)", beta],
+                       ["SGS Model ", SGSModel_string],
+                       ["Eddy Viscosity Coefficient (eddyViscosityCoeff)", eddyViscosityCoeff],
+                       ["Saving Directory", SAVE_DIR_DATA]]
+
+    geometry_mesh2 = [["Number of Grid Points (NX)", NX],
+                     ["Domain Length (L)", Lx],
+                     ["Mesh size (dx)", dx]]
+    
+    run_config2 = [["Time Step (dt)", dt],
+                  ["De-aliasing", dealias],
+                  ["Resume Simulation", resumeSim],
                   ["Read Initialization (readTrue), If False: Will read IC from a file", readTrue],
                   ["Saving Data  (saveData)", saveData],
                   ["Save data every t th timestep (tSAVE)", tSAVE],
@@ -163,24 +177,9 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
                   ["Length of simulation (tTotal)", tTotal],
                   ["Maximum Number of Iterations (maxit)", maxit]]
 
-    geometry_mesh2 = [["Number of Grid Points (NX)", NX],
-                     ["Domain Length (L)", Lx],
-                     ["Mesh size (dx)", dx]]
-
-    table_flow_spec2 = [["Reynolds Number (Re)", Re],
-                       ["Deterministic Forcing Wavenumber (fkx)", fkx],
-                       ["Deterministic Forcing Wavenumber (fky)", fky],
-                       ["Linear Drag Coefficient (alpha)", alpha],
-                       ["Beta plan coefficient (beta)", beta],
-                       ["Eddy Viscosity Coefficient (eddyViscosityCoeff)", eddyViscosityCoeff],
-                       ["SGS Model ", SGSModel_string],
-                       ["Eddy Viscosity Coefficient (eddyViscosityCoeff)", eddyViscosityCoeff],
-                       ["Saving Directory", SAVE_DIR_DATA]]
-
-    pretty_print_table("Run Configuration", run_config2)
+    pretty_print_table("System Parameters", table_flow_spec2)
     pretty_print_table("Geometry and Mesh", geometry_mesh2)
-    pretty_print_table("Geometry and Mesh", table_flow_spec2)
-
+    pretty_print_table("Run Configuration", run_config2)
 
     # -------------- Initialization Section--------------
     print("-------------- Initialization Section--------------")
@@ -283,9 +282,9 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
                 raise ValueError("Data already exists in the results folder for this case, either resume the simulation (resumeSim = True) or delete data to start a new simulation")
 
             if last_file_number_IC is None:
-                print(f"Last data file number: {last_file_number_IC}")
+                print(f"Last IC file number: {last_file_number_IC}")
                 last_file_number_IC = 0
-                print("Updated last data file number to " + str(last_file_number_IC))
+                print("Updated last IC file number to " + str(last_file_number_IC))
             else:
                 raise ValueError("Data already exists in the results folder for this case, either resume the simulation (resumeSim = True) or delete data to start a new simulation")
 
@@ -420,7 +419,8 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
             # Psi = nnp.array(Psi)
             Omega0_hat_cpu = nnp.array(Omega0_hat)
             Omega1_hat_cpu = nnp.array(Omega1_hat)
-            eddyTurnoverTime = 1 / np.sqrt(np.mean(Omega ** 2))
+            # eddyTurnoverTime = 1 / np.sqrt(np.mean(Omega ** 2))
+            enstrophy = 0.5 * np.mean(Omega ** 2)
 
             last_file_number_data = last_file_number_data + 1
             last_file_number_IC = last_file_number_IC + 1
@@ -436,7 +436,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
                     pass
 
             try:
-                if np.isnan(eddyTurnoverTime).any():
+                if np.isnan(enstrophy).any():
                     filename = SAVE_DIR + 'unstable.txt'
                     error_message = "eddyTurnoverTime is NaN. Stopping execution at time = " + str(time)
 
@@ -451,7 +451,9 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
                 print(str(e))
                 quit()
 
-            print('Time = {:.6f} -- Eddy Turnover Time = {:.6f} -- C = {:.4f} -- Eddy viscosity = {:.6f} ** Saved {}'.format(time, eddyTurnoverTime, eddyViscosityCoeff, eddyViscosity, filename_data))
+            # print('Time = {:.6f} -- Eddy Turnover Time = {:.6f} -- C = {:.4f} -- Eddy viscosity = {:.6f} ** Saved {}'.format(time, eddyTurnoverTime, eddyViscosityCoeff, eddyViscosity, filename_data))
+            print('Time={:.6f} -- Enstrophy={:.6f} ** file#{}'.format(time, enstrophy, last_file_number_data))
+
 
     # Print elapsed time
     print('Total Iteration: ', it+1)
