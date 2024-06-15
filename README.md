@@ -8,7 +8,7 @@
 * [Example](#Example)
 * [A Note on JAX](#A-Note-on-JAX)
 * [Citations](#Citations)
-* 
+
 ## Introduction
 Py2D is a Python solver for incompressible 2-dimensional (2D) Navier-stokes equations. 
 
