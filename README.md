@@ -101,7 +101,7 @@ module load cuda
 - [Jakhar, K.](https://scholar.google.com/citations?user=buVddBgAAAAJ&hl=en), [Guan, Y.](https://gyf135.github.io/), [Mojgani, R.](https://www.rmojgani.com), [Chattopadhyay, A.](https://scholar.google.com/citations?user=wtHkCRIAAAAJ&hl=en), and [Hassanzadeh, P.
 ](https://scholar.google.com/citations?user=o3_eO6EAAAAJ&hl=en), 
 [**Learning Closed-form Equations for Subgrid-scale Closures from High-fidelity Data: Promises and Challenges**](https://arxiv.org/abs/2306.05014)
-```
+```bibtex
 @article{jakhar2023learning,
   title={Learning closed-form equations for subgrid-scale closures from high-fidelity data: Promises and challenges},
   author={Jakhar, Karan and Guan, Yifei and Mojgani, Rambod and Chattopadhyay, Ashesh and Hassanzadeh, Pedram},
