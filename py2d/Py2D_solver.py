@@ -182,28 +182,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     pretty_print_table("Geometry and Mesh", geometry_mesh2)
     pretty_print_table("Run Configuration", run_config2)
 
-    # # Save variables of the solver
-    # variables = {
-    #     'readTrue': readTrue,
-    #     'ICnum': ICnum,
-    #     'resumeSim': resumeSim,
-    #     'saveData': saveData,
-    #     'NSAVE': NSAVE,
-    #     'tSAVE': tSAVE,
-    #     'tTotal': tTotal,
-    #     'maxit': maxit,
-    #     'NX': NX,
-    #     'Lx': Lx,
-    #     'Re': Re,
-    #     'dt': dt,
-    #     'alpha': alpha,
-    #     'SGSModel': SGSModel_string,
-    #     'fkx': fkx,
-    #     'fky': fky,
-    #     'SAVE_DIR': SAVE_DIR,
-    # }
-
-                                
+    # Save the parameters to a file in writing 'w' or appending 'a' mode              
     if resumeSim:
         mode = 'a'
     else:
