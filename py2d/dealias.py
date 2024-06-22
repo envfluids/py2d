@@ -124,11 +124,11 @@ def padding_for_dealias(u, spectral=False, K=3/2):
     if N_pad % 2 == 0:
 
         # # ** Method#1: Making the array conjugate symmetric
-        u_hat_pad[N_pad-N_coarse//2,:] = np.conj(u_hat_pad[N_coarse//2,:])
+        # u_hat_pad[N_pad-N_coarse//2,:] = np.conj(u_hat_pad[N_coarse//2,:])
 
         # # ** Method #2: Making the Nyquist wavenumber 0
-        # u_hat_pad[kn_coarse,:] = 0
-        # u_hat_pad[:,kn_coarse] = 0
+        u_hat_pad[kn_coarse,:] = 0
+        u_hat_pad[:,kn_coarse] = 0
         pass
 
     else: # Odd grid size
@@ -136,9 +136,9 @@ def padding_for_dealias(u, spectral=False, K=3/2):
         # ** Method#1: Do nothing - its already conjugate symmetric
 
         # # # ** Method #2: Making the Nyquist wavenumber 0
-        # u_hat_pad[kn_coarse,:] = 0
-        # u_hat_pad[kn_pad+(kn_pad-kn_coarse)+1,:] = 0
-        # u_hat_pad[:,kn_coarse] = 0
+        u_hat_pad[kn_coarse,:] = 0
+        u_hat_pad[kn_pad+(kn_pad-kn_coarse)+1,:] = 0
+        u_hat_pad[:,kn_coarse] = 0
         pass
 
     # ** Method#3:  take irfft and back:  works for both odd and even grid sizes
