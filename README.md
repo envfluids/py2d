@@ -3,9 +3,10 @@
 ## Table of contents
 
 * [Introduction](#Introduction)
-* [Installation](#Installation)
 * [Requirements](#Requirements)
-
+* [Installation](#Installation)
+* [Example](#Example)
+* [A Note on JAX](#A-Note-on-JAX)
 
 ## Introduction
 Py2D is a Python solver for incompressible 2-dimensional (2D) Navier-stokes equations. 
@@ -27,14 +28,6 @@ Py2D leverages JAX, a high-performance numerical computing library, allowing for
 
 ## Installation
 
-## Set up a new Python environment and install the required libraries:
-
-Create a new Conda environment:
-```
-conda create -n py2d python=3.10
-conda activate py2d
-```
-
 Clone the [py2d git repository](https://github.com/envfluids/py2d.git) to use the latest development version.
 ```
 git clone https://github.com/envfluids/py2d.git
@@ -45,7 +38,32 @@ cd py2d
 pip install -e ./
 ```
 
-### A note on JAX 
+## Example
+
+```
+from py2d.Py2D_solver import Py2D_solver
+
+# Script to call the function with the given parameters
+Py2D_solver(Re=20e3, # Reynolds number
+               fkx=4, # Forcing wavenumber in x dimension
+               fky=4, # Forcing wavenumber in y dimension
+               alpha=0.1, # Rayleigh drag coefficient
+               beta=0, # Coriolis parameter (Beta-plane turbulence)
+               NX=32, # Number of grid points in x and y (Presuming a square domain) '32', '64', '128', '256', '512'
+               SGSModel_string='NoSGS', # SGS closure model/parametrization to use. 'NoSGS' (no closure) for DNS simulations. Available SGS models: 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6'
+               eddyViscosityCoeff=0, # Coefficient for eddy viscosity models: Only used for SMAG and LEITH SGS Models
+               dt=5e-3, # Time step
+               dealias=True, # Dealiasing
+               saveData=True, # Save data: The saved data directory would be printed.
+               tSAVE=0.1, # Time interval to save data
+               tTotal=1, # Length (total time) of simulation
+               readTrue=False, 
+               ICnum=1, # Initial condition number: Choose between 1 to 20
+               resumeSim=False, # start new simulation (False) or resume simulation (True) 
+               )
+```
+
+## A Note on JAX 
 JAX can be installed for either CPU-only or GPU-supported environments.
 
 The default installation above will install JAX with CPU support but without GPU acceleration.
