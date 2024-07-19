@@ -7,6 +7,7 @@
 * [Installation](#Installation)
 * [Example](#Example)
 * [A Note on JAX](#A-Note-on-JAX)
+* [Citations](#Citations)
 
 ## Introduction
 Py2D is a Python solver for incompressible 2-dimensional (2D) Navier-stokes equations. 
@@ -94,4 +95,17 @@ pip install --upgrade "jax[cuda11_pip]" -f https://storage.googleapis.com/jax-re
 If your system uses environment modules, load the CUDA module (this step is system-dependent and may vary)
 ```
 module load cuda
+```
+
+## Citations
+- [Jakhar, K.](https://scholar.google.com/citations?user=buVddBgAAAAJ&hl=en), [Guan, Y.](https://gyf135.github.io/), [Mojgani, R.](https://www.rmojgani.com), [Chattopadhyay, A.](https://scholar.google.com/citations?user=wtHkCRIAAAAJ&hl=en), and [Hassanzadeh, P.
+](https://scholar.google.com/citations?user=o3_eO6EAAAAJ&hl=en), 
+[**Learning Closed-form Equations for Subgrid-scale Closures from High-fidelity Data: Promises and Challenges**](https://arxiv.org/abs/2306.05014)
+```bibtex
+@article{jakhar2023learning,
+  title={Learning closed-form equations for subgrid-scale closures from high-fidelity data: Promises and challenges},
+  author={Jakhar, Karan and Guan, Yifei and Mojgani, Rambod and Chattopadhyay, Ashesh and Hassanzadeh, Pedram},
+  journal={arXiv preprint arXiv:2306.05014},
+  year={2023}
+}
 ```
