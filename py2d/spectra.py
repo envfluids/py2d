@@ -86,6 +86,51 @@ def spectrum_angled_average(A, kmax = 'grid', spectral = False):
 
     return A_angled_average_spectra, wavenumbers
 
+def spectrum_zonal_average(A, spectral=False):
+    '''
+    Compute the zonally-averaged spectrum of a 2D square matrix.
+    
+    Parameters
+    ----------
+    A : numpy.ndarray
+        The input 2D square matrix. If `spectral` is False, `A` is in the physical domain; otherwise, it is in the spectral domain.
+    spectral : bool, optional
+    
+    Returns
+    -------
+    spectrum : numpy.ndarray
+        The zonally-averaged spectrum of `A`.
+    wavenumbers : numpy.ndarray
+        The corresponding wavenumbers.
+    '''
+
+    # Check if input 'A' is a 2D square matrix
+    if not isinstance(A, np.ndarray) or A.ndim != 2 :
+        raise ValueError('Input is not a 2D  matrix. Please input a 2D matrix')
+    # Check if 'spectral' is a boolean value
+    if not isinstance(spectral, bool):
+        raise ValueError('Invalid input for spectral. It should be a boolean value')
+    
+    # Calculate the number of grid points in one dimension
+    nx,ny = A.shape
+
+    # Compute the 1D FFT of 'A' if it is in the physical domain
+    if not spectral:
+        A_hat = np.fft.rfft(A, axis=0)
+    else:  # If 'A' is already in the spectral domain, copy it to 'spectral_A'
+        A_hat = A
+
+    # Normalize the spectrum by the total number of grid points
+    A_hat = A_hat / nx
+
+    # Compute the zonally-averaged spectrum
+    A_zonal_average_spectra = np.mean(np.abs(A_hat)*2, axis=1)
+
+    # Generate the array of wavenumbers corresponding to the computed spectrum
+    wavenumbers = np.linspace(0, nx//2, nx//2+1)
+
+    return A_zonal_average_spectra, wavenumbers
+
 
 def TKE_angled_average(Psi, Omega, spectral=False):
     '''
