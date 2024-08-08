@@ -365,6 +365,15 @@ def TauGM4(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=T
         else:
             Tau11GM4, Tau12GM4, Tau22GM4 = TauGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta)
 
+    if filterType=='box':
+        if dealias:
+            Tau11GM4_hat, Tau12GM4_hat, Tau22GM4_hat = TauGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
+            Tau11GM4 = real_irfft2(Tau11GM4_hat)
+            Tau12GM4 = real_irfft2(Tau12GM4_hat)
+            Tau22GM4 = real_irfft2(Tau22GM4_hat)
+        else:
+            Tau11GM4, Tau12GM4, Tau22GM4 = TauGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta)
+
     if spectral:
         Tau11GM4_hat = np.fft.rfft2(Tau11GM4)
         Tau12GM4_hat = np.fft.rfft2(Tau12GM4)
