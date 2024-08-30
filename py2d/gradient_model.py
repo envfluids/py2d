@@ -91,12 +91,17 @@ def PiOmegaGM4(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False
         U_hat = jnp.fft.rfft2(U)
         V_hat = jnp.fft.rfft2(V)
 
-    if filterType=='gaussian':
-        if dealias:
+    if dealias:
+        if filterType == 'gaussian':
             PiOmegaGM4_hat = PiOmegaGM4_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
-            PiOmegaGM4 = real_irfft2_jit(PiOmegaGM4_hat)
-        else:
+        elif filterType == 'box':
+            PiOmegaGM4_hat = PiOmegaGM4_box_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+        PiOmegaGM4 = real_irfft2_jit(PiOmegaGM4_hat)
+    else:
+        if filterType == 'gaussian':
             PiOmegaGM4 = PiOmegaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+        elif filterType == 'box':
+            PiOmegaGM4 = PiOmegaGM4_box(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
         PiOmegaGM4_hat = jnp.fft.rfft2(PiOmegaGM4)
@@ -157,6 +162,113 @@ def PiOmegaGM4_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
     
     return PiOmegaGM4_hat
 
+@jit
+def PiOmegaGM4_box(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+
+    B3 = Delta**4 / 720
+
+    PiOmegaGM2 = PiOmegaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+
+    Ux = real_irfft2_jit(derivative_spectral_jit(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2_jit(derivative_spectral_jit(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2_jit(derivative_spectral_jit(V_hat, [1, 0], Kx, Ky))
+
+    Uxx = real_irfft2_jit(derivative_spectral_jit(U_hat, [2, 0], Kx, Ky))
+    Uxy = real_irfft2_jit(derivative_spectral_jit(U_hat, [1, 1], Kx, Ky))
+    Uyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [0, 2], Kx, Ky))
+    Vxx = real_irfft2_jit(derivative_spectral_jit(V_hat, [2, 0], Kx, Ky))
+
+    Uxxx = real_irfft2_jit(derivative_spectral_jit(U_hat, [3, 0], Kx, Ky))
+    # Uxxy = real_irfft2_jit(derivative_spectral_jit(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2_jit(derivative_spectral_jit(V_hat, [3, 0], Kx, Ky))
+
+    # Omegax = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 0], Kx, Ky))
+    # Omegay = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 1], Kx, Ky))
+
+    Omegaxx = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [2, 0], Kx, Ky))
+    Omegaxy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 1], Kx, Ky))
+    Omegayy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 2], Kx, Ky))
+
+    Omegaxxx = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [3, 0], Kx, Ky))
+    Omegaxxy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [2, 1], Kx, Ky))
+    Omegaxyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 2], Kx, Ky))
+    Omegayyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 3], Kx, Ky))
+
+    Omegaxxxx = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [4, 0], Kx, Ky))
+    Omegaxxxy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [3, 1], Kx, Ky))
+    # Omegaxxyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [2, 2], Kx, Ky))
+    Omegaxyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 3], Kx, Ky))
+    Omegayyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 4], Kx, Ky))
+
+    PiOmegaGM4 = PiOmegaGM2 - B3*( Omegaxy*(Uyyy + Vxxx) - Omegaxxy*(5*Uxy+Vxx) - Omegaxyy*(Uyy-5*Uxx)
+                                  + Uy*Omegaxyyy + Uxy*Omegayyy - Uxyy*Omegayy + Vx*Omegaxxxy  
+                                  + Ux*(Omegaxxxx-Omegayyyy) + Uxxx*Omegaxx - Uxx*Omegaxxx)
+    
+    return PiOmegaGM4
+
+@jit
+def PiOmegaGM4_box_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+
+    B3 = Delta**4 / 720
+
+    PiOmegaGM2_hat = PiOmegaGM2_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+
+    Ux_hat = derivative_spectral_jit(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral_jit(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral_jit(V_hat, [1, 0], Kx, Ky)
+
+    Uxx_hat = derivative_spectral_jit(U_hat, [2, 0], Kx, Ky)
+    Uxy_hat = derivative_spectral_jit(U_hat, [1, 1], Kx, Ky)
+    Uyy_hat = derivative_spectral_jit(U_hat, [0, 2], Kx, Ky)
+    Vxx_hat = derivative_spectral_jit(V_hat, [2, 0], Kx, Ky)
+
+    Uxxx_hat = derivative_spectral_jit(U_hat, [3, 0], Kx, Ky)
+    # Uxxy_hat = derivative_spectral_jit(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral_jit(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral_jit(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral_jit(V_hat, [3, 0], Kx, Ky)
+
+   # Omegax_hat = derivative_spectral_jit(Omega_hat, [1, 0], Kx, Ky)
+    # Omegay_hat = derivative_spectral_jit(Omega_hat, [0, 1], Kx, Ky)
+
+    Omegaxx_hat = derivative_spectral_jit(Omega_hat, [2, 0], Kx, Ky)
+    Omegaxy_hat = derivative_spectral_jit(Omega_hat, [1, 1], Kx, Ky)
+    Omegayy_hat = derivative_spectral_jit(Omega_hat, [0, 2], Kx, Ky)
+
+    Omegaxxx_hat = derivative_spectral_jit(Omega_hat, [3, 0], Kx, Ky)
+    Omegaxxy_hat = derivative_spectral_jit(Omega_hat, [2, 1], Kx, Ky)
+    Omegaxyy_hat = derivative_spectral_jit(Omega_hat, [1, 2], Kx, Ky)
+    Omegayyy_hat = derivative_spectral_jit(Omega_hat, [0, 3], Kx, Ky)
+
+    Omegaxxxx_hat = derivative_spectral_jit(Omega_hat, [4, 0], Kx, Ky)
+    Omegaxxxy_hat = derivative_spectral_jit(Omega_hat, [3, 1], Kx, Ky)
+    # Omegaxxyy_hat = derivative_spectral_jit(Omega_hat, [2, 2], Kx, Ky)
+    Omegaxyyy_hat = derivative_spectral_jit(Omega_hat, [1, 3], Kx, Ky)
+    Omegayyyy_hat = derivative_spectral_jit(Omega_hat, [0, 4], Kx, Ky)
+
+    UyyyOmegaxy_hat = multiply_dealias_spectral_jit(Uyyy_hat, Omegaxy_hat)
+    VxxxOmegaxy_hat = multiply_dealias_spectral_jit(Vxxx_hat, Omegaxy_hat)
+    UxyOmegaxxy_hat = multiply_dealias_spectral_jit(Uxy_hat, Omegaxxy_hat)
+    VxxOmegaxxy_hat = multiply_dealias_spectral_jit(Vxx_hat, Omegaxxy_hat)
+    UyyOmegaxyy_hat = multiply_dealias_spectral_jit(Uyy_hat, Omegaxyy_hat)
+    UxxOmegaxyy_hat = multiply_dealias_spectral_jit(Uxx_hat, Omegaxyy_hat)
+    UyOmegaxyyy_hat = multiply_dealias_spectral_jit(Uy_hat, Omegaxyyy_hat)
+    UxyOmegayyy_hat = multiply_dealias_spectral_jit(Uxy_hat, Omegayyy_hat)
+    UxyyOmegayy_hat = multiply_dealias_spectral_jit(Uxyy_hat, Omegayy_hat)
+    VxOmegaxxxy_hat = multiply_dealias_spectral_jit(Vx_hat, Omegaxxxy_hat)
+    UxOmegaxxxx_hat = multiply_dealias_spectral_jit(Ux_hat, Omegaxxxx_hat)
+    UxOmegayyyy_hat = multiply_dealias_spectral_jit(Ux_hat, Omegayyyy_hat)
+    UxxxOmegaxx_hat = multiply_dealias_spectral_jit(Uxxx_hat, Omegaxx_hat)
+    UxxOmegaxxx_hat = multiply_dealias_spectral_jit(Uxx_hat, Omegaxxx_hat)
+
+    PiOmegaGM4_hat = PiOmegaGM2_hat - B3*( UyyyOmegaxy_hat + VxxxOmegaxy_hat - 5*UxyOmegaxxy_hat - VxxOmegaxxy_hat - UyyOmegaxyy_hat + 5*UxxOmegaxyy_hat
+                                        + UyOmegaxyyy_hat + UxyOmegayyy_hat - UxyyOmegayy_hat + VxOmegaxxxy_hat 
+                                        + UxOmegaxxxx_hat - UxOmegayyyy_hat + UxxxOmegaxx_hat - UxxOmegaxxx_hat)
+    
+    return PiOmegaGM4_hat
+
 # PiOmegaGM6
 def PiOmegaGM6(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
 
@@ -167,12 +279,17 @@ def PiOmegaGM6(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False
         U_hat = jnp.fft.rfft2(U)
         V_hat = jnp.fft.rfft2(V)
 
-    if filterType=='gaussian':
-        if dealias:
+    if dealias:
+        if filterType == 'gaussian':
             PiOmegaGM6_hat = PiOmegaGM6_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
-            PiOmegaGM6 = real_irfft2_jit(PiOmegaGM6_hat)
-        else:
+        elif filterType == 'box':
+            PiOmegaGM6_hat = PiOmegaGM6_box_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+        PiOmegaGM6 = real_irfft2_jit(PiOmegaGM6_hat)
+    else:
+        if filterType == 'gaussian':
             PiOmegaGM6 = PiOmegaGM6_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+        elif filterType == 'box':
+            PiOmegaGM6 = PiOmegaGM6_box(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
         PiOmegaGM6_hat = jnp.fft.rfft2(PiOmegaGM6)
@@ -238,8 +355,202 @@ def PiOmegaGM6_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     return PiOmegaGM6_hat
 
+@jit
+def PiOmegaGM6_box(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
-# PiOmegaGM8
+    C5 = Delta**6 / 60480
+
+    PiOmegaGM4 = PiOmegaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+
+    Ux = real_irfft2_jit(derivative_spectral_jit(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2_jit(derivative_spectral_jit(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2_jit(derivative_spectral_jit(V_hat, [1, 0], Kx, Ky))
+
+    Uxx = real_irfft2_jit(derivative_spectral_jit(U_hat, [2, 0], Kx, Ky))
+    Uxy = real_irfft2_jit(derivative_spectral_jit(U_hat, [1, 1], Kx, Ky))
+    Uyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [0, 2], Kx, Ky))
+    Vxx = real_irfft2_jit(derivative_spectral_jit(V_hat, [2, 0], Kx, Ky))
+
+    Uxxx = real_irfft2_jit(derivative_spectral_jit(U_hat, [3, 0], Kx, Ky))
+    Uxxy = real_irfft2_jit(derivative_spectral_jit(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2_jit(derivative_spectral_jit(V_hat, [3, 0], Kx, Ky))
+
+    Uxxxx = real_irfft2_jit(derivative_spectral_jit(U_hat, [4, 0], Kx, Ky))
+    Uxxxy = real_irfft2_jit(derivative_spectral_jit(U_hat, [3, 1], Kx, Ky))
+    Uxxyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [2, 2], Kx, Ky))
+    Uxyyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [1, 3], Kx, Ky))
+    Uyyyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [0, 4], Kx, Ky))
+    Vxxxx = real_irfft2_jit(derivative_spectral_jit(V_hat, [4, 0], Kx, Ky))
+
+    Uxxxxx = real_irfft2_jit(derivative_spectral_jit(U_hat, [5, 0], Kx, Ky))
+    # Uxxxxy = real_irfft2_jit(derivative_spectral_jit(U_hat, [4, 1], Kx, Ky))
+    # Uxxxyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [3, 2], Kx, Ky))
+    # Uxxyyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [2, 3], Kx, Ky))
+    Uxyyyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [1, 4], Kx, Ky))
+    Uyyyyy = real_irfft2_jit(derivative_spectral_jit(U_hat, [0, 5], Kx, Ky))
+    Vxxxxx = real_irfft2_jit(derivative_spectral_jit(V_hat, [5, 0], Kx, Ky))
+
+    # Omegax = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 0], Kx, Ky))
+    # Omegay = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 1], Kx, Ky))
+
+    Omegaxx = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [2, 0], Kx, Ky))
+    Omegaxy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 1], Kx, Ky))
+    Omegayy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 2], Kx, Ky))
+
+    Omegaxxx = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [3, 0], Kx, Ky))
+    Omegaxxy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [2, 1], Kx, Ky))
+    Omegaxyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 2], Kx, Ky))
+    Omegayyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 3], Kx, Ky))
+
+    Omegaxxxx = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [4, 0], Kx, Ky))
+    Omegaxxxy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [3, 1], Kx, Ky))
+    Omegaxxyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [2, 2], Kx, Ky))
+    Omegaxyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 3], Kx, Ky))
+    Omegayyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 4], Kx, Ky))
+
+    Omegaxxxxx = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [5, 0], Kx, Ky))
+    Omegaxxxxy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [4, 1], Kx, Ky))
+    Omegaxxxyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [3, 2], Kx, Ky))
+    Omegaxxyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [2, 3], Kx, Ky))
+    Omegaxyyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 4], Kx, Ky))
+    Omegayyyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 5], Kx, Ky))
+
+    Omegaxxxxxx = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [6, 0], Kx, Ky))
+    Omegaxxxxxy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [5, 1], Kx, Ky))
+    # Omegaxxxxyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [4, 2], Kx, Ky))
+    # Omegaxxxyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [3, 3], Kx, Ky))
+    # Omegaxxyyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [2, 4], Kx, Ky))
+    Omegaxyyyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [1, 5], Kx, Ky))
+    Omegayyyyyy = real_irfft2_jit(derivative_spectral_jit(Omega_hat, [0, 6], Kx, Ky))
+
+    PiOmegaGM6 = PiOmegaGM4 + C5 * (2*Omegaxy*(Uyyyyy + Vxxxxx) 
+                                    + 2*(Uy*Omegaxyyyyy + Vx*Omegaxxxxxy + Uxxxxx*Omegaxx)
+                                    + Omegaxxxy*(7*Uxxy + 2*Vxxx) - Omegaxxy*(7*(Uxxxy + Uxyyy) +2*Vxxxx)
+                                    + Omegaxyyy*(2*Uyyy - 7*Uxxy) + Omegaxyy*(7*Uxxyy -2*Uyyyy) 
+                                    + Uxxxx*(7*Omegaxyy - 2*Omegaxxx) - 7*Uxy*(Omegaxxxxy - Omegaxxyyy)
+                                    + 7*Omegaxxyy*(Uxyy - Uxxx) + Uxx*(7*(Omegaxxxyy + Omegaxyyyy) -2*Omegaxxxxx)
+                                    + 2*(Uxy*Omegayyyyy + Uxyyy*Omegayyy - Uxyyyy*Omegayy - Uyy*Omegaxyyyy)
+                                    + 2*(-Uxyy*Omegayyyy - Vxx*Omegaxxxxy + Ux*(Omegaxxxxxx - Omegayyyyyy) +Uxxx*Omegaxxxx))
+
+    return PiOmegaGM6
+
+@jit
+def PiOmegaGM6_box_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+
+    C5 = Delta**6 / 60480
+
+    PiOmegaGM4_hat = PiOmegaGM4_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+
+    Ux_hat = derivative_spectral_jit(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral_jit(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral_jit(V_hat, [1, 0], Kx, Ky)
+
+    Uxx_hat = derivative_spectral_jit(U_hat, [2, 0], Kx, Ky)
+    Uxy_hat = derivative_spectral_jit(U_hat, [1, 1], Kx, Ky)
+    Uyy_hat = derivative_spectral_jit(U_hat, [0, 2], Kx, Ky)
+    Vxx_hat = derivative_spectral_jit(V_hat, [2, 0], Kx, Ky)
+
+    Uxxx_hat = derivative_spectral_jit(U_hat, [3, 0], Kx, Ky)
+    Uxxy_hat = derivative_spectral_jit(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral_jit(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral_jit(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral_jit(V_hat, [3, 0], Kx, Ky)
+
+    Uxxxx_hat = derivative_spectral_jit(U_hat, [4, 0], Kx, Ky)
+    Uxxxy_hat = derivative_spectral_jit(U_hat, [3, 1], Kx, Ky)
+    Uxxyy_hat = derivative_spectral_jit(U_hat, [2, 2], Kx, Ky)
+    Uxyyy_hat = derivative_spectral_jit(U_hat, [1, 3], Kx, Ky)
+    Uyyyy_hat = derivative_spectral_jit(U_hat, [0, 4], Kx, Ky)
+    Vxxxx_hat = derivative_spectral_jit(V_hat, [4, 0], Kx, Ky)
+
+    Uxxxxx_hat = derivative_spectral_jit(U_hat, [5, 0], Kx, Ky)
+    # Uxxxxy_hat = derivative_spectral_jit(U_hat, [4, 1], Kx, Ky)
+    # Uxxxyy_hat = derivative_spectral_jit(U_hat, [3, 2], Kx, Ky)
+    # Uxxyyy_hat = derivative_spectral_jit(U_hat, [2, 3], Kx, Ky)
+    Uxyyyy_hat = derivative_spectral_jit(U_hat, [1, 4], Kx, Ky)
+    Uyyyyy_hat = derivative_spectral_jit(U_hat, [0, 5], Kx, Ky)
+    Vxxxxx_hat = derivative_spectral_jit(V_hat, [5, 0], Kx, Ky)
+
+    # Omegax_hat = derivative_spectral_jit(Omega_hat, [1, 0], Kx, Ky)
+    # Omegay_hat = derivative_spectral_jit(Omega_hat, [0, 1], Kx, Ky)
+
+    Omegaxx_hat = derivative_spectral_jit(Omega_hat, [2, 0], Kx, Ky)
+    Omegaxy_hat = derivative_spectral_jit(Omega_hat, [1, 1], Kx, Ky)
+    Omegayy_hat = derivative_spectral_jit(Omega_hat, [0, 2], Kx, Ky)
+
+    Omegaxxx_hat = derivative_spectral_jit(Omega_hat, [3, 0], Kx, Ky)
+    Omegaxxy_hat = derivative_spectral_jit(Omega_hat, [2, 1], Kx, Ky)
+    Omegaxyy_hat = derivative_spectral_jit(Omega_hat, [1, 2], Kx, Ky)
+    Omegayyy_hat = derivative_spectral_jit(Omega_hat, [0, 3], Kx, Ky)
+
+    Omegaxxxx_hat = derivative_spectral_jit(Omega_hat, [4, 0], Kx, Ky)
+    Omegaxxxy_hat = derivative_spectral_jit(Omega_hat, [3, 1], Kx, Ky)
+    Omegaxxyy_hat = derivative_spectral_jit(Omega_hat, [2, 2], Kx, Ky)
+    Omegaxyyy_hat = derivative_spectral_jit(Omega_hat, [1, 3], Kx, Ky)
+    Omegayyyy_hat = derivative_spectral_jit(Omega_hat, [0, 4], Kx, Ky)
+
+    Omegaxxxxx_hat = derivative_spectral_jit(Omega_hat, [5, 0], Kx, Ky)
+    Omegaxxxxy_hat = derivative_spectral_jit(Omega_hat, [4, 1], Kx, Ky)
+    Omegaxxxyy_hat = derivative_spectral_jit(Omega_hat, [3, 2], Kx, Ky)
+    Omegaxxyyy_hat = derivative_spectral_jit(Omega_hat, [2, 3], Kx, Ky)
+    Omegaxyyyy_hat = derivative_spectral_jit(Omega_hat, [1, 4], Kx, Ky)
+    Omegayyyyy_hat = derivative_spectral_jit(Omega_hat, [0, 5], Kx, Ky)
+
+    Omegaxxxxxx_hat = derivative_spectral_jit(Omega_hat, [6, 0], Kx, Ky)
+    Omegaxxxxxy_hat = derivative_spectral_jit(Omega_hat, [5, 1], Kx, Ky)
+    # Omegaxxxxyy_hat = derivative_spectral_jit(Omega_hat, [4, 2], Kx, Ky)
+    # Omegaxxxyyy_hat = derivative_spectral_jit(Omega_hat, [3, 3], Kx, Ky)
+    # Omegaxxyyyy_hat = derivative_spectral_jit(Omega_hat, [2, 4], Kx, Ky)
+    Omegaxyyyyy_hat = derivative_spectral_jit(Omega_hat, [1, 5], Kx, Ky)
+    Omegayyyyyy_hat = derivative_spectral_jit(Omega_hat, [0, 6], Kx, Ky)
+
+    UyyyyyOmegaxy_hat = multiply_dealias_spectral_jit(Uyyyyy_hat, Omegaxy_hat)
+    VxxxxxOmegaxy_hat = multiply_dealias_spectral_jit(Vxxxxx_hat, Omegaxy_hat)
+    UyOmegaxyyyyy_hat = multiply_dealias_spectral_jit(Uy_hat, Omegaxyyyyy_hat)
+    VxOmegaxxxxxy_hat = multiply_dealias_spectral_jit(Vx_hat, Omegaxxxxxy_hat)
+    UxxxxxOmegaxx_hat = multiply_dealias_spectral_jit(Uxxxxx_hat, Omegaxx_hat)
+    UxxyOmegaxxxy_hat = multiply_dealias_spectral_jit(Uxxy_hat, Omegaxxxy_hat)
+    VxxxOmegaxxxy_hat = multiply_dealias_spectral_jit(Vxxx_hat, Omegaxxxy_hat)
+    UxxxyOmegaxxy_hat = multiply_dealias_spectral_jit(Uxxxy_hat, Omegaxxy_hat)
+    UxyyyOmegaxxy_hat = multiply_dealias_spectral_jit(Uxyyy_hat, Omegaxxy_hat)
+    VxxxxOmegaxxy_hat = multiply_dealias_spectral_jit(Vxxxx_hat, Omegaxxy_hat)
+    UyyyOmegaxyyy_hat = multiply_dealias_spectral_jit(Uyyy_hat, Omegaxyyy_hat)
+    UxxyOmegaxyyy_hat = multiply_dealias_spectral_jit(Uxxy_hat, Omegaxyyy_hat)
+    UxxyyOmegaxyy_hat = multiply_dealias_spectral_jit(Uxxyy_hat, Omegaxyy_hat)
+    UyyyyOmegaxyy_hat = multiply_dealias_spectral_jit(Uyyyy_hat, Omegaxyy_hat)
+    UxxxxOmegaxyy_hat = multiply_dealias_spectral_jit(Uxxxx_hat, Omegaxyy_hat)
+    UxxxxOmegaxxx_hat = multiply_dealias_spectral_jit(Uxxxx_hat, Omegaxxx_hat)
+    UxyOmegaxxxxy_hat = multiply_dealias_spectral_jit(Uxy_hat, Omegaxxxxy_hat)
+    UxyOmegaxxyyy_hat = multiply_dealias_spectral_jit(Uxy_hat, Omegaxxyyy_hat)
+    UxyyOmegaxxyy = multiply_dealias_spectral_jit(Uxyy_hat, Omegaxxyy_hat)
+    UxxxOmegaxxyy = multiply_dealias_spectral_jit(Uxxx_hat, Omegaxxyy_hat)
+    UxxOmegaxxxyy = multiply_dealias_spectral_jit(Uxx_hat, Omegaxxxyy_hat)
+    UxxOmegaxyyyy = multiply_dealias_spectral_jit(Uxx_hat, Omegaxyyyy_hat)
+    UxxOmegaxxxxx_hat = multiply_dealias_spectral_jit(Uxx_hat, Omegaxxxxx_hat)
+    UxyOmegayyyyy_hat = multiply_dealias_spectral_jit(Uxy_hat, Omegayyyyy_hat)
+    UxyyyOmegayyy_hat = multiply_dealias_spectral_jit(Uxyyy_hat, Omegayyy_hat)
+    UxyyyyOmegayy_hat = multiply_dealias_spectral_jit(Uxyyyy_hat, Omegayy_hat)
+    UyyOmegaxyyyy_hat = multiply_dealias_spectral_jit(Uyy_hat, Omegaxyyyy_hat)
+    UxyyOmegayyyy_hat = multiply_dealias_spectral_jit(Uxyy_hat, Omegayyyy_hat)
+    VxxOmegaxxxxy_hat = multiply_dealias_spectral_jit(Vxx_hat, Omegaxxxxy_hat)
+    UxOmegaxxxxxx_hat = multiply_dealias_spectral_jit(Ux_hat, Omegaxxxxxx_hat)
+    UxOmegayyyyyy_hat = multiply_dealias_spectral_jit(Ux_hat, Omegayyyyyy_hat)
+    UxxxOmegaxxxx_hat = multiply_dealias_spectral_jit(Uxxx_hat, Omegaxxxx_hat)
+
+    PIOmegaGM6_hat = PiOmegaGM4_hat + C5 * (2*(UyyyyyOmegaxy_hat + VxxxxxOmegaxy_hat) 
+                                        + 2*(UyOmegaxyyyyy_hat + VxOmegaxxxxxy_hat + UxxxxxOmegaxx_hat)
+                                        + 7*UxxyOmegaxxxy_hat + 2*VxxxOmegaxxxy_hat - 7*(UxxxyOmegaxxy_hat + UxyyyOmegaxxy_hat) - 2*VxxxxOmegaxxy_hat
+                                        + 2*UyyyOmegaxyyy_hat - 7*UxxyOmegaxyyy_hat + 7*UxxyyOmegaxyy_hat - 2*UyyyyOmegaxyy_hat
+                                        + 7*UxxxxOmegaxyy_hat - 2*UxxxxOmegaxxx_hat - 7*(UxyOmegaxxxxy_hat - UxyOmegaxxyyy_hat)
+                                        + 7*(UxyyOmegaxxyy - UxxxOmegaxxyy) + 7*(UxxOmegaxxxyy + UxxOmegaxyyyy) - 2*UxxOmegaxxxxx_hat
+                                        + 2*(UxyOmegayyyyy_hat + UxyyyOmegayyy_hat - UxyyyyOmegayy_hat - UyyOmegaxyyyy_hat)
+                                        + 2*(-UxyyOmegayyyy_hat - VxxOmegaxxxxy_hat + UxOmegaxxxxxx_hat - UxOmegayyyyyy_hat + UxxxOmegaxxxx_hat))
+    
+    return PIOmegaGM6_hat
+
+
 def PiOmegaGM8(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False):
 
     if spectral:
@@ -356,14 +667,19 @@ def TauGM4(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=T
         U_hat = np.fft.rfft2(U)
         V_hat = np.fft.rfft2(V)
 
-    if filterType=='gaussian':
-        if dealias:
+    if dealias:
+        if filterType=='gaussian':
             Tau11GM4_hat, Tau12GM4_hat, Tau22GM4_hat = TauGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
-            Tau11GM4 = real_irfft2(Tau11GM4_hat)
-            Tau12GM4 = real_irfft2(Tau12GM4_hat)
-            Tau22GM4 = real_irfft2(Tau22GM4_hat)
-        else:
+        elif filterType=='box':
+            Tau11GM4_hat, Tau12GM4_hat, Tau22GM4_hat = TauGM4_box_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
+        Tau11GM4 = real_irfft2(Tau11GM4_hat)
+        Tau12GM4 = real_irfft2(Tau12GM4_hat)
+        Tau22GM4 = real_irfft2(Tau22GM4_hat)
+    else:
+        if filterType=='gaussian':
             Tau11GM4, Tau12GM4, Tau22GM4 = TauGM4_gaussian(U_hat, V_hat, Kx, Ky, Delta)
+        elif filterType=='box':
+            Tau11GM4, Tau12GM4, Tau22GM4 = TauGM4_box(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
         Tau11GM4_hat = np.fft.rfft2(Tau11GM4)
@@ -425,6 +741,94 @@ def TauGM4_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
 
     return Tau11GM4_hat, Tau12GM4_hat, Tau22GM4_hat
 
+def TauGM4_box(U_hat, V_hat, Kx, Ky, Delta):
+
+    B1 = Delta**4 / 144
+    B3 = Delta**4 / 720
+
+    Tau11GM2, Tau12GM2, Tau22GM2 = TauGM2_gaussian(U_hat, V_hat, Kx, Ky, Delta) # GM2 box and gaussian are equal
+
+    Ux = real_irfft2(derivative_spectral(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2(derivative_spectral(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2(derivative_spectral(V_hat, [1, 0], Kx, Ky))
+    Vy = -Ux
+
+    Uxx = real_irfft2(derivative_spectral(U_hat, [2, 0], Kx, Ky))
+    Uxy = real_irfft2(derivative_spectral(U_hat, [1, 1], Kx, Ky))
+    Uyy = real_irfft2(derivative_spectral(U_hat, [0, 2], Kx, Ky))
+    Vxx = real_irfft2(derivative_spectral(V_hat, [2, 0], Kx, Ky))
+    Vxy = -Uxx
+    Vyy = -Uxy
+
+    Uxxx = real_irfft2(derivative_spectral(U_hat, [3, 0], Kx, Ky))
+    # Uxxy = real_irfft2(derivative_spectral(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2(derivative_spectral(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2(derivative_spectral(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2(derivative_spectral(V_hat, [3, 0], Kx, Ky))
+    # Vxxy = -Uxxx
+    # Vxyy = -Uxxy
+    Vyyy = -Uxyy
+
+    Tau11GM4 = Tau11GM2 + B1*(Uxy**2) + B3*(Uxx**2 + Uyy**2 - 2*Ux*Uxxx - 2*Uy*Uyyy)
+    Tau12GM4 = Tau12GM2 + B1*(Uxy*Vxy) + B3*(Uxx*Vxx + Uyy*Vyy - Ux*Vxxx -Uxxx*Vx - Uy*Vyyy - Uyyy*Vy)
+    Tau22GM4 = Tau22GM2 + B1*(Vxy**2) + B3*(Vxx**2 + Vyy**2 - 2*Vx*Vxxx - 2*Vy*Vyyy)
+
+    return Tau11GM4, Tau12GM4, Tau22GM4
+
+def TauGM4_box_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
+
+    B1 = Delta**4 / 144
+    B3 = Delta**4 / 720
+
+    Tau11GM2_hat, Tau12GM2_hat, Tau22GM2_hat = TauGM2_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta) # GM2 box and gaussian are equal
+
+    Ux_hat = derivative_spectral(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral(V_hat, [1, 0], Kx, Ky)
+    Vy_hat = -Ux_hat
+
+    Uxx_hat = derivative_spectral(U_hat, [2, 0], Kx, Ky)
+    Uxy_hat = derivative_spectral(U_hat, [1, 1], Kx, Ky)
+    Uyy_hat = derivative_spectral(U_hat, [0, 2], Kx, Ky)
+    Vxx_hat = derivative_spectral(V_hat, [2, 0], Kx, Ky)
+    Vxy_hat = -Uxx_hat
+    Vyy_hat = -Uxy_hat
+
+    Uxxx_hat = derivative_spectral(U_hat, [3, 0], Kx, Ky)
+    # Uxxy_hat = derivative_spectral(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral(V_hat, [3, 0], Kx, Ky)
+    # Vxxy_hat = -Uxxx_hat
+    # Vxyy_hat = -Uxxy_hat
+    Vyyy_hat = -Uxyy_hat
+
+    UxyUxy_hat = multiply_dealias_spectral(Uxy_hat, Uxy_hat)
+    UxxUxx_hat = multiply_dealias_spectral(Uxx_hat, Uxx_hat)
+    UyyUyy_hat = multiply_dealias_spectral(Uyy_hat, Uyy_hat)
+    UxUxxx_hat = multiply_dealias_spectral(Ux_hat, Uxxx_hat)
+    UyUyyy_hat = multiply_dealias_spectral(Uy_hat, Uyyy_hat)
+
+    VxyVxy_hat = multiply_dealias_spectral(Vxy_hat, Vxy_hat)
+    VxxVxx_hat = multiply_dealias_spectral(Vxx_hat, Vxx_hat)
+    VyyVyy_hat = multiply_dealias_spectral(Vyy_hat, Vyy_hat)
+    VxVxxx_hat = multiply_dealias_spectral(Vx_hat, Vxxx_hat)
+    VyVyyy_hat = multiply_dealias_spectral(Vy_hat, Vyyy_hat)
+
+    UxyVxy_hat = multiply_dealias_spectral(Uxy_hat, Vxy_hat)
+    UxxVxx_hat = multiply_dealias_spectral(Uxx_hat, Vxx_hat)
+    UyyVyy_hat = multiply_dealias_spectral(Uyy_hat, Vyy_hat)
+    UxVxxx_hat = multiply_dealias_spectral(Ux_hat, Vxxx_hat)
+    UyVyyy_hat = multiply_dealias_spectral(Uy_hat, Vyyy_hat)
+    UxxxVx_hat = multiply_dealias_spectral(Uxxx_hat, Vx_hat)
+    UyyyVy_hat = multiply_dealias_spectral(Uyyy_hat, Vy_hat)
+
+    Tau11GM4_hat = Tau11GM2_hat + B1*(UxyUxy_hat) + B3*(UxxUxx_hat + UyyUyy_hat - 2*UxUxxx_hat - 2*UyUyyy_hat)
+    Tau12GM4_hat = Tau12GM2_hat + B1*(UxyVxy_hat) + B3*(UxxVxx_hat + UyyVyy_hat - UxVxxx_hat - UxxxVx_hat - UyVyyy_hat - UyyyVy_hat)
+    Tau22GM4_hat = Tau22GM2_hat + B1*(VxyVxy_hat) + B3*(VxxVxx_hat + VyyVyy_hat - 2*VxVxxx_hat - 2*VyVyyy_hat)
+
+    return Tau11GM4_hat, Tau12GM4_hat, Tau22GM4_hat
+
 # TauGM6
 def TauGM6(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
 
@@ -434,14 +838,19 @@ def TauGM6(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=T
         U_hat = np.fft.rfft2(U)
         V_hat = np.fft.rfft2(V)
 
-    if filterType=='gaussian':
-        if dealias:
+    if dealias:
+        if filterType=='gaussian':
             Tau11GM6_hat, Tau12GM6_hat, Tau22GM6_hat = TauGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
-            Tau11GM6 = real_irfft2(Tau11GM6_hat)
-            Tau12GM6 = real_irfft2(Tau12GM6_hat)
-            Tau22GM6 = real_irfft2(Tau22GM6_hat)
-        else:
+        elif filterType=='box':
+            Tau11GM6_hat, Tau12GM6_hat, Tau22GM6_hat = TauGM6_box_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
+        Tau11GM6 = real_irfft2(Tau11GM6_hat)
+        Tau12GM6 = real_irfft2(Tau12GM6_hat)
+        Tau22GM6 = real_irfft2(Tau22GM6_hat)
+    else:
+        if filterType=='gaussian':
             Tau11GM6, Tau12GM6, Tau22GM6 = TauGM6_gaussian(U_hat, V_hat, Kx, Ky, Delta)
+        elif filterType=='box':
+            Tau11GM6, Tau12GM6, Tau22GM6 = TauGM6_box(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
         Tau11GM6_hat = np.fft.rfft2(Tau11GM6)
@@ -509,6 +918,168 @@ def TauGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
     Tau22GM6_hat = Tau22GM4_hat + C1*(VxxyVxxy_hat + VxyyVxyy_hat) + C2*(VxxxVxxx_hat + VyyyVyyy_hat)
 
     return Tau11GM6_hat, Tau12GM6_hat, Tau22GM6_hat
+
+def TauGM6_box(U_hat, V_hat, Kx, Ky, Delta):
+
+    C3 = Delta**6 / 8640
+    C4 = Delta**6 / 30240
+
+    Tau11GM4, Tau12GM4, Tau22GM4 = TauGM4_box(U_hat, V_hat, Kx, Ky, Delta)
+
+    Ux = real_irfft2(derivative_spectral(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2(derivative_spectral(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2(derivative_spectral(V_hat, [1, 0], Kx, Ky))
+    Vy = -Ux
+
+    Uxx = real_irfft2(derivative_spectral(U_hat, [2, 0], Kx, Ky))
+    Uxy = real_irfft2(derivative_spectral(U_hat, [1, 1], Kx, Ky))
+    Uyy = real_irfft2(derivative_spectral(U_hat, [0, 2], Kx, Ky))
+    Vxx = real_irfft2(derivative_spectral(V_hat, [2, 0], Kx, Ky))
+    Vxy = -Uxx
+    Vyy = -Uxy
+
+    Uxxx = real_irfft2(derivative_spectral(U_hat, [3, 0], Kx, Ky))
+    Uxxy = real_irfft2(derivative_spectral(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2(derivative_spectral(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2(derivative_spectral(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2(derivative_spectral(V_hat, [3, 0], Kx, Ky))
+    Vxxy = -Uxxx
+    Vxyy = -Uxxy
+    Vyyy = -Uxyy
+
+    Uxxxx = real_irfft2(derivative_spectral(U_hat, [4, 0], Kx, Ky))
+    Uxxxy = real_irfft2(derivative_spectral(U_hat, [3, 1], Kx, Ky))
+    Uxxyy = real_irfft2(derivative_spectral(U_hat, [2, 2], Kx, Ky))
+    Uxyyy = real_irfft2(derivative_spectral(U_hat, [1, 3], Kx, Ky))
+    Uyyyy = real_irfft2(derivative_spectral(U_hat, [0, 4], Kx, Ky))
+    Vxxxx = real_irfft2(derivative_spectral(V_hat, [4, 0], Kx, Ky))
+    Vxxxy = -Uxxxx
+    # Vxxyy = -Uxxxy
+    Vxyyy = -Uxxyy
+    Vyyyy = -Uxyyy
+
+    Uxxxxx = real_irfft2(derivative_spectral(U_hat, [5, 0], Kx, Ky))
+    # Uxxxxy = real_irfft2(derivative_spectral(U_hat, [4, 1], Kx, Ky))
+    # Uxxxyy = real_irfft2(derivative_spectral(U_hat, [3, 2], Kx, Ky))
+    # Uxxyyy = real_irfft2(derivative_spectral(U_hat, [2, 3], Kx, Ky))
+    Uxyyyy = real_irfft2(derivative_spectral(U_hat, [1, 4], Kx, Ky))
+    Uyyyyy = real_irfft2(derivative_spectral(U_hat, [0, 5], Kx, Ky))
+    Vxxxxx = real_irfft2(derivative_spectral(V_hat, [5, 0], Kx, Ky))
+    # Vxxxxy = -Uxxxxx
+    # Vxxxyy = -Uxxxxy
+    # Vxxyyy = -Uxxxyy
+    # Vxyyyy = -Uxxyyy
+    Vyyyyy = -Uxyyyy
+
+    Tau11GM6 = Tau11GM4 + C3*(Uxxy**2 + Uxyy**2 - 2*Uxxxy*Uxy - 2*Uxyyy*Uxy) + C4*(
+        Uxxx**2 + 2*Ux*Uxxxxx -2*Uxx*Uxxxx + Uyyy**2 + 2*Uy*Uyyyyy - 2*Uyy*Uyyyy)
+    Tau12GM6 = Tau12GM4 + C3*(Uxxy*Vxxy + Uxyy*Vxyy - Uxxxy*Vxy - Uxy*Vxxxy - Uxyyy*Vxy - Uxy*Vxyyy) + C4*(
+        Uxxx*Vxxx + Ux*Vxxxxx +Uxxxxx*Vx - Uxx*Vxxxx - Uxxxx*Vxx + Uyyy*Vyyy + Uy*Vyyyyy +Uyyyyy*Vy - Uyy*Vyyyy - Uyyyy*Vyy)
+    Tau22GM6 = Tau22GM4 + C3*(Vxxy**2 + Vxyy**2 - 2*Vxxxy*Vxy - 2*Vxyyy*Vxy) + C4*(
+        Vxxx**2 + 2*Vx*Vxxxxx -2*Vxx*Vxxxx + Vyyy**2 + 2*Vy*Vyyyyy - 2*Vyy*Vyyyy)
+    
+    return Tau11GM6, Tau12GM6, Tau22GM6
+
+def TauGM6_box_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
+
+    C3 = Delta**6 / 8640
+    C4 = Delta**6 / 30240
+
+    Tau11GM4_hat, Tau12GM4_hat, Tau22GM4_hat = TauGM4_box_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
+
+    Ux_hat = derivative_spectral(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral(V_hat, [1, 0], Kx, Ky)
+    Vy_hat = -Ux_hat
+
+    Uxx_hat = derivative_spectral(U_hat, [2, 0], Kx, Ky)
+    Uxy_hat = derivative_spectral(U_hat, [1, 1], Kx, Ky)
+    Uyy_hat = derivative_spectral(U_hat, [0, 2], Kx, Ky)
+    Vxx_hat = derivative_spectral(V_hat, [2, 0], Kx, Ky)
+    Vxy_hat = -Uxx_hat
+    Vyy_hat = -Uxy_hat
+
+    Uxxx_hat = derivative_spectral(U_hat, [3, 0], Kx, Ky)
+    Uxxy_hat = derivative_spectral(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral(V_hat, [3, 0], Kx, Ky)
+    Vxxy_hat = -Uxxx_hat
+    Vxyy_hat = -Uxxy_hat
+    Vyyy_hat = -Uxyy_hat
+
+    Uxxxx_hat = derivative_spectral(U_hat, [4, 0], Kx, Ky)
+    Uxxxy_hat = derivative_spectral(U_hat, [3, 1], Kx, Ky)
+    Uxxyy_hat = derivative_spectral(U_hat, [2, 2], Kx, Ky)
+    Uxyyy_hat = derivative_spectral(U_hat, [1, 3], Kx, Ky)
+    Uyyyy_hat = derivative_spectral(U_hat, [0, 4], Kx, Ky)
+    Vxxxx_hat = derivative_spectral(V_hat, [4, 0], Kx, Ky)
+    Vxxxy_hat = -Uxxxx_hat
+    # Vxxyy_hat = - Uxxxy_hat
+    Vxyyy_hat = -Uxxyy_hat
+    Vyyyy_hat = -Uxyyy_hat
+
+    Uxxxxx_hat = derivative_spectral(U_hat, [5, 0], Kx, Ky)
+    # Uxxxxy_hat = derivative_spectral(U_hat, [4, 1], Kx, Ky)
+    # Uxxxyy_hat = derivative_spectral(U_hat, [3, 2], Kx, Ky)
+    # Uxxyyy_hat = derivative_spectral(U_hat, [2, 3], Kx, Ky)
+    Uxyyyy_hat = derivative_spectral(U_hat, [1, 4], Kx, Ky)
+    Uyyyyy_hat = derivative_spectral(U_hat, [0, 5], Kx, Ky)
+    Vxxxxx_hat = derivative_spectral(V_hat, [5, 0], Kx, Ky)
+    # Vxxxxy_hat = -Uxxxxx_hat
+    # Vxxxyy_hat = -Uxxxxy_hat
+    # Vxxyyy_hat = -Uxxxyy_hat
+    # Vxyyyy_hat = -Uxxyyy_hat
+    Vyyyyy_hat = -Uxyyyy_hat
+
+    UxxyUxxy_hat = multiply_dealias_spectral(Uxxy_hat, Uxxy_hat)
+    UxyyUxyy_hat = multiply_dealias_spectral(Uxyy_hat, Uxyy_hat)
+    UxyUxxxy_hat = multiply_dealias_spectral(Uxy_hat, Uxxxy_hat)
+    UxyUxyyy_hat = multiply_dealias_spectral(Uxy_hat, Uxyyy_hat)
+    UxxxUxxx_hat = multiply_dealias_spectral(Uxxx_hat, Uxxx_hat)
+    UxUxxxxx_hat = multiply_dealias_spectral(Ux_hat, Uxxxxx_hat)
+    UxxUxxxx_hat = multiply_dealias_spectral(Uxx_hat, Uxxxx_hat)
+    UyyyUyyy_hat = multiply_dealias_spectral(Uyyy_hat, Uyyy_hat)
+    UyUyyyyy_hat = multiply_dealias_spectral(Uy_hat, Uyyyyy_hat)
+    UyyUyyyy_hat = multiply_dealias_spectral(Uyy_hat, Uyyyy_hat)
+
+    VxxyVxxy_hat = multiply_dealias_spectral(Vxxy_hat, Vxxy_hat)
+    VxyyVxyy_hat = multiply_dealias_spectral(Vxyy_hat, Vxyy_hat)
+    VxyVxxxy_hat = multiply_dealias_spectral(Vxy_hat, Vxxxy_hat)
+    VxyVxyyy_hat = multiply_dealias_spectral(Vxy_hat, Vxyyy_hat)
+    VxxxVxxx_hat = multiply_dealias_spectral(Vxxx_hat, Vxxx_hat)
+    VxVxxxxx_hat = multiply_dealias_spectral(Vx_hat, Vxxxxx_hat)
+    VxxVxxxx_hat = multiply_dealias_spectral(Vxx_hat, Vxxxx_hat)
+    VyyyVyyy_hat = multiply_dealias_spectral(Vyyy_hat, Vyyy_hat)
+    VyVyyyyy_hat = multiply_dealias_spectral(Vy_hat, Vyyyyy_hat)    
+    VyyVyyyy_hat = multiply_dealias_spectral(Vyy_hat, Vyyyy_hat)
+
+    UxxyVxxy_hat = multiply_dealias_spectral(Uxxy_hat, Vxxy_hat)
+    UxyyVxyy_hat = multiply_dealias_spectral(Uxyy_hat, Vxyy_hat)
+    UxxxyVxy_hat = multiply_dealias_spectral(Uxxxy_hat, Vxy_hat)
+    UxyVxxxy_hat = multiply_dealias_spectral(Uxy_hat, Vxxxy_hat)
+    UxyyyVxy_hat = multiply_dealias_spectral(Uxyyy_hat, Vxy_hat)
+    UxyVxyyy_hat = multiply_dealias_spectral(Uxy_hat, Vxyyy_hat)
+    UxxxVxxx_hat = multiply_dealias_spectral(Uxxx_hat, Vxxx_hat)
+    UxVxxxxx_hat = multiply_dealias_spectral(Ux_hat, Vxxxxx_hat)
+    UxxxxxVx_hat = multiply_dealias_spectral(Uxxxxx_hat, Vx_hat)
+    UxxVxxxx_hat = multiply_dealias_spectral(Uxx_hat, Vxxxx_hat)
+    UxxxxVxx_hat = multiply_dealias_spectral(Uxxxx_hat, Vxx_hat)
+    UyyyVyyy_hat = multiply_dealias_spectral(Uyyy_hat, Vyyy_hat)
+    UyVyyyyy_hat = multiply_dealias_spectral(Uy_hat, Vyyyyy_hat)
+    UyyyyyVy_hat = multiply_dealias_spectral(Uyyyyy_hat, Vy_hat)
+    UyyVyyyy_hat = multiply_dealias_spectral(Uyy_hat, Vyyyy_hat)
+    UyyyyVyy_hat = multiply_dealias_spectral(Uyyyy_hat, Vyy_hat)
+
+    Tau11GM6_hat = Tau11GM4_hat + C3*(UxxyUxxy_hat + UxyyUxyy_hat - 2*UxyUxxxy_hat - 2*UxyUxyyy_hat) + C4*(
+        UxxxUxxx_hat + 2*UxUxxxxx_hat - 2*UxxUxxxx_hat + UyyyUyyy_hat + 2*UyUyyyyy_hat - 2*UyyUyyyy_hat)
+    Tau12GM6_hat = Tau12GM4_hat + C3*(UxxyVxxy_hat + UxyyVxyy_hat - UxxxyVxy_hat - UxyVxxxy_hat - UxyyyVxy_hat - UxyVxyyy_hat) + C4*(
+        UxxxVxxx_hat + UxVxxxxx_hat + UxxxxxVx_hat - UxxVxxxx_hat - UxxxxVxx_hat + UyyyVyyy_hat + UyVyyyyy_hat + UyyyyyVy_hat - UyyVyyyy_hat - UyyyyVyy_hat)
+    Tau22GM6_hat = Tau22GM4_hat + C3*(VxxyVxxy_hat + VxyyVxyy_hat - 2*VxyVxxxy_hat - 2*VxyVxyyy_hat) + C4*(
+        VxxxVxxx_hat + 2*VxVxxxxx_hat - 2*VxxVxxxx_hat + VyyyVyyy_hat + 2*VyVyyyyy_hat - 2*VyyVyyyy_hat)
+
+    return Tau11GM6_hat, Tau12GM6_hat, Tau22GM6_hat
+
 
 # TauGM8
 def TauGM8(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False):
@@ -630,13 +1201,18 @@ def SigmaGM4(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, 
         U_hat = np.fft.rfft2(U)
         V_hat = np.fft.rfft2(V)
 
-    if filterType=='gaussian':
-        if dealias:
+    if dealias:
+        if filterType=='gaussian':
             Sigma1GM4_hat, Sigma2GM4_hat = SigmaGM4_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
-            Sigma1GM4 = real_irfft2(Sigma1GM4_hat)
-            Sigma2GM4 = real_irfft2(Sigma2GM4_hat)
-        else:
+        elif filterType=='box':
+            Sigma1GM4_hat, Sigma2GM4_hat = SigmaGM4_box_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+        Sigma1GM4 = real_irfft2(Sigma1GM4_hat)
+        Sigma2GM4 = real_irfft2(Sigma2GM4_hat)
+    else:
+        if filterType=='gaussian':
             Sigma1GM4, Sigma2GM4 = SigmaGM4_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+        elif filterType=='box':
+            Sigma1GM4, Sigma2GM4 = SigmaGM4_box(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
         Sigma1GM4_hat = np.fft.rfft2(Sigma1GM4)
@@ -700,6 +1276,112 @@ def SigmaGM4_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
 
     return Sigma1GM4_hat, Sigma2GM4_hat
 
+def SigmaGM4_box(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+
+    B1 = Delta**4 / 144
+    B3 = Delta**4 / 720
+
+    Sigma1GM2, Sigma2GM2 = SigmaGM2_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta) # same for box and gaussian
+
+    Ux = real_irfft2(derivative_spectral(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2(derivative_spectral(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2(derivative_spectral(V_hat, [1, 0], Kx, Ky))
+    Vy = -Ux
+
+    Uxx = real_irfft2(derivative_spectral(U_hat, [2, 0], Kx, Ky))
+    Uxy = real_irfft2(derivative_spectral(U_hat, [1, 1], Kx, Ky))
+    Uyy = real_irfft2(derivative_spectral(U_hat, [0, 2], Kx, Ky))
+    Vxx = real_irfft2(derivative_spectral(V_hat, [2, 0], Kx, Ky))
+    Vxy = -Uxx
+    Vyy = -Uxy
+
+    Uxxx = real_irfft2(derivative_spectral(U_hat, [3, 0], Kx, Ky))
+    # Uxxy = real_irfft2(derivative_spectral(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2(derivative_spectral(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2(derivative_spectral(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2(derivative_spectral(V_hat, [3, 0], Kx, Ky))
+    # Vxxy = -Uxxx
+    # Vxyy = -Uxxy
+    Vyyy = -Uxyy
+
+    Omegax = real_irfft2(derivative_spectral(Omega_hat, [1, 0], Kx, Ky))
+    Omegay = real_irfft2(derivative_spectral(Omega_hat, [0, 1], Kx, Ky))
+
+    Omegaxx = real_irfft2(derivative_spectral(Omega_hat, [2, 0], Kx, Ky))
+    Omegaxy = real_irfft2(derivative_spectral(Omega_hat, [1, 1], Kx, Ky))
+    Omegayy = real_irfft2(derivative_spectral(Omega_hat, [0, 2], Kx, Ky))
+
+    Omegaxxx = real_irfft2(derivative_spectral(Omega_hat, [3, 0], Kx, Ky))
+    # Omegaxxy = real_irfft2(derivative_spectral(Omega_hat, [2, 1], Kx, Ky))
+    # Omegaxyy = real_irfft2(derivative_spectral(Omega_hat, [1, 2], Kx, Ky))
+    Omegayyy = real_irfft2(derivative_spectral(Omega_hat, [0, 3], Kx, Ky))
+
+    Sigma1GM4 = Sigma1GM2 + B1*(Uxy*Omegaxy) + B3*(Uxx*Omegaxx + Uyy*Omegayy - Ux*Omegaxxx - Uy*Omegayyy + Uxxx*Omegax + Uyyy*Omegay)
+    Sigma2GM4 = Sigma2GM2 + B1*(Vxy*Omegaxy) + B3*(Vxx*Omegaxx + Vyy*Omegayy - Vx*Omegaxxx - Vy*Omegayyy + Vxxx*Omegax + Vyyy*Omegay)
+
+    return Sigma1GM4, Sigma2GM4
+
+def SigmaGM4_box_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+
+    B1 = Delta**4 / 144
+    B3 = Delta**4 / 720
+
+    Sigma1GM2_hat, Sigma2GM2_hat = SigmaGM2_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta) # same for box and gaussian
+
+    Ux_hat = derivative_spectral(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral(V_hat, [1, 0], Kx, Ky)
+    Vy_hat = -Ux_hat
+
+    Uxx_hat = derivative_spectral(U_hat, [2, 0], Kx, Ky)
+    Uxy_hat = derivative_spectral(U_hat, [1, 1], Kx, Ky)
+    Uyy_hat = derivative_spectral(U_hat, [0, 2], Kx, Ky)
+    Vxx_hat = derivative_spectral(V_hat, [2, 0], Kx, Ky)
+    Vxy_hat = -Uxx_hat
+    Vyy_hat = -Uxy_hat
+
+    Uxxx_hat = derivative_spectral(U_hat, [3, 0], Kx, Ky)
+    # Uxxy_hat = derivative_spectral(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral(V_hat, [3, 0], Kx, Ky)
+    # Vxxy_hat = -Uxxx_hat
+    # Vxyy_hat = -Uxxy_hat
+    Vyyy_hat = -Uxyy_hat
+
+    Omegax_hat = derivative_spectral(Omega_hat, [1, 0], Kx, Ky)
+    Omegay_hat = derivative_spectral(Omega_hat, [0, 1], Kx, Ky)
+
+    Omegaxx_hat = derivative_spectral(Omega_hat, [2, 0], Kx, Ky)
+    Omegaxy_hat = derivative_spectral(Omega_hat, [1, 1], Kx, Ky)
+    Omegayy_hat = derivative_spectral(Omega_hat, [0, 2], Kx, Ky)
+
+    Omegaxxx_hat = derivative_spectral(Omega_hat, [3, 0], Kx, Ky)
+    # Omegaxxy_hat = derivative_spectral(Omega_hat, [2, 1], Kx, Ky)
+    # Omegaxyy_hat = derivative_spectral(Omega_hat, [1, 2], Kx, Ky)
+    Omegayyy_hat = derivative_spectral(Omega_hat, [0, 3], Kx, Ky)
+
+    UxyOmegaxy_hat = multiply_dealias_spectral(Uxy_hat, Omegaxy_hat)
+    UxxOmegaxx_hat = multiply_dealias_spectral(Uxx_hat, Omegaxx_hat)
+    UyyOmegayy_hat = multiply_dealias_spectral(Uyy_hat, Omegayy_hat)
+    UxOmegaxxx_hat = multiply_dealias_spectral(Ux_hat, Omegaxxx_hat)
+    UyOmegayyy_hat = multiply_dealias_spectral(Uy_hat, Omegayyy_hat)
+    UxxxOmegax_hat = multiply_dealias_spectral(Uxxx_hat, Omegax_hat)
+    UyyyOmegay_hat = multiply_dealias_spectral(Uyyy_hat, Omegay_hat)
+
+    VxyOmegaxy_hat = multiply_dealias_spectral(Vxy_hat, Omegaxy_hat)
+    VxxOmegaxx_hat = multiply_dealias_spectral(Vxx_hat, Omegaxx_hat)
+    VyyOmegayy_hat = multiply_dealias_spectral(Vyy_hat, Omegayy_hat)
+    VxOmegaxxx_hat = multiply_dealias_spectral(Vx_hat, Omegaxxx_hat)
+    VyOmegayyy_hat = multiply_dealias_spectral(Vy_hat, Omegayyy_hat)
+    VxxxOmegax_hat = multiply_dealias_spectral(Vxxx_hat, Omegax_hat)
+    VyyyOmegay_hat = multiply_dealias_spectral(Vyyy_hat, Omegay_hat)
+
+    Sigma1GM4_hat = Sigma1GM2_hat + B1*(UxyOmegaxy_hat) + B3*(UxxOmegaxx_hat + UyyOmegayy_hat - UxOmegaxxx_hat - UyOmegayyy_hat + UxxxOmegax_hat + UyyyOmegay_hat)
+    Sigma2GM4_hat = Sigma2GM2_hat + B1*(VxyOmegaxy_hat) + B3*(VxxOmegaxx_hat + VyyOmegayy_hat - VxOmegaxxx_hat - VyOmegayyy_hat + VxxxOmegax_hat + VyyyOmegay_hat)
+
+    return Sigma1GM4_hat, Sigma2GM4_hat
+
 # SigmaGM6
 def SigmaGM6(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
 
@@ -710,13 +1392,18 @@ def SigmaGM6(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, 
         U_hat = np.fft.rfft2(U)
         V_hat = np.fft.rfft2(V)
 
-    if filterType=='gaussian':
-        if dealias:
+    if dealias:
+        if filterType=='gaussian':
             Sigma1GM6_hat, Sigma2GM6_hat = SigmaGM6_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
-            Sigma1GM6 = real_irfft2(Sigma1GM6_hat)
-            Sigma2GM6 = real_irfft2(Sigma2GM6_hat)
-        else:
+        elif filterType=='box':
+            Sigma1GM6_hat, Sigma2GM6_hat = SigmaGM6_box_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+        Sigma1GM6 = real_irfft2(Sigma1GM6_hat)
+        Sigma2GM6 = real_irfft2(Sigma2GM6_hat)
+    else:
+        if filterType == 'gaussian':
             Sigma1GM6, Sigma2GM6 = SigmaGM6_gaussian(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+        elif filterType == 'box':
+            Sigma1GM6, Sigma2GM6 = SigmaGM6_box(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
         Sigma1GM6_hat = np.fft.rfft2(Sigma1GM6)
@@ -784,6 +1471,216 @@ def SigmaGM6_gaussian_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
     Sigma1GM6_hat = Sigma1GM4_hat + C1*(UxxyOmegaxxy_hat + UxyyOmegaxyy_hat) + C2*(UxxxOmegaxxx_hat + UyyyOmegayyy_hat)
     Sigma2GM6_hat = Sigma2GM4_hat + C1*(VxxyOmegaxxy_hat + VxyyOmegaxyy_hat) + C2*(VxxxOmegaxxx_hat + VyyyOmegayyy_hat)
 
+    return Sigma1GM6_hat, Sigma2GM6_hat
+
+def SigmaGM6_box(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+
+    C3 = Delta**6 / 8640
+    C4 = Delta**6 / 30240
+
+    Sigma1GM4, Sigma2GM4 = SigmaGM4_box(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+
+    Ux = real_irfft2(derivative_spectral(U_hat, [1, 0], Kx, Ky))
+    Uy = real_irfft2(derivative_spectral(U_hat, [0, 1], Kx, Ky))
+    Vx = real_irfft2(derivative_spectral(V_hat, [1, 0], Kx, Ky))
+    Vy = -Ux
+
+    Uxx = real_irfft2(derivative_spectral(U_hat, [2, 0], Kx, Ky))
+    Uxy = real_irfft2(derivative_spectral(U_hat, [1, 1], Kx, Ky))
+    Uyy = real_irfft2(derivative_spectral(U_hat, [0, 2], Kx, Ky))
+    Vxx = real_irfft2(derivative_spectral(V_hat, [2, 0], Kx, Ky))
+    Vxy = -Uxx
+    Vyy = -Uxy
+
+    Uxxx = real_irfft2(derivative_spectral(U_hat, [3, 0], Kx, Ky))
+    Uxxy = real_irfft2(derivative_spectral(U_hat, [2, 1], Kx, Ky))
+    Uxyy = real_irfft2(derivative_spectral(U_hat, [1, 2], Kx, Ky))
+    Uyyy = real_irfft2(derivative_spectral(U_hat, [0, 3], Kx, Ky))
+    Vxxx = real_irfft2(derivative_spectral(V_hat, [3, 0], Kx, Ky))
+    Vxxy = -Uxxx
+    Vxyy = -Uxxy
+    Vyyy = -Uxyy
+
+    Uxxxx = real_irfft2(derivative_spectral(U_hat, [4, 0], Kx, Ky))
+    Uxxxy = real_irfft2(derivative_spectral(U_hat, [3, 1], Kx, Ky))
+    Uxxyy = real_irfft2(derivative_spectral(U_hat, [2, 2], Kx, Ky))
+    Uxyyy = real_irfft2(derivative_spectral(U_hat, [1, 3], Kx, Ky))
+    Uyyyy = real_irfft2(derivative_spectral(U_hat, [0, 4], Kx, Ky))
+    Vxxxx = real_irfft2(derivative_spectral(V_hat, [4, 0], Kx, Ky))
+    Vxxxy = -Uxxxx
+    # Vxxyy = -Uxxxy
+    Vxyyy = -Uxxyy
+    Vyyyy = -Uxyyy
+
+    Uxxxxx = real_irfft2(derivative_spectral(U_hat, [5, 0], Kx, Ky))
+    # Uxxxxy = real_irfft2(derivative_spectral(U_hat, [4, 1], Kx, Ky))
+    # Uxxxyy = real_irfft2(derivative_spectral(U_hat, [3, 2], Kx, Ky))
+    # Uxxyyy = real_irfft2(derivative_spectral(U_hat, [2, 3], Kx, Ky))
+    Uxyyyy = real_irfft2(derivative_spectral(U_hat, [1, 4], Kx, Ky))
+    Uyyyyy = real_irfft2(derivative_spectral(U_hat, [0, 5], Kx, Ky))
+    Vxxxxx = real_irfft2(derivative_spectral(V_hat, [5, 0], Kx, Ky))
+    # Vxxxxy = -Uxxxxx
+    # Vxxxyy = -Uxxxxy
+    # Vxxyyy = -Uxxxyy
+    # Vxyyyy = -Uxxyyy
+    Vyyyyy = -Uxyyyy
+
+    Omegax = real_irfft2(derivative_spectral(Omega_hat, [1, 0], Kx, Ky))
+    Omegay = real_irfft2(derivative_spectral(Omega_hat, [0, 1], Kx, Ky))
+
+    Omegaxx = real_irfft2(derivative_spectral(Omega_hat, [2, 0], Kx, Ky))
+    Omegaxy = real_irfft2(derivative_spectral(Omega_hat, [1, 1], Kx, Ky))
+    Omegayy = real_irfft2(derivative_spectral(Omega_hat, [0, 2], Kx, Ky))
+
+    Omegaxxx = real_irfft2(derivative_spectral(Omega_hat, [3, 0], Kx, Ky))
+    Omegaxxy = real_irfft2(derivative_spectral(Omega_hat, [2, 1], Kx, Ky))
+    Omegaxyy = real_irfft2(derivative_spectral(Omega_hat, [1, 2], Kx, Ky))
+    Omegayyy = real_irfft2(derivative_spectral(Omega_hat, [0, 3], Kx, Ky))
+
+    Omegaxxxx = real_irfft2(derivative_spectral(Omega_hat, [4, 0], Kx, Ky))
+    Omegaxxxy = real_irfft2(derivative_spectral(Omega_hat, [3, 1], Kx, Ky))
+    # Omegaxxyy = real_irfft2(derivative_spectral(Omega_hat, [2, 2], Kx, Ky))
+    Omegaxyyy = real_irfft2(derivative_spectral(Omega_hat, [1, 3], Kx, Ky))
+    Omegayyyy = real_irfft2(derivative_spectral(Omega_hat, [0, 4], Kx, Ky))
+
+    Omegaxxxxx = real_irfft2(derivative_spectral(Omega_hat, [5, 0], Kx, Ky))
+    # Omegaxxxxy = real_irfft2(derivative_spectral(Omega_hat, [4, 1], Kx, Ky))
+    # Omegaxxxyy = real_irfft2(derivative_spectral(Omega_hat, [3, 2], Kx, Ky))
+    # Omegaxxyyy = real_irfft2(derivative_spectral(Omega_hat, [2, 3], Kx, Ky))
+    # Omegaxyyyy = real_irfft2(derivative_spectral(Omega_hat, [1, 4], Kx, Ky))
+    Omegayyyyy = real_irfft2(derivative_spectral(Omega_hat, [0, 5], Kx, Ky))
+
+    Sigma1GM6 = Sigma1GM4 + C3*(Uxxy*Omegaxxy + Uxyy*Omegaxyy - 
+                                Uxxxy*Omegaxy - Uxyyy*Omegaxy - Uxy*Omegaxxxy - Uxy*Omegaxyyy) + C4*(
+                                    Uxxx*Omegaxxx + Ux*Omegaxxxxx + Uxxxxx*Omegax - Uxx*Omegaxxxx - Uxxxx*Omegaxx - 
+                                    Uyyy*Omegayyy + Uy*Omegayyyyy + Uyyyyy*Omegay - Uyy*Omegayyyy - Uyyyy*Omegayy)
+    Sigma2GM6 = Sigma2GM4 + C3*(Vxxy*Omegaxxy + Vxyy*Omegaxyy -
+                                Vxxxy*Omegaxy - Vxyyy*Omegaxy - Vxy*Omegaxxxy - Vxy*Omegaxyyy) + C4*(
+                                    Vxxx*Omegaxxx + Vx*Omegaxxxxx + Vxxxxx*Omegax - Vxx*Omegaxxxx - Vxxxx*Omegaxx - 
+                                    Vyyy*Omegayyy + Vy*Omegayyyyy + Vyyyyy*Omegay - Vyy*Omegayyyy - Vyyyy*Omegayy)
+    
+    return Sigma1GM6, Sigma2GM6
+
+def SigmaGM6_box_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+
+    C3 = Delta**6 / 8640
+    C4 = Delta**6 / 30240
+
+    Sigma1GM4_hat, Sigma2GM4_hat = SigmaGM4_box_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+
+    Ux_hat = derivative_spectral(U_hat, [1, 0], Kx, Ky)
+    Uy_hat = derivative_spectral(U_hat, [0, 1], Kx, Ky)
+    Vx_hat = derivative_spectral(V_hat, [1, 0], Kx, Ky)
+    Vy_hat = -Ux_hat
+
+    Uxx_hat = derivative_spectral(U_hat, [2, 0], Kx, Ky)
+    Uxy_hat = derivative_spectral(U_hat, [1, 1], Kx, Ky)
+    Uyy_hat = derivative_spectral(U_hat, [0, 2], Kx, Ky)
+    Vxx_hat = derivative_spectral(V_hat, [2, 0], Kx, Ky)
+    Vxy_hat = -Uxx_hat
+    Vyy_hat = -Uxy_hat
+
+    Uxxx_hat = derivative_spectral(U_hat, [3, 0], Kx, Ky)
+    Uxxy_hat = derivative_spectral(U_hat, [2, 1], Kx, Ky)
+    Uxyy_hat = derivative_spectral(U_hat, [1, 2], Kx, Ky)
+    Uyyy_hat = derivative_spectral(U_hat, [0, 3], Kx, Ky)
+    Vxxx_hat = derivative_spectral(V_hat, [3, 0], Kx, Ky)
+    Vxxy_hat = -Uxxx_hat
+    Vxyy_hat = -Uxxy_hat
+    Vyyy_hat = -Uxyy_hat
+
+    Uxxxx_hat = derivative_spectral(U_hat, [4, 0], Kx, Ky)
+    Uxxxy_hat = derivative_spectral(U_hat, [3, 1], Kx, Ky)
+    Uxxyy_hat = derivative_spectral(U_hat, [2, 2], Kx, Ky)
+    Uxyyy_hat = derivative_spectral(U_hat, [1, 3], Kx, Ky)
+    Uyyyy_hat = derivative_spectral(U_hat, [0, 4], Kx, Ky)
+    Vxxxx_hat = derivative_spectral(V_hat, [4, 0], Kx, Ky)
+    Vxxxy_hat = -Uxxxx_hat
+    # Vxxyy_hat = - Uxxxy_hat
+    Vxyyy_hat = -Uxxyy_hat
+    Vyyyy_hat = -Uxyyy_hat
+
+    Uxxxxx_hat = derivative_spectral(U_hat, [5, 0], Kx, Ky)
+    # Uxxxxy_hat = derivative_spectral(U_hat, [4, 1], Kx, Ky)
+    # Uxxxyy_hat = derivative_spectral(U_hat, [3, 2], Kx, Ky)
+    # Uxxyyy_hat = derivative_spectral(U_hat, [2, 3], Kx, Ky)
+    Uxyyyy_hat = derivative_spectral(U_hat, [1, 4], Kx, Ky)
+    Uyyyyy_hat = derivative_spectral(U_hat, [0, 5], Kx, Ky)
+    Vxxxxx_hat = derivative_spectral(V_hat, [5, 0], Kx, Ky)
+    # Vxxxxy_hat = -Uxxxxx_hat
+    # Vxxxyy_hat = -Uxxxxy_hat
+    # Vxxyyy_hat = -Uxxxyy_hat
+    # Vxyyyy_hat = -Uxxyyy_hat
+    Vyyyyy_hat = -Uxyyyy_hat
+
+    Omegax_hat = derivative_spectral(Omega_hat, [1, 0], Kx, Ky)
+    Omegay_hat = derivative_spectral(Omega_hat, [0, 1], Kx, Ky)
+
+    Omegaxx_hat = derivative_spectral(Omega_hat, [2, 0], Kx, Ky)
+    Omegaxy_hat = derivative_spectral(Omega_hat, [1, 1], Kx, Ky)
+    Omegayy_hat = derivative_spectral(Omega_hat, [0, 2], Kx, Ky)
+
+    Omegaxxx_hat = derivative_spectral(Omega_hat, [3, 0], Kx, Ky)
+    Omegaxxy_hat = derivative_spectral(Omega_hat, [2, 1], Kx, Ky)
+    Omegaxyy_hat = derivative_spectral(Omega_hat, [1, 2], Kx, Ky)
+    Omegayyy_hat = derivative_spectral(Omega_hat, [0, 3], Kx, Ky)
+
+    Omegaxxxx_hat = derivative_spectral(Omega_hat, [4, 0], Kx, Ky)
+    Omegaxxxy_hat = derivative_spectral(Omega_hat, [3, 1], Kx, Ky)
+    # Omegaxxyy_hat = derivative_spectral(Omega_hat, [2, 2], Kx, Ky)
+    Omegaxyyy_hat = derivative_spectral(Omega_hat, [1, 3], Kx, Ky)
+    Omegayyyy_hat = derivative_spectral(Omega_hat, [0, 4], Kx, Ky)
+
+    Omegaxxxxx_hat = derivative_spectral(Omega_hat, [5, 0], Kx, Ky)
+    # Omegaxxxxy_hat = derivative_spectral(Omega_hat, [4, 1], Kx, Ky)
+    # Omegaxxxyy_hat = derivative_spectral(Omega_hat, [3, 2], Kx, Ky)
+    # Omegaxxyyy_hat = derivative_spectral(Omega_hat, [2, 3], Kx, Ky)
+    # Omegaxyyyy_hat = derivative_spectral(Omega_hat, [1, 4], Kx, Ky)
+    Omegayyyyy_hat = derivative_spectral(Omega_hat, [0, 5], Kx, Ky)
+
+    UxxyOmegaxxy_hat = multiply_dealias_spectral(Uxxy_hat, Omegaxxy_hat)
+    UxyyOmegaxyy_hat = multiply_dealias_spectral(Uxyy_hat, Omegaxyy_hat)
+    UxxxyOmegaxy_hat = multiply_dealias_spectral(Uxxxy_hat, Omegaxy_hat)
+    UxyyyOmegaxy_hat = multiply_dealias_spectral(Uxyyy_hat, Omegaxy_hat)
+    UxyOmegaxxxy_hat = multiply_dealias_spectral(Uxy_hat, Omegaxxxy_hat)
+    UxyOmegaxyyy_hat = multiply_dealias_spectral(Uxy_hat, Omegaxyyy_hat)
+    UxxxOmegaxxx_hat = multiply_dealias_spectral(Uxxx_hat, Omegaxxx_hat)
+    UxOmegaxxxxx_hat = multiply_dealias_spectral(Ux_hat, Omegaxxxxx_hat)
+    UxxxxxOmegax_hat = multiply_dealias_spectral(Uxxxxx_hat, Omegax_hat)
+    UxxOmegaxxxx_hat = multiply_dealias_spectral(Uxx_hat, Omegaxxxx_hat)
+    UxxxxOmegaxx_hat = multiply_dealias_spectral(Uxxxx_hat, Omegaxx_hat)
+    UyyyOmegayyy_hat = multiply_dealias_spectral(Uyyy_hat, Omegayyy_hat)
+    UyOmegayyyyy_hat = multiply_dealias_spectral(Uy_hat, Omegayyyyy_hat)
+    UyyyyyOmegay_hat = multiply_dealias_spectral(Uyyyyy_hat, Omegay_hat)
+    UyyOmegayyyy_hat = multiply_dealias_spectral(Uyy_hat, Omegayyyy_hat)
+    UyyyyOmegayy_hat = multiply_dealias_spectral(Uyyyy_hat, Omegayy_hat)
+
+    VxxyOmegaxxy_hat = multiply_dealias_spectral(Vxxy_hat, Omegaxxy_hat)
+    VxyyOmegaxyy_hat = multiply_dealias_spectral(Vxyy_hat, Omegaxyy_hat)
+    VxxxyOmegaxy_hat = multiply_dealias_spectral(Vxxxy_hat, Omegaxy_hat)
+    VxyyyOmegaxy_hat = multiply_dealias_spectral(Vxyyy_hat, Omegaxy_hat)
+    VxyOmegaxxxy_hat = multiply_dealias_spectral(Vxy_hat, Omegaxxxy_hat)
+    VxyOmegaxyyy_hat = multiply_dealias_spectral(Vxy_hat, Omegaxyyy_hat)
+    VxxxOmegaxxx_hat = multiply_dealias_spectral(Vxxx_hat, Omegaxxx_hat)
+    VxOmegaxxxxx_hat = multiply_dealias_spectral(Vx_hat, Omegaxxxxx_hat)
+    VxxxxxOmegax_hat = multiply_dealias_spectral(Vxxxxx_hat, Omegax_hat)
+    VxxOmegaxxxx_hat = multiply_dealias_spectral(Vxx_hat, Omegaxxxx_hat)
+    VxxxxOmegaxx_hat = multiply_dealias_spectral(Vxxxx_hat, Omegaxx_hat)
+    VyyyOmegayyy_hat = multiply_dealias_spectral(Vyyy_hat, Omegayyy_hat)
+    VyOmegayyyyy_hat = multiply_dealias_spectral(Vy_hat, Omegayyyyy_hat)
+    VyyyyyOmegay_hat = multiply_dealias_spectral(Vyyyyy_hat, Omegay_hat)
+    VyyOmegayyyy_hat = multiply_dealias_spectral(Vyy_hat, Omegayyyy_hat)
+    VyyyyOmegayy_hat = multiply_dealias_spectral(Vyyyy_hat, Omegayy_hat)
+
+    Sigma1GM6_hat = Sigma1GM4_hat + C3*(UxxyOmegaxxy_hat + UxyyOmegaxyy_hat - 
+                                        UxxxyOmegaxy_hat - UxyyyOmegaxy_hat - UxyOmegaxxxy_hat - UxyOmegaxyyy_hat) + C4*(
+                                            UxxxOmegaxxx_hat + UxOmegaxxxxx_hat + UxxxxxOmegax_hat - UxxOmegaxxxx_hat - UxxxxOmegaxx_hat - 
+                                            UyyyOmegayyy_hat + UyOmegayyyyy_hat + UyyyyyOmegay_hat - UyyOmegayyyy_hat - UyyyyOmegayy_hat)
+    Sigma2GM6_hat = Sigma2GM4_hat + C3*(VxxyOmegaxxy_hat + VxyyOmegaxyy_hat -
+                                        VxxxyOmegaxy_hat - VxyyyOmegaxy_hat - VxyOmegaxxxy_hat - VxyOmegaxyyy_hat) + C4*(
+                                            VxxxOmegaxxx_hat + VxOmegaxxxxx_hat + VxxxxxOmegax_hat - VxxOmegaxxxx_hat - VxxxxOmegaxx_hat - 
+                                            VyyyOmegayyy_hat + VyOmegayyyyy_hat + VyyyyyOmegay_hat - VyyOmegayyyy_hat - VyyyyOmegayy_hat)
+    
     return Sigma1GM6_hat, Sigma2GM6_hat
 
 # SigmaGM8
