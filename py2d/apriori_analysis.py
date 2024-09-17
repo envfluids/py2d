@@ -79,6 +79,27 @@ def energyTransfer(U, V, Tau11, Tau12, Tau22, Kx, Ky, dealias = False):
 
     return PTau
 
+def energyTransfer_domain_average(Psi, PiOmega, dealias=False):
+    """
+    Domain Average of Energy transfer of 2D_FHIT using SGS stress
+    Input is single snapshot (N x N matrix)
+
+    Inputs:
+    Psi: Stream function
+    PiOmega: SGS term
+
+    Output: 
+    PTau: energy transfer - domain average
+
+    Note: Dealias[a,b,c] != Dealias[Dealias[a,b],c] 
+    Dealiasing energy transfer directly may not render correct result and you may need to explore how Tau is caluclated.
+    Considering Tau is usually composed fo multiplying 2 fields.
+    """
+
+    PTau = np.mean(multiply_dealias(Psi, PiOmega, dealias=dealias))
+
+    return PTau
+
 def enstrophyTransfer(Omega, Sigma1, Sigma2, Kx, Ky, dealias = False):
     """
     Enstrophy transfer of 2D_FHIT using SGS vorticity stress
@@ -102,6 +123,26 @@ def enstrophyTransfer(Omega, Sigma1, Sigma2, Kx, Ky, dealias = False):
     Sigma2Omegay = multiply_dealias(Sigma2, Omegay, dealias=dealias)
 
     PZ = -Sigma1Omegax - Sigma2Omegay
+
+    return PZ
+
+def enstrophyTransfer_domain_average(Omega, PiOmega, dealias=False):
+    """
+    Domain Average of Enstrophy transfer of 2D_FHIT using SGS vorticity stress
+
+    Inputs:
+    Omega: Vorticity
+    PiOmega: SGS term
+
+    Output:
+    PZ: enstrophy transfer - domain average
+
+    Note: Dealias[a,b,c] != Dealias[Dealias[a,b],c]
+    Dealiasing enstrophy transfer directly may not render correct result and you may need to explore how Sigma is caluclated.
+    Considering Sigma is usually composed fo multiplying 2 fields.
+    """
+
+    PZ = np.mean(multiply_dealias(Omega, PiOmega, dealias=dealias))
 
     return PZ
 
