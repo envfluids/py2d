@@ -103,6 +103,75 @@ def filter2D(U, filterType='gaussian', coarseGrainType='spectral', Delta=None, N
         return U_f_c_hat
 
 
+def invertFilter2D(Uf, filterType='gaussian', Delta=None, spectral=False):
+    """
+    Invert filters (only for valid for invertible filters) used in 2D Turbulence.
+    
+    Parameters
+    ----------
+    U : numpy.ndarray
+        The 2D input data to be filtered and coarse grained.
+    
+    filterType : str, optional
+        The type of filter to apply. It can be 'gaussian', 'box'
+        The default is 'gaussian'.
+    
+    
+    Delta : float, optional
+        The characteristic scale of the filter. If not provided, it will be computed from the provided Ngrid.
+    
+    spectral : bool, optional
+        If True, the input data U is considered to be already Fourier-transformed. 
+        The default is False, in which case U is Fourier-transformed within the function.
+
+    Returns
+    -------
+    numpy.ndarray
+        The inverted data
+    """
+
+    # Fourier transform the input data if not already done
+    if not spectral:
+        Uf_hat = np.fft.rfft2(Uf)
+    else:
+        Uf_hat = Uf
+
+    # Get grid size in x and y directions
+    Ngrid = np.shape(Uf_hat)[0]
+    Lx, Ly = 2 * np.pi, 2 * np.pi  # Domain size
+    
+    # If Delta is not provided, compute it from Ngrid
+    if Delta is None:
+        Delta = 2 * Lx / Ngrid
+
+    # Initialize wavenumbers for the DNS grid
+    Kx, Ky, _, Ksq, _ = initialize_wavenumbers_rfft2(Ngrid, Ngrid, Lx, Ly, INDEXING='ij')
+
+    # Apply filter to the data
+    if filterType == 'gaussian':
+        Gk = np.exp(-Ksq * (Delta ** 2) / 24)
+
+    elif filterType in ['box', 'boxSpectral']:
+        Gkx = np.sinc(0.5 * Kx * Delta / np.pi)  # numpy's sinc includes pi factor
+        Gky = np.sinc(0.5 * Ky * Delta / np.pi)
+        Gkx[0, :] = 1.0
+        Gky[:, 0] = 1.0
+        Gkx[Ngrid//2, :] = 1.0 # these values are zero; avoiding division by zero in next steps
+        Gky[:,Ngrid//2] = 1.0
+        Gk = Gkx * Gky
+
+    else:
+        raise ValueError("Invalid filter type : " + filterType)
+    
+    U_hat = Uf_hat/Gk
+
+    # Inverse Fourier transform the result and return the real part
+    if not spectral:
+        return np.fft.irfft2(U_hat, s=(U_hat.shape[0], U_hat.shape[0]))
+    else:
+        return U_hat
+    
+
 def spectral_filter_circle_same_size(q_hat, kc):
     '''
     A circular sharp spectral filter for 2D flow variables. The function takes a 2D square matrix at high resolution 
