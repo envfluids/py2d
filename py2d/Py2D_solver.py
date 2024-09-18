@@ -143,7 +143,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     # -------------- Directory to store data ------------------
     # Snapshots of data save at the following directory
-    SAVE_DIR, SAVE_DIR_DATA, SAVE_DIR_IC = gen_path(NX, dt, ICnum, Re, fkx, fky, alpha, beta, SGSModel_string)
+    SAVE_DIR, SAVE_DIR_DATA, SAVE_DIR_IC = gen_path(NX, dt, ICnum, Re, fkx, fky, alpha, beta, SGSModel_string, dealias)
 
     # Create directories if they aren't present
     try:
@@ -397,6 +397,15 @@ def initialize_conditions(NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, SAVE_D
                 Omega0_hat_cpu = data_Poi["Omega0_hat"]
                 Omega1_hat_cpu = data_Poi["Omega1_hat"]
                 time = data_Poi["time"]
+
+                Omega_shape = Omega0_hat_cpu.shape
+                if Omega_shape[0] == Omega_shape[1]:
+                    # If initial condition is square (fft2 fromat), convert to rfft2 format
+                    from py2d.util import fft2_to_rfft2
+                    Omega0_hat_cpu = fft2_to_rfft2(Omega0_hat_cpu)
+                    Omega1_hat_cpu = fft2_to_rfft2(Omega1_hat_cpu)
+                else:
+                    pass
 
                 # Convert numpy initialization arrays to jax array
                 Omega0_hat = np.array(Omega0_hat_cpu)
