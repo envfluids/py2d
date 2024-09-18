@@ -450,6 +450,54 @@ def coarse_spectral_filter_square(a_hat, NCoarse):
     
 #     return a_hat_coarse_sym
 
+# @jit
+def filter2D_gaussian_spectral_jit(U_hat, Ksq, Delta):
+
+    Gk = jnp.exp(-Ksq * (Delta ** 2) / 24)
+    U_f_hat = Gk * U_hat
+
+    return U_f_hat
+
+@jit
+def filter2D_box_spectral_jit(U_hat, Kx, Ky, Delta):
+
+    Gkx = jnp.sinc(0.5 * Kx * Delta / jnp.pi)
+    Gky = jnp.sinc(0.5 * Ky * Delta / jnp.pi)
+
+    Gkx = Gkx.at[0, :].set(1.0)
+    Gky = Gky.at[:, 0].set(1.0)
+
+    Gk = Gkx * Gky
+
+    U_f_hat = Gk * U_hat
+
+    return U_f_hat
+
+# @jit
+def invertFilter2D_gaussian_spectral_jit(Uf_hat, Ksq, Delta):
+    Gk = jnp.exp(-Ksq * (Delta ** 2) / 24)
+    U_hat = Uf_hat/Gk
+
+    return U_hat
+
+@jit
+def invertFilter2D_box_spectral_jit(Uf_hat, Kx, Ky, Delta):
+    Gkx = jnp.sinc(0.5 * Kx * Delta / jnp.pi)  # jnp.sinc includes pi factor
+    Gky = jnp.sinc(0.5 * Ky * Delta / jnp.pi)
+    
+    Gkx = Gkx.at[0, :].set(1.0)
+    Gky = Gky.at[:, 0].set(1.0)
+    
+    Ngrid = Uf_hat.shape[0]
+    Gkx = Gkx.at[Ngrid//2, :].set(1.0)  # avoiding division by zero in next steps
+    Gky = Gky.at[:, Ngrid//2].set(1.0)
+    
+    Gk = Gkx * Gky
+
+    U_hat = Uf_hat / Gk
+
+    return U_hat
+
 @jit
 def spectral_filter_square_same_size_jit(q_hat, kc):
     '''
