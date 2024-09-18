@@ -6,6 +6,7 @@ from py2d.eddy_viscosity_models import eddy_viscosity_leith, characteristic_omeg
 from py2d.eddy_viscosity_models import characteristic_omega_leith, coefficient_dleithlocal_PsiOmega, coefficient_dsmaglocal_PsiOmega
 from py2d.gradient_model import PiOmegaGM2_gaussian, PiOmegaGM2_gaussian_dealias_spectral, PiOmegaGM4_gaussian, PiOmegaGM4_gaussian_dealias_spectral, PiOmegaGM6_gaussian, PiOmegaGM6_gaussian_dealias_spectral
 from py2d.gradient_model import PiOmegaGM4_box, PiOmegaGM4_box_dealias_spectral, PiOmegaGM6_box, PiOmegaGM6_box_dealias_spectral
+from py2d.gradient_model import PiOmega_gaussian_invert, PiOmega_gaussian_invert_dealias_spectral, PiOmega_box_invert, PiOmega_box_invert_dealias_spectral
 from py2d.eddy_viscosity_models import Tau_eddy_viscosity
 from py2d.convert import Tau2PiOmega
 
@@ -88,6 +89,12 @@ class SGSModel:
             self.calculate = self.PiOmegaGM6_method
         elif method == 'PiOmegaGM6_box':
             self.calculate = self.PiOmegaGM6_box_method
+        #----------------------------------------------------------------------
+        # Filter-inversion Closures
+        elif method == 'gaussian_invert':
+            self.calculate = self.gaussian_invert_method
+        elif method == 'box_invert':
+            self.calculate = self.box_invert_method
         #----------------------------------------------------------------------
         # NN models
         elif method == 'CNN':
@@ -416,6 +423,36 @@ class SGSModel:
             PiOmega_hat = PiOmegaGM6_box_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else:
             PiOmega = PiOmegaGM6_box(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
+            PiOmega_hat = np.fft.rfft2(PiOmega)
+
+        self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
+        return PiOmega_hat, eddy_viscosity
+    
+    def gaussian_invert_method(self):#, Omega_hat, U_hat, V_hat, Kx, Ky, Ksq, Delta):
+        Kx, Ky, Ksq, Delta, _, dealias = self.__expand_self__()
+        Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat
+        U_hat, V_hat = self.U_hat, self.V_hat
+
+        eddy_viscosity = 0
+        if dealias:
+            PiOmega_hat = PiOmega_gaussian_invert_dealias_spectral(Omegaf_hat=Omega_hat, Uf_hat=U_hat, Vf_hat=V_hat, Kx=Kx, Ky=Ky, Ksq=Ksq, Delta=Delta)
+        else:
+            PiOmega = PiOmega_gaussian_invert(Omegaf_hat=Omega_hat, Uf_hat=U_hat, Vf_hat=V_hat, Kx=Kx, Ky=Ky, Ksq=Ksq, Delta=Delta)
+            PiOmega_hat = np.fft.rfft2(PiOmega)
+
+        self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
+        return PiOmega_hat, eddy_viscosity
+    
+    def box_invert_method(self):#, Omega_hat, U_hat, V_hat, Kx, Ky, Delta):
+        Kx, Ky, Ksq, Delta, _, dealias = self.__expand_self__()
+        Psi_hat, Omega_hat = self.Psi_hat, self.Omega_hat
+        U_hat, V_hat = self.U_hat, self.V_hat
+
+        eddy_viscosity = 0
+        if dealias:
+            PiOmega_hat = PiOmega_box_invert_dealias_spectral(Omegaf_hat=Omega_hat, Uf_hat=U_hat, Vf_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
+        else:
+            PiOmega = PiOmega_box_invert(Omegaf_hat=Omega_hat, Uf_hat=U_hat, Vf_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
             PiOmega_hat = np.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
