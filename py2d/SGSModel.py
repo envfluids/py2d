@@ -361,7 +361,7 @@ class SGSModel:
             PiOmega_hat = PiOmegaGM2_gaussian_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else: 
             PiOmega = PiOmegaGM2_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-            PiOmega_hat = np.fft.rfft2(PiOmega)
+            PiOmega_hat = jnp.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
 
@@ -377,7 +377,7 @@ class SGSModel:
             PiOmega_hat = PiOmegaGM4_gaussian_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else:
             PiOmega = PiOmegaGM4_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-            PiOmega_hat = np.fft.rfft2(PiOmega)
+            PiOmega_hat = jnp.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
 
@@ -393,7 +393,7 @@ class SGSModel:
             PiOmega_hat = PiOmegaGM4_box_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else:
             PiOmega = PiOmegaGM4_box(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-            PiOmega_hat = np.fft.rfft2(PiOmega)
+            PiOmega_hat = jnp.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
         return PiOmega_hat, eddy_viscosity
@@ -408,7 +408,7 @@ class SGSModel:
             PiOmega_hat = PiOmegaGM6_gaussian_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else:
             PiOmega = PiOmegaGM6_gaussian(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-            PiOmega_hat = np.fft.rfft2(PiOmega)
+            PiOmega_hat = jnp.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
         return PiOmega_hat, eddy_viscosity
@@ -423,7 +423,7 @@ class SGSModel:
             PiOmega_hat = PiOmegaGM6_box_dealias_spectral(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else:
             PiOmega = PiOmegaGM6_box(Omega_hat=Omega_hat, U_hat=U_hat, V_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-            PiOmega_hat = np.fft.rfft2(PiOmega)
+            PiOmega_hat = jnp.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
         return PiOmega_hat, eddy_viscosity
@@ -438,7 +438,7 @@ class SGSModel:
             PiOmega_hat = PiOmega_gaussian_invert_dealias_spectral(Omegaf_hat=Omega_hat, Uf_hat=U_hat, Vf_hat=V_hat, Kx=Kx, Ky=Ky, Ksq=Ksq, Delta=Delta)
         else:
             PiOmega = PiOmega_gaussian_invert(Omegaf_hat=Omega_hat, Uf_hat=U_hat, Vf_hat=V_hat, Kx=Kx, Ky=Ky, Ksq=Ksq, Delta=Delta)
-            PiOmega_hat = np.fft.rfft2(PiOmega)
+            PiOmega_hat = jnp.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
         return PiOmega_hat, eddy_viscosity
@@ -453,7 +453,7 @@ class SGSModel:
             PiOmega_hat = PiOmega_box_invert_dealias_spectral(Omegaf_hat=Omega_hat, Uf_hat=U_hat, Vf_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
         else:
             PiOmega = PiOmega_box_invert(Omegaf_hat=Omega_hat, Uf_hat=U_hat, Vf_hat=V_hat, Kx=Kx, Ky=Ky, Delta=Delta)
-            PiOmega_hat = np.fft.rfft2(PiOmega)
+            PiOmega_hat = jnp.fft.rfft2(PiOmega)
 
         self.PiOmega_hat, self.eddy_viscosity = PiOmega_hat, eddy_viscosity
         return PiOmega_hat, eddy_viscosity
