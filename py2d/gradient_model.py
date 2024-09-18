@@ -4,7 +4,7 @@ from jax import jit
 
 from py2d.derivative import derivative_spectral
 from py2d.dealias import multiply_dealias_spectral, multiply_dealias_spectral_jit
-from py2d.filter import filter2D, filter2D_gaussian_spectral_jit, filter2D_box_spectral_jit, invertFilter2D, invertFilter2D_gaussian_spectral_jit
+from py2d.filter import filter2D, filter2D_gaussian_spectral_jit, filter2D_box_spectral_jit, invertFilter2D, invertFilter2D_gaussian_spectral_jit, invertFilter2D_box_spectral_jit
 
 @jit
 def real_irfft2_jit(val):
@@ -2552,6 +2552,13 @@ def PiOmega_invert(Omega, U, V, Kx, Ky, Ksq, Delta, filterType='gaussian', spect
         else:
             PiOmega = PiOmega_gaussian_invert(Omega_hat, U_hat, V_hat, Kx, Ky, Ksq, Delta)
 
+    elif filterType=='box':
+        if dealias:
+            PiOmega_hat = PiOmega_box_invert_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+            PiOmega = real_irfft2_jit(PiOmega_hat)
+        else:
+            PiOmega = PiOmega_box_invert(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+
     if spectral:
         PiOmega_hat = jnp.fft.rfft2(PiOmega)
         return PiOmega_hat
@@ -2626,10 +2633,66 @@ def PiOmega_gaussian_invert_dealias_spectral(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky,
     return PiOmega_gaussian_invert_hat
 
 def PiOmega_box_invert(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky, Delta):
-    pass
+
+    Omegaxf_hat = derivative_spectral_jit(Omegaf_hat, [1, 0], Kx, Ky)
+    Omegayf_hat = derivative_spectral_jit(Omegaf_hat, [0, 1], Kx, Ky)
+
+    Uf = real_irfft2_jit(Uf_hat)
+    Vf = real_irfft2_jit(Vf_hat)
+    Omegaxf = real_irfft2_jit(Omegaxf_hat)
+    Omegayf = real_irfft2_jit(Omegayf_hat)
+
+    U_hat = invertFilter2D_box_spectral_jit(Uf_hat, Kx, Ky, Delta)
+    V_hat = invertFilter2D_box_spectral_jit(Vf_hat, Kx, Ky, Delta)
+    # Omegax_hat = invertFilter2D_box_spectral_jit(Omegaxf_hat, Kx, Ky, Delta)
+    # Omegay_hat = invertFilter2D_box_spectral_jit(Omegayf_hat, Kx, Ky, Delta)
+
+    Omegax_hat = invertFilter2D(Omegaxf_hat, filterType='box', spectral=True)
+    Omegay_hat = invertFilter2D(Omegayf_hat, filterType='box', spectral=True)
+
+    U = real_irfft2_jit(U_hat)
+    V = real_irfft2_jit(V_hat)
+    Omegax = real_irfft2_jit(Omegax_hat)
+    Omegay = real_irfft2_jit(Omegay_hat)
+
+    # UOmegax_f_hat = filter2D_box_spectral_jit(jnp.fft.rfft2(U*Omegax), Ksq, Delta)
+    # VOmegay_f_hat = filter2D_box_spectral_jit(jnp.fft.rfft2(V*Omegay), Ksq, Delta)
+    UOmegax_f = filter2D(U*Omegax, filterType='box', coarseGrainType=None, Delta=Delta)
+    VOmegay_f = filter2D(V*Omegay, filterType='box', coarseGrainType=None, Delta=Delta)
+
+    # UOmegax_f = real_irfft2_jit(UOmegax_f_hat)
+    # VOmegay_f = real_irfft2_jit(VOmegay_f_hat)
+
+    PiOmega_box_invert = UOmegax_f + VOmegay_f - (Uf*Omegaxf + Vf*Omegayf)
+
+    return PiOmega_box_invert
 
 def PiOmega_box_invert_dealias_spectral(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky, Delta):
-    pass
+
+    Omegaxf_hat = derivative_spectral_jit(Omegaf_hat, [1, 0], Kx, Ky)
+    Omegayf_hat = derivative_spectral_jit(Omegaf_hat, [0, 1], Kx, Ky)
+
+    U_hat = invertFilter2D_box_spectral_jit(Uf_hat, Kx, Ky, Delta)
+    V_hat = invertFilter2D_box_spectral_jit(Vf_hat, Kx, Ky, Delta)
+    # Omegax_hat = invertFilter2D_box_spectral_jit(Omegaxf_hat, Kx, Ky, Delta)
+    # Omegay_hat = invertFilter2D_box_spectral_jit(Omegayf_hat, Kx, Ky, Delta)
+    Omegax_hat = invertFilter2D(Omegaxf_hat, filterType='box', spectral=True)
+    Omegay_hat = invertFilter2D(Omegayf_hat, filterType='box', spectral=True)
+
+    UOmegax_hat = multiply_dealias_spectral_jit(U_hat, Omegax_hat)
+    VOmegay_hat = multiply_dealias_spectral_jit(V_hat, Omegay_hat)
+
+    # UOmegax_f_hat = filter2D_box_spectral_jit(UOmegax_hat, Kx, Ky, Delta)
+    # VOmegay_f_hat = filter2D_box_spectral_jit(VOmegay_hat, Kx, Ky, Delta)
+    UOmegax_f_hat = filter2D(UOmegax_hat, filterType='box', coarseGrainType=None, Delta=Delta, spectral=True)
+    VOmegay_f_hat = filter2D(VOmegay_hat, filterType='box', coarseGrainType=None, Delta=Delta, spectral=True)
+
+    UfOmegaxf_hat = multiply_dealias_spectral_jit(Uf_hat, Omegaxf_hat)
+    VfOmegayf_hat = multiply_dealias_spectral_jit(Vf_hat, Omegayf_hat)
+
+    PiOmega_box_invert_hat = UOmegax_f_hat + VOmegay_f_hat - (UfOmegaxf_hat + VfOmegayf_hat)
+
+    return PiOmega_box_invert_hat
 
 # Tau
 def Tau_invert(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
@@ -2641,7 +2704,6 @@ def Tau_invert(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, deali
         V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
-    # GM2 for gaussian and box is same
         if dealias:
             Tau11_hat, Tau12_hat, Tau22_hat = Tau_gaussian_invert_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
             Tau11 = real_irfft2(Tau11_hat)
@@ -2649,6 +2711,15 @@ def Tau_invert(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, deali
             Tau22 = real_irfft2(Tau22_hat)
         else:
             Tau11, Tau12, Tau22 = Tau_gaussian_invert(U_hat, V_hat, Kx, Ky, Delta)
+
+    elif filterType=='box':
+        if dealias:
+            Tau11_hat, Tau12_hat, Tau22_hat = Tau_box_invert_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta)
+            Tau11 = real_irfft2(Tau11_hat)
+            Tau12 = real_irfft2(Tau12_hat)
+            Tau22 = real_irfft2(Tau22_hat)
+        else:
+            Tau11, Tau12, Tau22 = Tau_box_invert(U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
         Tau11_hat = np.fft.rfft2(Tau11)
@@ -2703,7 +2774,51 @@ def Tau_gaussian_invert_dealias_spectral(Uf_hat, Vf_hat, Kx, Ky, Delta):
     Tau12_gaussian_invert_hat = UV_f_hat - UfVf_hat
     Tau22_gaussian_invert_hat = VV_f_hat - VfVf_hat
 
-    return Tau11_gaussian_invert_hat, Tau12_gaussian_invert_hat, Tau22_gaussian_invert_hat    
+    return Tau11_gaussian_invert_hat, Tau12_gaussian_invert_hat, Tau22_gaussian_invert_hat   
+
+def Tau_box_invert(Uf_hat, Vf_hat, Kx, Ky, Delta):
+
+    Uf = np.fft.irfft2(Uf_hat)
+    Vf = np.fft.irfft2(Vf_hat)
+
+    U_hat = invertFilter2D(Uf_hat, filterType='box', spectral=True)
+    V_hat = invertFilter2D(Vf_hat, filterType='box', spectral=True)
+
+    U = np.fft.irfft2(U_hat)
+    V = np.fft.irfft2(V_hat)
+
+    UU_f = filter2D(U*U, filterType='box', coarseGrainType=None, Delta=Delta)
+    VV_f = filter2D(V*V, filterType='box', coarseGrainType=None, Delta=Delta)
+    UV_f = filter2D(U*V, filterType='box', coarseGrainType=None, Delta=Delta)
+
+    Tau11_box_invert = UU_f - Uf*Uf
+    Tau12_box_invert = UV_f - Uf*Vf
+    Tau22_box_invert = VV_f - Vf*Vf
+
+    return Tau11_box_invert, Tau12_box_invert, Tau22_box_invert
+
+def Tau_box_invert_dealias_spectral(Uf_hat, Vf_hat, Kx, Ky, Delta):
+
+    U_hat = invertFilter2D(Uf_hat, filterType='box', spectral=True)
+    V_hat = invertFilter2D(Vf_hat, filterType='box', spectral=True)
+
+    UU_hat = multiply_dealias_spectral(U_hat, U_hat)
+    VV_hat = multiply_dealias_spectral(V_hat, V_hat)
+    UV_hat = multiply_dealias_spectral(U_hat, V_hat)
+
+    UU_f_hat = filter2D(UU_hat, filterType='box', coarseGrainType=None, Delta=Delta, spectral=True)
+    VV_f_hat = filter2D(VV_hat, filterType='box', coarseGrainType=None, Delta=Delta, spectral=True)
+    UV_f_hat = filter2D(UV_hat, filterType='box', coarseGrainType=None, Delta=Delta, spectral=True)
+
+    UfUf_hat = multiply_dealias_spectral(Uf_hat, Uf_hat)
+    VfVf_hat = multiply_dealias_spectral(Vf_hat, Vf_hat)
+    UfVf_hat = multiply_dealias_spectral(Uf_hat, Vf_hat)
+
+    Tau11_box_invert_hat = UU_f_hat - UfUf_hat
+    Tau12_box_invert_hat = UV_f_hat - UfVf_hat
+    Tau22_box_invert_hat = VV_f_hat - VfVf_hat
+
+    return Tau11_box_invert_hat, Tau12_box_invert_hat, Tau22_box_invert_hat 
 
 # Sigma
 def Sigma_invert(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
@@ -2716,13 +2831,20 @@ def Sigma_invert(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=Fal
         V_hat = np.fft.rfft2(V)
 
     if filterType=='gaussian':
-        # GM2 for gaussian and box is same
         if dealias:
             Sigma1_hat, Sigma2_hat = Sigma_gaussian_invert_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
             Sigma1 = real_irfft2(Sigma1_hat)
             Sigma2 = real_irfft2(Sigma2_hat)
         else:
             Sigma1, Sigma2 = Sigma_gaussian_invert(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+
+    elif filterType=='box':
+        if dealias:
+            Sigma1_hat, Sigma2_hat = Sigma_box_invert_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+            Sigma1 = real_irfft2(Sigma1_hat)
+            Sigma2 = real_irfft2(Sigma2_hat)
+        else:
+            Sigma1, Sigma2 = Sigma_box_invert(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
 
     if spectral:
         Sigma1_hat = np.fft.rfft2(Sigma1)
@@ -2776,3 +2898,45 @@ def Sigma_gaussian_invert_dealias_spectral(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky, D
     Sigma2_gaussian_invert_hat = VOmega_f_hat - VfOmegaf_hat
 
     return Sigma1_gaussian_invert_hat, Sigma2_gaussian_invert_hat
+
+def Sigma_box_invert(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky, Delta):
+
+    Uf = np.fft.irfft2(Uf_hat)
+    Vf = np.fft.irfft2(Vf_hat)
+    Omegaf = np.fft.irfft2(Omegaf_hat)
+
+    U_hat = invertFilter2D(Uf_hat, filterType='box', spectral=True)
+    V_hat = invertFilter2D(Vf_hat, filterType='box', spectral=True)
+    Omega_hat = invertFilter2D(Omegaf_hat, filterType='box', spectral=True)
+
+    U = np.fft.irfft2(U_hat)
+    V = np.fft.irfft2(V_hat)
+    Omega = np.fft.irfft2(Omega_hat)
+
+    UOmega_f = filter2D(U*Omega, filterType='box', coarseGrainType=None, Delta=Delta)
+    VOmega_f = filter2D(V*Omega, filterType='box', coarseGrainType=None, Delta=Delta)
+
+    Sigma1_box_invert = UOmega_f - Uf*Omegaf
+    Sigma2_box_invert = VOmega_f - Vf*Omegaf
+
+    return Sigma1_box_invert, Sigma2_box_invert
+
+def Sigma_box_invert_dealias_spectral(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky, Delta):
+
+    U_hat = invertFilter2D(Uf_hat, filterType='box', spectral=True)
+    V_hat = invertFilter2D(Vf_hat, filterType='box', spectral=True)
+    Omega_hat = invertFilter2D(Omegaf_hat, filterType='box', spectral=True)
+
+    UOmega_hat = multiply_dealias_spectral(U_hat, Omega_hat)
+    VOmega_hat = multiply_dealias_spectral(V_hat, Omega_hat)
+
+    UOmega_f_hat = filter2D(UOmega_hat, filterType='box', coarseGrainType=None, Delta=Delta, spectral=True)
+    VOmega_f_hat = filter2D(VOmega_hat, filterType='box', coarseGrainType=None, Delta=Delta, spectral=True)
+
+    UfOmegaf_hat = multiply_dealias_spectral(Uf_hat, Omegaf_hat)
+    VfOmegaf_hat = multiply_dealias_spectral(Vf_hat, Omegaf_hat)
+
+    Sigma1_box_invert_hat = UOmega_f_hat - UfOmegaf_hat
+    Sigma2_box_invert_hat = VOmega_f_hat - VfOmegaf_hat
+
+    return Sigma1_box_invert_hat, Sigma2_box_invert_hat
