@@ -4,7 +4,7 @@ from jax import jit
 
 from py2d.derivative import derivative_spectral
 from py2d.dealias import multiply_dealias_spectral, multiply_dealias_spectral_jit
-from py2d.filter import filter2D, invertFilter2D
+from py2d.filter import filter2D, filter2D_gaussian_spectral_jit, filter2D_box_spectral_jit, invertFilter2D, invertFilter2D_gaussian_spectral_jit
 
 @jit
 def real_irfft2_jit(val):
@@ -2535,7 +2535,7 @@ def TauReynoldsGM6_gaussian_dealias_spectral(U_hat, V_hat, Kx, Ky, Delta):
 # SGS Models created by inverting the filters
 
 # PiOmegaGM2
-def PiOmega_invert(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
+def PiOmega_invert(Omega, U, V, Kx, Ky, Ksq, Delta, filterType='gaussian', spectral=False, dealias=True):
 
     if spectral:
         Omega_hat, U_hat, V_hat = Omega, U, V
@@ -2547,10 +2547,10 @@ def PiOmega_invert(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=F
     if filterType=='gaussian':
         # Two function for dealias and alias are made to avoid if else in the main function and make it jax/jit compatible
         if dealias:
-            PiOmega_hat = PiOmega_gaussian_invert_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+            PiOmega_hat = PiOmega_gaussian_invert_dealias_spectral(Omega_hat, U_hat, V_hat, Kx, Ky, Ksq, Delta)
             PiOmega = real_irfft2_jit(PiOmega_hat)
         else:
-            PiOmega = PiOmega_gaussian_invert(Omega_hat, U_hat, V_hat, Kx, Ky, Delta)
+            PiOmega = PiOmega_gaussian_invert(Omega_hat, U_hat, V_hat, Kx, Ky, Ksq, Delta)
 
     if spectral:
         PiOmega_hat = jnp.fft.rfft2(PiOmega)
@@ -2558,51 +2558,63 @@ def PiOmega_invert(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=F
     else:
         return PiOmega
 
-@jit
+# @jit
 # Two function for dealias and alias are made to avoid if else in the main function and make it jax/jit compatible
-def PiOmega_gaussian_invert(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky, Delta):
+def PiOmega_gaussian_invert(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky, Ksq, Delta):
     # Not dealiased
     
     Omegaxf_hat = derivative_spectral_jit(Omegaf_hat, [1, 0], Kx, Ky)
     Omegayf_hat = derivative_spectral_jit(Omegaf_hat, [0, 1], Kx, Ky)
 
-    Uf = np.fft.irfft2(Uf_hat)
-    Vf = np.fft.irfft2(Vf_hat)
-    Omegaxf = np.fft.irfft2(Omegaxf_hat)
-    Omegayf = np.fft.irfft2(Omegayf_hat)
+    Uf = real_irfft2_jit(Uf_hat)
+    Vf = real_irfft2_jit(Vf_hat)
+    Omegaxf = real_irfft2_jit(Omegaxf_hat)
+    Omegayf = real_irfft2_jit(Omegayf_hat)
 
-    U_hat = invertFilter2D(Uf_hat, filterType='gaussian', spectral=True)
-    V_hat = invertFilter2D(Vf_hat, filterType='gaussian', spectral=True)
+    U_hat = invertFilter2D_gaussian_spectral_jit(Uf_hat, Ksq, Delta)
+    V_hat = invertFilter2D_gaussian_spectral_jit(Vf_hat, Ksq, Delta)
+    # Omegax_hat = invertFilter2D_gaussian_spectral_jit(Omegaxf_hat, Ksq, Delta)
+    # Omegay_hat = invertFilter2D_gaussian_spectral_jit(Omegayf_hat, Ksq, Delta)
+
     Omegax_hat = invertFilter2D(Omegaxf_hat, filterType='gaussian', spectral=True)
     Omegay_hat = invertFilter2D(Omegayf_hat, filterType='gaussian', spectral=True)
 
-    U = np.fft.irfft2(U_hat)
-    V = np.fft.irfft2(V_hat)
-    Omegax = np.fft.irfft2(Omegax_hat)
-    Omegay = np.fft.irfft2(Omegay_hat)
+    U = real_irfft2_jit(U_hat)
+    V = real_irfft2_jit(V_hat)
+    Omegax = real_irfft2_jit(Omegax_hat)
+    Omegay = real_irfft2_jit(Omegay_hat)
 
+    # UOmegax_f_hat = filter2D_gaussian_spectral_jit(jnp.fft.rfft2(U*Omegax), Ksq, Delta)
+    # VOmegay_f_hat = filter2D_gaussian_spectral_jit(jnp.fft.rfft2(V*Omegay), Ksq, Delta)
     UOmegax_f = filter2D(U*Omegax, filterType='gaussian', coarseGrainType=None, Delta=Delta)
     VOmegay_f = filter2D(V*Omegay, filterType='gaussian', coarseGrainType=None, Delta=Delta)
+
+    # UOmegax_f = real_irfft2_jit(UOmegax_f_hat)
+    # VOmegay_f = real_irfft2_jit(VOmegay_f_hat)
 
     PiOmega_gaussian_invert = UOmegax_f + VOmegay_f - (Uf*Omegaxf + Vf*Omegayf)
 
     return PiOmega_gaussian_invert
 
-@jit
-def PiOmega_gaussian_invert_dealias_spectral(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky, Delta):
+# @jit
+def PiOmega_gaussian_invert_dealias_spectral(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky, Ksq, Delta):
     # dealiased
 
     Omegaxf_hat = derivative_spectral_jit(Omegaf_hat, [1, 0], Kx, Ky)
     Omegayf_hat = derivative_spectral_jit(Omegaf_hat, [0, 1], Kx, Ky)
 
-    U_hat = invertFilter2D(Uf_hat, filterType='gaussian', spectral=True)
-    V_hat = invertFilter2D(Vf_hat, filterType='gaussian', spectral=True)
-    Omegax_hat = invertFilter2D(Omegax_hat, filterType='gaussian', spectral=True)
-    Omegay_hat = invertFilter2D(Omegay_hat, filterType='gaussian', spectral=True)
+    U_hat = invertFilter2D_gaussian_spectral_jit(Uf_hat, Ksq, Delta)
+    V_hat = invertFilter2D_gaussian_spectral_jit(Vf_hat, Ksq, Delta)
+    # Omegax_hat = invertFilter2D_gaussian_spectral_jit(Omegaxf_hat, Ksq, Delta)
+    # Omegay_hat = invertFilter2D_gaussian_spectral_jit(Omegayf_hat, Ksq, Delta)
+    Omegax_hat = invertFilter2D(Omegaxf_hat, filterType='gaussian', spectral=True)
+    Omegay_hat = invertFilter2D(Omegayf_hat, filterType='gaussian', spectral=True)
 
     UOmegax_hat = multiply_dealias_spectral_jit(U_hat, Omegax_hat)
     VOmegay_hat = multiply_dealias_spectral_jit(V_hat, Omegay_hat)
 
+    # UOmegax_f_hat = filter2D_gaussian_spectral_jit(UOmegax_hat, Ksq, Delta)
+    # VOmegay_f_hat = filter2D_gaussian_spectral_jit(VOmegay_hat, Ksq, Delta)
     UOmegax_f_hat = filter2D(UOmegax_hat, filterType='gaussian', coarseGrainType=None, Delta=Delta, spectral=True)
     VOmegay_f_hat = filter2D(VOmegay_hat, filterType='gaussian', coarseGrainType=None, Delta=Delta, spectral=True)
 
@@ -2610,8 +2622,14 @@ def PiOmega_gaussian_invert_dealias_spectral(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky,
     VfOmegayf_hat = multiply_dealias_spectral_jit(Vf_hat, Omegayf_hat)
 
     PiOmega_gaussian_invert_hat = UOmegax_f_hat + VOmegay_f_hat - (UfOmegaxf_hat + VfOmegayf_hat)
-    
+
     return PiOmega_gaussian_invert_hat
+
+def PiOmega_box_invert(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky, Delta):
+    pass
+
+def PiOmega_box_invert_dealias_spectral(Omegaf_hat, Uf_hat, Vf_hat, Kx, Ky, Delta):
+    pass
 
 # Tau
 def Tau_invert(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
