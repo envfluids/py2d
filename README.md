@@ -102,10 +102,14 @@ module load cuda
 ](https://scholar.google.com/citations?user=o3_eO6EAAAAJ&hl=en), 
 [**Learning Closed-form Equations for Subgrid-scale Closures from High-fidelity Data: Promises and Challenges**](https://arxiv.org/abs/2306.05014)
 ```bibtex
-@article{jakhar2023learning,
+@article{jakhar2024learning,
   title={Learning closed-form equations for subgrid-scale closures from high-fidelity data: Promises and challenges},
   author={Jakhar, Karan and Guan, Yifei and Mojgani, Rambod and Chattopadhyay, Ashesh and Hassanzadeh, Pedram},
-  journal={arXiv preprint arXiv:2306.05014},
-  year={2023}
+  journal={Journal of Advances in Modeling Earth Systems},
+  volume={16},
+  number={7},
+  pages={e2023MS003874},
+  year={2024},
+  publisher={Wiley Online Library}
 }
 ```
