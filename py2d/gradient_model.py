@@ -593,6 +593,35 @@ def PiOmegaGM10(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=Fals
 
 ##############################################################################################################
 
+def TauGM(U, V, Kx, Ky, Delta, TauType='GM2', filterType='gaussian', spectral=False, dealias=True):
+
+    if TauType == 'GM2':
+        Tau11GM, Tau12GM, Tau22GM = TauGM2(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif TauType == 'GM4':
+        Tau11GM, Tau12GM, Tau22GM = TauGM4(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif TauType == 'GM6':
+        Tau11GM, Tau12GM, Tau22GM = TauGM6(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif TauType == 'LeonardGM2':
+        Tau11GM, Tau12GM, Tau22GM = TauLeonardGM2(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif TauType == 'LeonardGM4':
+        Tau11GM, Tau12GM, Tau22GM = TauLeonardGM4(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif TauType == 'LeonardGM6':
+        Tau11GM, Tau12GM, Tau22GM = TauLeonardGM6(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif TauType == 'CrossGM2':
+        Tau11GM, Tau12GM, Tau22GM = TauCrossGM2(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif TauType == 'CrossGM4':
+        Tau11GM, Tau12GM, Tau22GM = TauCrossGM4(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif TauType == 'CrossGM6':
+        Tau11GM, Tau12GM, Tau22GM = TauCrossGM6(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif TauType == 'ReynoldsGM2':
+        Tau11GM, Tau12GM, Tau22GM = TauReynoldsGM2(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif TauType == 'ReynoldsGM4':
+        Tau11GM, Tau12GM, Tau22GM = TauReynoldsGM4(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif TauType == 'ReynoldsGM6':
+        Tau11GM, Tau12GM, Tau22GM = TauReynoldsGM6(U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+
+    return Tau11GM, Tau12GM, Tau22GM
+
 # TauGM2
 def TauGM2(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
 
@@ -1124,6 +1153,17 @@ def TauGM10(U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False):
 
 
 ##############################################################################################################
+
+def SigmaGM(Omega, U, V,  Kx, Ky, Delta, SigmaType='GM2', filterType='gaussian', spectral=False, dealias=True):
+
+    if SigmaType=='GM2':
+        Sigma1GM, Sigma2GM = SigmaGM2(Omega, U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif SigmaType=='GM4':
+        Sigma1GM, Sigma2GM = SigmaGM4(Omega, U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    elif SigmaType=='GM6':
+        Sigma1GM, Sigma2GM = SigmaGM6(Omega, U, V, Kx, Ky, Delta, filterType=filterType, spectral=spectral, dealias=dealias)
+    
+    return Sigma1GM, Sigma2GM
 
 # SigmaGM2
 def SigmaGM2(Omega, U, V, Kx, Ky, Delta, filterType='gaussian', spectral=False, dealias=True):
