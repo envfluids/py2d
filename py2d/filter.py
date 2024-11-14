@@ -67,8 +67,6 @@ def filter2D(U, filterType='gaussian', coarseGrainType='spectral', Delta=None, N
     elif filterType in ['box', 'boxSpectral']:
         Gkx = np.sinc(0.5 * Kx_DNS * Delta / np.pi)  # numpy's sinc includes pi factor
         Gky = np.sinc(0.5 * Ky_DNS * Delta / np.pi)
-        Gkx[0, :] = 1.0
-        Gky[:, 0] = 1.0
         Gk = Gkx * Gky
         U_f_hat = Gk * U_hat
 
@@ -154,15 +152,13 @@ def invertFilter2D(Uf, filterType='gaussian', Delta=None, spectral=False):
     elif filterType in ['box', 'boxSpectral']:
         Gkx = np.sinc(0.5 * Kx * Delta / np.pi)  # numpy's sinc includes pi factor
         Gky = np.sinc(0.5 * Ky * Delta / np.pi)
-        Gkx[0, :] = 1.0
-        Gky[:, 0] = 1.0
         Gkx[Ngrid//2, :] = 1.0 # these values are zero; avoiding division by zero in next steps
         Gky[:,Ngrid//2] = 1.0
         Gk = Gkx * Gky
 
     else:
         raise ValueError("Invalid filter type : " + filterType)
-    
+
     U_hat = Uf_hat/Gk
 
     # Inverse Fourier transform the result and return the real part

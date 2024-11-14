@@ -26,6 +26,7 @@ from py2d.convection_conserved import convection_conserved, convection_conserved
 from py2d.convert import Omega2Psi_spectral, Psi2UV_spectral
 from py2d.SGSModel import *
 from py2d.util import regrid
+from py2d.filter import filter2D
 
 # from py2d.uv2tau_CNN import *
 
@@ -44,7 +45,7 @@ Psi2UV_spectral = jit(Psi2UV_spectral)
 # Start timer
 startTime = timer()
 
-def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoeff, dt, dealias, saveData, tSAVE, tTotal, readTrue, ICnum, resumeSim):
+def Py2D_solver(Re, fkx, fky, alpha, beta, NX, forcing_filter, SGSModel_string, eddyViscosityCoeff, dt, dealias, saveData, tSAVE, tTotal, readTrue, ICnum, resumeSim):
 
     # -------------- RUN Configuration --------------
     # Use random initial condition or read initialization from a file or use
@@ -105,6 +106,9 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # Wavenumber in y direction
     #     fky = 0
 
+    # Forcing filter
+    # forcing_filter = None # None gaussian box
+
     # -------------- Geometry and mesh Calculation --------------
 
     # Domain length
@@ -133,6 +137,9 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # Deterministic forcing in Fourier space
     Fk_hat = np.fft.rfft2(Fk)
 
+    # Filtering the forcing
+    Fk_hat = filter2D(Fk_hat, filterType=forcing_filter, coarseGrainType=None, Delta=Delta, spectral=True)
+
     # -------------- RUN Configuration --------------
 
     # Save data at every Nth iteration
@@ -157,6 +164,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     table_flow_spec2 = [["Reynolds Number (Re)", Re],
                        ["Deterministic Forcing Wavenumber (fkx)", fkx],
                        ["Deterministic Forcing Wavenumber (fky)", fky],
+                       ["Forcing Filter", forcing_filter],
                        ["Linear Drag Coefficient (alpha)", alpha],
                        ["Beta plan coefficient (beta)", beta],
                        ["SGS Model ", SGSModel_string],

@@ -83,6 +83,84 @@ def Psi2Omega(Psi, Ksq, spectral=False):
         Psi_hat = Psi
         Omega_hat = Psi2Omega_spectral(Psi_hat, Ksq)
         return Omega_hat
+    
+
+def Omega2UV(Omega, Kx, Ky, invKsq, spectral = False):
+    """
+    Calculate the velocity components U and V from the vorticity.
+    
+    This function calculates the velocity components U and V from the vorticity (Omega) using the relationships
+    that vorticity is the negative Laplacian of the stream function. 
+    Further the velocity components U and V from the stream function (Psi) using the relationships
+        U = d(Psi)/dy
+        V = -d(Psi)/dx
+    The function can handle both physical and spectral space calculations.
+    
+    Parameters:
+    -----------
+    Omega : numpy.ndarray
+        Vorticity (2D array) in physical or spectral space, depending on the 'spectral' flag.
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+    invKsq : numpy.ndarray
+        2D array of the inverse of square of the wavenumber magnitudes.
+    spectral : bool, optional
+        If True, assumes input vorticity is in spectral space and returns velocity components
+        in spectral space. If False (default), assumes input vorticity is in physical space and
+        returns velocity components in physical space.
+
+    Returns:
+    --------
+    U, V : tuple of numpy.ndarray
+        Velocity components U and V (2D arrays) in physical or spectral space, depending on the 'spectral' flag.
+    """
+
+    if not spectral:
+        U, V = Omega2UV_physical(Omega, Kx, Ky, invKsq)
+        return U, V
+    else:
+        Omega_hat = Omega
+        U_hat, V_hat = Omega2UV_spectral(Omega_hat, Kx, Ky, invKsq)
+        return U_hat, V_hat
+
+def UV2Omega(U, V, Kx, Ky, spectral = False):
+    """
+    Calculate the vorticity from the velocity components.
+    
+    This function calculates the vorticity (Omega) from the velocity components U and V using the relationships
+        Omega = (1j*Kx)*V - (1j*Ky)*U
+    The function can handle both physical and spectral space calculations.
+    
+    Parameters:
+    -----------
+    U : numpy.ndarray
+        Velocity component U (2D array) in physical or spectral space, depending on the 'spectral' flag.
+    V : numpy.ndarray
+        Velocity component V (2D array) in physical or spectral space, depending on the 'spectral' flag.
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+    spectral : bool, optional
+        If True, assumes input velocity components are in spectral space and returns vorticity
+        in spectral space. If False (default), assumes input velocity components are in physical space
+        and returns vorticity in physical space.
+
+    Returns:
+    --------
+    Omega : numpy.ndarray
+        Vorticity (2D array) in physical or spectral space, depending on the 'spectral' flag.
+    """
+    if not spectral:
+        Omega = UV2Omega_physical(U, V, Kx, Ky)
+        return Omega
+    else:
+        U_hat = U
+        V_hat = V
+        Omega_hat = UV2Omega_spectral(U_hat, V_hat, Kx, Ky)
+        return Omega_hat
 
 def Psi2UV(Psi, Kx, Ky, spectral = False):
     """
@@ -608,6 +686,135 @@ def Tau2PiOmega_physical(Tau11, Tau12, Tau22, Kx, Ky):
     
     # Transform PiOmega back to physical space using inverse 2D Fast Fourier Transform
     return np.fft.irfft2(PiOmega_hat, s=[Nx,Ny])
+
+############################################################################################################
+
+def Omega2UV_spectral(Omega_hat, Kx, Ky, invKsq):
+    """
+    Calculate the velocity components U and V from the vorticity in spectral space.
+    
+    Parameters:
+    -----------
+    Omega_hat : numpy.ndarray
+        Vorticity (2D array) in spectral space.
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+    invKsq : numpy.ndarray
+        2D array of the inverse of square of the wavenumber magnitudes.
+        
+    Returns:
+    --------
+    U_hat, V_hat : tuple of numpy.ndarray
+        Velocity components U and V (2D arrays) in spectral space.
+        
+    """
+
+    Psi_hat = Omega2Psi_spectral(Omega_hat, invKsq)
+    U_hat, V_hat = Psi2UV_spectral(Psi_hat, Kx, Ky)
+
+    return U_hat, V_hat
+
+def Omega2UV_physical(Omega, Kx, Ky, invKsq):
+    """
+    Calculate the velocity components U and V from the vorticity in physical space.
+    
+    Parameters:
+    -----------
+    Omega : numpy.ndarray
+        Vorticity (2D array) in physical space.
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+    invKsq : numpy.ndarray
+        2D array of the inverse of square of the wavenumber magnitudes.
+        
+    Returns:
+    --------
+    U, V : tuple of numpy.ndarray
+        Velocity components U and V (2D arrays) in physical space.
+        
+    """
+    Nx, Ny = Omega.shape
+
+    Omega_hat = np.fft.rfft2(Omega)
+    U_hat, V_hat = Omega2UV_spectral(Omega_hat, Kx, Ky, invKsq)
+
+    return np.fft.irfft2(U_hat, s=[Nx,Ny]), np.fft.irfft2(V_hat, s=[Nx,Ny])
+
+############################################################################################################
+
+def UV2Omega_spectral(U_hat, V_hat, Kx, Ky):
+    """
+    Calculate the vorticity from the velocity components in spectral space.
+    
+    Parameters:
+    -----------
+    U_hat : numpy.ndarray
+        Velocity component U (2D array) in spectral space.
+    V_hat : numpy.ndarray
+        Velocity component V (2D array) in spectral space.
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+        
+    Returns:
+    --------
+    Omega_hat : numpy.ndarray
+        Vorticity (2D array) in spectral space.
+
+    Notes:
+    ------
+    The function computes the vorticity in spectral space using the relationships:
+    Omega_hat = (1j*Kx)*V_hat - (1j*Ky)*U_hat
+        
+    """
+
+    # Calculate the Fourier coefficient of the vorticity in spectral space using the given mathematical relationships
+    Omega_hat = (1j*Kx)*V_hat - (1j*Ky)*U_hat
+
+    return Omega_hat
+
+def UV2Omega_physical(U, V, Kx, Ky):
+    """
+    Calculate the vorticity from the velocity components in physical space.
+    
+    Parameters:
+    -----------
+    U : numpy.ndarray
+        Velocity component U (2D array) in physical space.
+    V : numpy.ndarray
+        Velocity component V (2D array) in physical space.
+    Kx : numpy.ndarray
+        2D array of wavenumbers in the x-direction.
+    Ky : numpy.ndarray
+        2D array of wavenumbers in the y-direction.
+        
+    Returns:
+    --------
+    Omega : numpy.ndarray
+        Vorticity (2D array) in physical space.
+
+    Notes:
+    ------
+    The function first transforms the physical velocity components U and V to spectral space, 
+    then calculates the spectral vorticity components using UV2Omega_spectral() function,
+    and finally transforms the spectral vorticity components back to physical space.
+    """
+    Nx, Ny = U.shape
+
+    # Transform the physical velocity components U and V to spectral space via 2D Fast Fourier Transform
+    U_hat = np.fft.rfft2(U)
+    V_hat = np.fft.rfft2(V)
+
+    # Compute the vorticity in spectral space using the UV2Omega_spectral function
+    Omega_hat = UV2Omega_spectral(U_hat, V_hat, Kx, Ky)
+
+    # Transform the spectral vorticity back to physical space using inverse 2D Fast Fourier Transform
+    return np.fft.irfft2(Omega_hat, s=[Nx,Ny])
 
 ############################################################################################################
 
