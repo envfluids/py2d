@@ -51,6 +51,7 @@ Py2D_solver(Re=20e3, # Reynolds number
                alpha=0.1, # Rayleigh drag coefficient
                beta=0, # Coriolis parameter (Beta-plane turbulence)
                NX=32, # Number of grid points in x and y (Presuming a square domain) '32', '64', '128', '256', '512'
+               forcing_filter = None, # None, "gaussian", "box"
                SGSModel_string='NoSGS', # SGS closure model/parametrization to use. 'NoSGS' (no closure) for DNS simulations. Available SGS models: 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6'
                eddyViscosityCoeff=0, # Coefficient for eddy viscosity models: Only used for SMAG and LEITH SGS Models
                dt=5e-3, # Time step
