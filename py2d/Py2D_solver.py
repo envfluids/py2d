@@ -360,7 +360,6 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # print('Total Time Taken: ', endTime-startTime)
 
     Omega = np.real(np.fft.ifft2(Omega1_hat))
-    print('tata')
     # Omega_cpu = nnp.array(Omega)
     return Omega
 
