@@ -241,7 +241,6 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # print("-------------- Main iteration loop --------------")
     ## 0 meanns previous time step, 1 means current time step
     start_time = runtime.time()
-
     for it in range(maxit):
 
         if it == 0:
@@ -361,8 +360,9 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     # print('Total Time Taken: ', endTime-startTime)
 
     Omega = np.real(np.fft.ifft2(Omega1_hat))
-    Omega_cpu = nnp.array(Omega)
-    return Omega_cpu
+    print('tata')
+    # Omega_cpu = nnp.array(Omega)
+    return Omega
 
 def initialize_conditions(NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, direct_IC, SAVE_DIR_IC, SAVE_DIR_DATA ):
     
