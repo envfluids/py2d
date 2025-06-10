@@ -96,6 +96,17 @@ def characteristic_omega_leith(Omega_hat, Kx, Ky):
     characteristic_Omega = np.sqrt(Omegax ** 2 + Omegay ** 2)
     return characteristic_Omega
 
+
+@jit
+def nabla_squared_omega(Omega_hat, Kx, Ky):
+    Omegax_hat = ((1.0j) * Kx) ** 2 * Omega_hat
+    Omegay_hat = ((1.0j) * Ky) ** 2 * Omega_hat
+    Omegax = np.real(np.fft.ifft2(Omegax_hat))
+    Omegay = np.real(np.fft.ifft2(Omegay_hat))
+    laplacian = Omegax + Omegay
+    return laplacian
+
+
 @jit
 def coefficient_dsmag_PsiOmega(Psi_hat, Omega_hat, characteristic_S, Kx, Ky, Ksq, Delta):
     '''
