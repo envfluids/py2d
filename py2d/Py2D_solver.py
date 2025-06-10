@@ -45,16 +45,14 @@ Psi2UV_spectral = jit(Psi2UV_spectral)
 # Start timer
 startTime = timer()
 
-def Py2D_solver(Re, fkx, fky, alpha, beta, NX, forcing_filter, SGSModel_string, eddyViscosityCoeff, dt, dealias, saveData, tSAVE, tTotal, readTrue, ICnum, resumeSim):
+def Py2D_solver(Re=500, fkx=4, fky=4, alpha=0.1, beta=20, NX=64, forcing_filter=None, SGSModel_string='NoSGS', eddyViscosityCoeff=0, dt=0.0005, dealias=True, saveData=True, tSAVE=0.1, tTotal=1, IC=1, ICname=None, resumeSim=False):
 
     # -------------- RUN Configuration --------------
-    # Use random initial condition or read initialization from a file or use
-    #     readTrue = False
-    # False: IC from file
-    # True: Random IC (not validated)
 
-    # Read the following initial condition from a file. ICnum can be from 1 to 20.
-    #     ICnumx = 5 # 1 to 20
+    # Read the following initial condition from a file. IC can be from 1 to 20.
+    #     IC = (int) 5 # 1 to 20 - Reads the initial condition from a file. IC can be an integer from 1 to 20.
+    #        = NX x NX grid points - Uses the provided initial condition
+    #        = 'random' - Uses a random initial condition -> Not validated yet
 
     # Resume simulation from last run
     #     resumeSim = False
@@ -150,7 +148,11 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, forcing_filter, SGSModel_string, 
 
     # -------------- Directory to store data ------------------
     # Snapshots of data save at the following directory
-    SAVE_DIR, SAVE_DIR_DATA, SAVE_DIR_IC = gen_path(NX, dt, ICnum, Re, fkx, fky, alpha, beta, SGSModel_string, dealias)
+    if isinstance(IC, int):
+        if ICname is None:
+            ICname = str(IC)
+
+    SAVE_DIR, SAVE_DIR_DATA, SAVE_DIR_IC = gen_path(NX, dt, ICname, Re, fkx, fky, alpha, beta, SGSModel_string, dealias)
 
     # Create directories if they aren't present
     try:
@@ -178,8 +180,8 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, forcing_filter, SGSModel_string, 
     run_config2 = [["Time Step (dt)", dt],
                   ["De-aliasing", dealias],
                   ["Resume Simulation", resumeSim],
-                  ["Read Initialization (readTrue), If False: Will read IC from a file", readTrue],
-                  ["Initial Condition Number (ICnum)", ICnum],
+                  ["Initial Condition Type (IC)", type(IC)],
+                  ["Initial Condition Name (ICname)", ICname],
                   ["Saving Data  (saveData)", saveData],
                   ["Save data every t th timestep (tSAVE)", tSAVE],
                   ["Save data every Nth iteration (NSAVE)", NSAVE],
@@ -222,7 +224,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, forcing_filter, SGSModel_string, 
         cnn_model = init_model(model_type='mcwiliams', model_path=model_path)
 
     Omega0_hat, Omega1_hat, Psi0_hat, Psi1_hat, time,last_file_number_IC, last_file_number_data = initialize_conditions(
-        NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, SAVE_DIR_IC, SAVE_DIR_DATA )
+        NX, Kx, Ky, invKsq, resumeSim, IC, SAVE_DIR_IC, SAVE_DIR_DATA )
 
     # -------------- Main iteration loop --------------
     print("-------------- Main iteration loop --------------")
@@ -365,13 +367,14 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, forcing_filter, SGSModel_string, 
     endTime = timer()
     print('Total Time Taken: ', endTime-startTime)
 
-    Omega = np.real(np.fft.irfft2(Omega1_hat, s=[NX,NX]))
-    Omega_cpu = nnp.array(Omega)
-    return Omega_cpu
+    # Omega = np.real(np.fft.irfft2(Omega1_hat, s=[NX,NX]))
+    # Omega_cpu = nnp.array(Omega)
+    Omega_jnp = jnp.real(jnp.fft.irfft2(Omega1_hat, s=[NX,NX]))
+    return Omega_jnp
 
-def initialize_conditions(NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, SAVE_DIR_IC, SAVE_DIR_DATA ):
+def initialize_conditions(NX, Kx, Ky, invKsq, resumeSim, IC, SAVE_DIR_IC, SAVE_DIR_DATA ):
 
-        if readTrue:
+        if IC == 'random':
 
             # -------------- Initialization using pertubration --------------
             w1_hat, psi_hat, psiPrevious_hat, psiCurrent_hat = initialize_perturbation(NX, Kx, Ky)
@@ -426,26 +429,44 @@ def initialize_conditions(NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, SAVE_D
             else:
                 # Path of Initial Conditions
 
-                # Get the absolute path to the directory
-                base_path = Path(__file__).parent.absolute()
+                # Check if IC is an integer (initial condition number)
+                if isinstance(IC, int):
+                    ICnum = IC
 
-                # Construct the full path to the .mat file
-                # Go up one directory before going into ICs
-                if NX % 2  != 0:
-                    IC_DIR = 'data/ICs/NX' + str(NX-1) + '/'
-                else:
-                    IC_DIR = 'data/ICs/NX' + str(NX) + '/'
+                    # Get the absolute path to the directory
+                    base_path = Path(__file__).parent.absolute()
 
-                IC_filename = str(ICnum) + '.mat'
-                file_path = os.path.join(base_path, "..", IC_DIR, IC_filename)
+                    # Construct the full path to the .mat file
+                    # Go up one directory before going into ICs
+                    if NX % 2  != 0:
+                        IC_DIR = 'data/ICs/NX' + str(NX-1) + '/'
+                    else:
+                        IC_DIR = 'data/ICs/NX' + str(NX) + '/'
 
-                # Resolve the '..' to compute the actual directory
-                file_path = Path(file_path).resolve()
+                    IC_filename = str(ICnum) + '.mat'
+                    file_path = os.path.join(base_path, "..", IC_DIR, IC_filename)
 
-                # -------------- Loading Initial condition (***) --------------
+                    # Resolve the '..' to compute the actual directory
+                    file_path = Path(file_path).resolve()
 
-                data_Poi = loadmat(file_path)
-                Omega1 = data_Poi["Omega"]
+                    # -------------- Loading Initial condition (***) --------------
+
+                    data_Poi = loadmat(file_path)
+                    Omega1 = data_Poi["Omega"]
+
+                else:     
+                    # Initialize wth Omega provided by the user as IC               
+                    Omega1 = IC
+                    # Check if Omega1 is a numpy array
+                    if isinstance(Omega1, nnp.ndarray):
+                        # Check if Omega1 is a square array of shape (NX, NX)
+                        if Omega1.shape[0] == Omega1.shape[1] == NX:
+                            pass  # OK
+                        else:
+                            raise ValueError(f"IC (Omega1) must be a square array of shape ({NX}, {NX}), got {Omega1.shape}")
+
+                
+                # Check if Omega1 is a square matrix
                 if NX % 2  != 0:
                     Omega1 = regrid(Omega1, NX, NX)
 
@@ -483,24 +504,25 @@ if __name__ == '__main__':
     sys.path.append('.')
     #SGSModel_list = ['NoSGS', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6']
     # SGSModel_list = ['SMAG','DSMAG','DSMAG_tau_Local','DSMAG_sigma_Local']
-    SGSModel_list = ['DSMAG_tau_Local_LocalS','DSMAG_sigma_Local_LocalS']
+    # SGSModel_list = ['DSMAG_tau_Local_LocalS','DSMAG_sigma_Local_LocalS']
     #SGSModel_list = [ 'LEITH', 'DLEITH', DLEITH_tau_Local', 'DLEITH_sigma_Local']
+    SGSModel_list = ['NoSGS']
     for SGSModel_string in SGSModel_list:
         # Script to call the function with the given parameters
-        Py2D_solver(Re=20e3, # Reynolds number
+        Py2D_solver(Re=5e2, # Reynolds number
                        fkx=4, # Forcing wavenumber in x
-                       fky=0, # Forcing wavenumber in y
+                       fky=4, # Forcing wavenumber in y
                        alpha=0.1, # Rayleigh drag coefficient
                        beta=20, # Coriolis parameter
-                       NX=128, # Number of grid points in x and y '32', '64', '128', '256', '512'
+                       NX=64, # Number of grid points in x and y '32', '64', '128', '256', '512'
                        SGSModel_string=SGSModel_string, # SGS model to use 'NoSGS', 'SMAG', 'DSMAG', 'LEITH', 'DLEITH', 'PiOmegaGM2', 'PiOmegaGM4', 'PiOmegaGM6'
                        eddyViscosityCoeff=0.17, # Coefficient for eddy viscosity models: SMAG and LEITH
                        dt=5e-4, # Time step
                        saveData=True, # Save data
                        dealias=True, # dealias
-                       tSAVE=1.0, # Time interval to save data
-                       tTotal=10.0, # Total time of simulation
-                       readTrue=False,
-                       ICnum=1, # Initial condition number: Choose between 1 to 20
+                       tSAVE=0.1, # Time interval to save data
+                       tTotal=1.0, # Total time of simulation
+                       IC=1, # Initial condition number: Choose between 1 to 20
+                       ICname=None, # Name of the initial condition file
                        resumeSim=False, # tart new simulation (False) or resume simulation (True)
                        )

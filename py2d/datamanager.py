@@ -11,14 +11,14 @@ import glob
 #def load_IC():
 
 # --------------------------------------------------------------------------
-def gen_path(NX, dt, ICnum, Re, 
+def gen_path(NX, dt, ICname, Re, 
              fkx, fky, alpha, beta, SGSModel_string, dealias):
     # Snapshots of data save at the following directory
     if dealias:
         dataType_DIR = 'Re' + str(int(Re)) + '_fkx' + str(fkx) + 'fky' + str(fky) + '_r' + str(alpha) + '_b' + str(beta) + '/'
     else:
         dataType_DIR = 'Re' + str(int(Re)) + '_fkx' + str(fkx) + 'fky' + str(fky) + '_r' + str(alpha) + '_b' + str(beta) + '_alias/'
-    SAVE_DIR = 'results/' + dataType_DIR + SGSModel_string + '/NX' + str(NX) + '/dt' + str(dt) + '_IC' + str(ICnum) + '/'
+    SAVE_DIR = 'results/' + dataType_DIR + SGSModel_string + '/NX' + str(NX) + '/dt' + str(dt) + '_IC' + str(ICname) + '/'
     SAVE_DIR_DATA = SAVE_DIR + 'data/'
     SAVE_DIR_IC = SAVE_DIR + 'IC/'
 
@@ -65,14 +65,14 @@ def set_last_file(last_file_number_data, last_file_number_IC):
     
     return last_file_number_data, last_file_number_IC
 # --------------------------------------------------------------------------
-def save_settings(readTrue,ICnum,resumeSim,saveData,
+def save_settings(readTrue,ICname,resumeSim,saveData,
          NSAVE,tSAVE,tTotal,maxit,NX, Lx, Re,dt,nu,rho,alpha, SGSModel_string,
          fkx, fky, SAVE_DIR):
     
     # Save variables of the solver 
     variables = {
         'readTrue': readTrue,
-        'ICnum': ICnum,
+        'ICname': ICname,
         'resumeSim': resumeSim,
         'saveData': saveData,
         'NSAVE': NSAVE,
