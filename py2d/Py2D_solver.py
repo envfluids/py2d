@@ -355,7 +355,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
 
     Omega = np.real(np.fft.ifft2(Omega1_hat))
     # Omega_cpu = nnp.array(Omega)
-    return Omega, PiOmega_eddyViscosity_model
+    return Omega
 
 
 def initialize_conditions(NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, direct_IC, SAVE_DIR_IC, SAVE_DIR_DATA ):
