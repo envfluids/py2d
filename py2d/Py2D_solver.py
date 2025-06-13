@@ -374,7 +374,7 @@ def Py2D_solver(Re=500, fkx=4, fky=4, alpha=0.1, beta=20, NX=64, forcing_filter=
 
 def initialize_conditions(NX, Kx, Ky, invKsq, resumeSim, IC, SAVE_DIR_IC, SAVE_DIR_DATA ):
 
-        if IC == 'random':
+        if np.any(np.array(IC) == 'random'):
 
             # -------------- Initialization using pertubration --------------
             w1_hat, psi_hat, psiPrevious_hat, psiCurrent_hat = initialize_perturbation(NX, Kx, Ky)
