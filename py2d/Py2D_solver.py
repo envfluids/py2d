@@ -143,14 +143,8 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     maxit = int(tTotal / dt)
 
     # -------------- Directory to store data ------------------
-    #JPW: addition to differentiate nudged solutions
-    if  isinstance(error_term_hat,(int,float)):
-        nudge = False
-    else:
-        nudge = True
-
     # Snapshots of data save at the following directory
-    SAVE_DIR, SAVE_DIR_DATA, SAVE_DIR_IC = gen_path(NX, dt, ICnum, Re, fkx, fky, alpha, beta, SGSModel_string,nudge=nudge)
+    SAVE_DIR, SAVE_DIR_DATA, SAVE_DIR_IC = gen_path(NX, dt, ICnum, Re, fkx, fky, alpha, beta, SGSModel_string)
 
     # Create directories if they aren't present
     try:
@@ -362,6 +356,7 @@ def Py2D_solver(Re, fkx, fky, alpha, beta, NX, SGSModel_string, eddyViscosityCoe
     Omega = np.real(np.fft.ifft2(Omega1_hat))
     # Omega_cpu = nnp.array(Omega)
     return Omega
+
 
 def initialize_conditions(NX, Kx, Ky, invKsq, readTrue, resumeSim, ICnum, direct_IC, SAVE_DIR_IC, SAVE_DIR_DATA ):
     

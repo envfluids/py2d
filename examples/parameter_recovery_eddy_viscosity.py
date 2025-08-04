@@ -5,7 +5,7 @@ from py2d.eddy_viscosity_models import nabla_squared_omega
 from py2d.filter import coarse_spectral_filter_square_2DFHIT
 from py2d.initialize import initialize_wavenumbers_2DFHIT
 from py2d.SGSModel import SGSModel
-#JPW:Git recognize
+
 
 def calculate_difference(
     omega_high_res_hat: jnp.ndarray, omega_low_res_hat: jnp.ndarray, mu: float
